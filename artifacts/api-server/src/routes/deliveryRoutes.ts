@@ -4,7 +4,6 @@ import { randomUUID } from "crypto";
 import { db, deliveryRoutesTable, routeStopsTable, donationItemsTable } from "@workspace/db";
 import {
   GetRouteParams,
-  CreateRouteBody,
   UpdateRouteParams,
   UpdateRouteBody,
   DeleteRouteParams,
@@ -19,7 +18,6 @@ router.get("/routes", async (_req, res): Promise<void> => {
     .from(deliveryRoutesTable)
     .orderBy(desc(deliveryRoutesTable.createdAt));
 
-  // Get stop counts per route
   const allStops = await db.select().from(routeStopsTable);
   const stopCountMap: Record<string, number> = {};
   for (const stop of allStops) {
@@ -35,28 +33,38 @@ router.get("/routes", async (_req, res): Promise<void> => {
 });
 
 // POST /routes
+// Accepts:
+//   Standard: { name, date, notes?, stops? }
+//   CLI:      { name, description?, date? }  (date defaults to today)
 router.post("/routes", async (req, res): Promise<void> => {
-  const parsed = CreateRouteBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+  const { name, date, notes, description, stops } = req.body ?? {};
+
+  if (!name) {
+    res.status(400).json({ error: "name is required" });
     return;
   }
+
+  const routeDate =
+    date ??
+    new Date().toISOString().split("T")[0]; // default to today
+
+  const routeNotes = notes ?? description ?? null;
 
   const id = randomUUID();
   const [route] = await db
     .insert(deliveryRoutesTable)
     .values({
       id,
-      name: parsed.data.name,
-      date: parsed.data.date,
+      name: String(name),
+      date: String(routeDate),
       status: "planned",
-      notes: parsed.data.notes ?? null,
+      notes: routeNotes ? String(routeNotes) : null,
     })
     .returning();
 
-  // Insert stops if provided
-  if (parsed.data.stops && parsed.data.stops.length > 0) {
-    const stopValues = parsed.data.stops.map((stop) => ({
+  // Insert stops if provided (standard web-app format)
+  if (Array.isArray(stops) && stops.length > 0) {
+    const stopValues = stops.map((stop: any) => ({
       id: randomUUID(),
       routeId: id,
       itemId: stop.itemId,
@@ -66,7 +74,7 @@ router.post("/routes", async (req, res): Promise<void> => {
     await db.insert(routeStopsTable).values(stopValues);
   }
 
-  const stopCount = parsed.data.stops?.length ?? 0;
+  const stopCount = Array.isArray(stops) ? stops.length : 0;
   res.status(201).json({ ...route, stopCount });
 });
 
@@ -95,7 +103,6 @@ router.get("/routes/:id", async (req, res): Promise<void> => {
     .where(eq(routeStopsTable.routeId, route.id))
     .orderBy(routeStopsTable.stopOrder);
 
-  // Fetch items for each stop
   const stopsWithItems = await Promise.all(
     stops.map(async (stop) => {
       const [item] = await db
@@ -137,7 +144,6 @@ router.patch("/routes/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  // Replace stops if provided
   if (stops !== undefined) {
     await db.delete(routeStopsTable).where(eq(routeStopsTable.routeId, route.id));
     if (stops.length > 0) {

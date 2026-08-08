@@ -1,5 +1,9 @@
 import { type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { setApiKey } from '@workspace/api-client-react';
+
+// Inject the API key into every request made by the generated hooks
+setApiKey(import.meta.env.VITE_DONATION_STATION_API_KEY ?? null);
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
