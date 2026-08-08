@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Donation Station"
+description = "A mobile-friendly donation lifecycle tracker. Tracks donated items through four stages: intake → qc → storage → distributed. Each item has a unique DS-XXXX ID, T.I.E.R. classification, condition, donor/recipient, location, expiry date, temperature zone, and more. Features a dashboard, item list with filters, item detail with history, intake form, expiring items urgency page, and route manifest."
+version = "1.0.0"
+id = "artifacts/donation-station"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23423
+
+[services.development]
+run = "pnpm --filter @workspace/donation-station run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/donation-station", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/donation-station/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23423"
+BASE_PATH = "/"

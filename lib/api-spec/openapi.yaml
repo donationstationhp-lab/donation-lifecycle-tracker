@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Donation Station API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: items
+    description: Donation item operations
+  - name: dashboard
+    description: Dashboard and summary operations
+  - name: routes
+    description: Delivery route operations
 paths:
   /healthz:
     get:
@@ -24,6 +30,298 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /items:
+    get:
+      operationId: listItems
+      tags: [items]
+      summary: List donation items
+      parameters:
+        - name: stage
+          in: query
+          schema:
+            type: string
+            enum: [intake, qc, storage, distributed]
+        - name: tier
+          in: query
+          schema:
+            type: string
+            enum: [T, I, E, R]
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: temperatureZone
+          in: query
+          schema:
+            type: string
+            enum: [ambient, refrigerated, frozen]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DonationItem"
+    post:
+      operationId: createItem
+      tags: [items]
+      summary: Create a new donation item (intake)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonationItemInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationItem"
+
+  /items/{id}:
+    get:
+      operationId: getItem
+      tags: [items]
+      summary: Get a donation item by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Item found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationItemDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateItem
+      tags: [items]
+      summary: Update a donation item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonationItemUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteItem
+      tags: [items]
+      summary: Delete a donation item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /items/{id}/stage:
+    patch:
+      operationId: advanceItemStage
+      tags: [items]
+      summary: Advance item to a new stage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageAdvance"
+      responses:
+        "200":
+          description: Stage updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonationItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /items/expiring:
+    get:
+      operationId: listExpiringItems
+      tags: [items]
+      summary: List items with expiry urgency
+      responses:
+        "200":
+          description: Expiring items grouped by urgency
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpiringItemsResponse"
+
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Dashboard summary data
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /routes:
+    get:
+      operationId: listRoutes
+      tags: [routes]
+      summary: List delivery routes
+      responses:
+        "200":
+          description: List of routes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeliveryRoute"
+    post:
+      operationId: createRoute
+      tags: [routes]
+      summary: Create a delivery route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeliveryRouteInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryRoute"
+
+  /routes/{id}:
+    get:
+      operationId: getRoute
+      tags: [routes]
+      summary: Get a delivery route by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Route found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryRouteDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateRoute
+      tags: [routes]
+      summary: Update a delivery route
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeliveryRouteUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryRoute"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteRoute
+      tags: [routes]
+      summary: Delete a delivery route
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +332,387 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    DonationItem:
+      type: object
+      required:
+        - id
+        - itemId
+        - name
+        - category
+        - tier
+        - condition
+        - donor
+        - stage
+        - lotNumber
+        - powerConnectionReading
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        itemId:
+          type: string
+          description: Human-readable ID in format DS-XXXX
+        name:
+          type: string
+        category:
+          type: string
+        tier:
+          type: string
+          enum: [T, I, E, R]
+          description: "T=Time, I=Intelligence, E=Energy, R=Resources"
+        condition:
+          type: string
+          enum: [good, fair, poor]
+        donor:
+          type: string
+        recipient:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        expiryDate:
+          type: ["string", "null"]
+          format: date
+        temperatureZone:
+          type: string
+          enum: [ambient, refrigerated, frozen]
+        weight:
+          type: ["number", "null"]
+        origin:
+          type: ["string", "null"]
+        lotNumber:
+          type: string
+          description: Lot number in format LOT-XXXX
+        powerConnectionReading:
+          type: string
+          description: Numerology reading on intake date
+        stage:
+          type: string
+          enum: [intake, qc, storage, distributed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DonationItemDetail:
+      allOf:
+        - $ref: "#/components/schemas/DonationItem"
+        - type: object
+          required:
+            - history
+          properties:
+            history:
+              type: array
+              items:
+                $ref: "#/components/schemas/StageHistoryEntry"
+
+    StageHistoryEntry:
+      type: object
+      required:
+        - id
+        - fromStage
+        - toStage
+        - timestamp
+      properties:
+        id:
+          type: string
+        fromStage:
+          type: ["string", "null"]
+        toStage:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        notes:
+          type: ["string", "null"]
+
+    DonationItemInput:
+      type: object
+      required:
+        - name
+        - category
+        - tier
+        - condition
+        - donor
+        - lotNumber
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        tier:
+          type: string
+          enum: [T, I, E, R]
+        condition:
+          type: string
+          enum: [good, fair, poor]
+        donor:
+          type: string
+        recipient:
+          type: string
+        location:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        temperatureZone:
+          type: string
+          enum: [ambient, refrigerated, frozen]
+          default: ambient
+        weight:
+          type: number
+        origin:
+          type: string
+        lotNumber:
+          type: string
+        powerConnectionReading:
+          type: string
+
+    DonationItemUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        tier:
+          type: string
+          enum: [T, I, E, R]
+        condition:
+          type: string
+          enum: [good, fair, poor]
+        donor:
+          type: string
+        recipient:
+          type: string
+        location:
+          type: string
+        expiryDate:
+          type: string
+          format: date
+        temperatureZone:
+          type: string
+          enum: [ambient, refrigerated, frozen]
+        weight:
+          type: number
+        origin:
+          type: string
+        lotNumber:
+          type: string
+        powerConnectionReading:
+          type: string
+
+    StageAdvance:
+      type: object
+      required:
+        - stage
+      properties:
+        stage:
+          type: string
+          enum: [intake, qc, storage, distributed]
+        notes:
+          type: string
+
+    ExpiringItem:
+      allOf:
+        - $ref: "#/components/schemas/DonationItem"
+        - type: object
+          required:
+            - urgency
+            - daysUntilExpiry
+          properties:
+            urgency:
+              type: string
+              enum: [expired, critical, warning, watch]
+            daysUntilExpiry:
+              type: number
+
+    ExpiringItemsResponse:
+      type: object
+      required:
+        - expired
+        - critical
+        - warning
+        - watch
+      properties:
+        expired:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpiringItem"
+        critical:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpiringItem"
+        warning:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpiringItem"
+        watch:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExpiringItem"
+
+    TierCount:
+      type: object
+      required:
+        - tier
+        - count
+      properties:
+        tier:
+          type: string
+          enum: [T, I, E, R]
+        count:
+          type: number
+
+    StageCount:
+      type: object
+      required:
+        - stage
+        - count
+      properties:
+        stage:
+          type: string
+          enum: [intake, qc, storage, distributed]
+        count:
+          type: number
+
+    DashboardSummary:
+      type: object
+      required:
+        - totalItems
+        - byTier
+        - byStage
+        - recentItems
+        - expiringCount
+      properties:
+        totalItems:
+          type: number
+        byTier:
+          type: array
+          items:
+            $ref: "#/components/schemas/TierCount"
+        byStage:
+          type: array
+          items:
+            $ref: "#/components/schemas/StageCount"
+        recentItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/DonationItem"
+        expiringCount:
+          type: number
+
+    RouteStop:
+      type: object
+      required:
+        - itemId
+        - stopOrder
+      properties:
+        itemId:
+          type: string
+        stopOrder:
+          type: number
+        notes:
+          type: ["string", "null"]
+
+    DeliveryRoute:
+      type: object
+      required:
+        - id
+        - name
+        - date
+        - status
+        - stopCount
+        - createdAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [planned, in_progress, completed]
+        stopCount:
+          type: number
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    DeliveryRouteDetail:
+      allOf:
+        - $ref: "#/components/schemas/DeliveryRoute"
+        - type: object
+          required:
+            - stops
+          properties:
+            stops:
+              type: array
+              items:
+                $ref: "#/components/schemas/RouteStopDetail"
+
+    RouteStopDetail:
+      type: object
+      required:
+        - itemId
+        - stopOrder
+        - item
+      properties:
+        itemId:
+          type: string
+        stopOrder:
+          type: number
+        notes:
+          type: ["string", "null"]
+        item:
+          $ref: "#/components/schemas/DonationItem"
+
+    DeliveryRouteInput:
+      type: object
+      required:
+        - name
+        - date
+      properties:
+        name:
+          type: string
+        date:
+          type: string
+          format: date
+        notes:
+          type: string
+        stops:
+          type: array
+          items:
+            $ref: "#/components/schemas/RouteStop"
+
+    DeliveryRouteUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [planned, in_progress, completed]
+        notes:
+          type: string
+        stops:
+          type: array
+          items:
+            $ref: "#/components/schemas/RouteStop"
