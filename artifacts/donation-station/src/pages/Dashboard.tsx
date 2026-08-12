@@ -1,14 +1,34 @@
 import { useGetDashboard } from '@workspace/api-client-react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'wouter';
-import { AlertTriangle, ArrowRight, Package, TrendingUp } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Package, TrendingUp, Clock, Heart, ExternalLink } from 'lucide-react';
 import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
-import { Button } from 'react-day-picker';
+import { Button } from '@/components/ui/button';
+
+const API_KEY = import.meta.env.VITE_DONATION_STATION_API_KEY ?? '';
+
+function usePendingCount() {
+  const { data } = useQuery<unknown[]>({
+    queryKey: ['pending-count'],
+    queryFn: () =>
+      fetch('/api/items?pendingReview=true', {
+        headers: { 'X-API-Key': API_KEY },
+      }).then((r) => (r.ok ? r.json() : [])),
+    refetchInterval: 30000,
+    staleTime: 15000,
+  });
+  return Array.isArray(data) ? data.length : 0;
+}
 
 export default function Dashboard() {
   const { data: summary, isLoading, isError } = useGetDashboard();
+  const pendingCount = usePendingCount();
+
+  // Build the public donate URL — same origin, /donation-station/donate
+  const donateUrl = `${window.location.origin}/donation-station/donate`;
 
   if (isLoading) {
     return (
@@ -31,15 +51,14 @@ export default function Dashboard() {
     );
   }
 
-  // Calculate percentages for Tier breakdown
   const maxTierCount = Math.max(...summary.byTier.map(t => t.count), 1);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <h1 className="text-2xl font-bold tracking-tight">Operations Overview</h1>
-      
+
       {/* Top Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="shadow-sm border-sidebar-border/10 bg-gradient-to-br from-white to-gray-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
@@ -80,83 +99,105 @@ export default function Dashboard() {
               <div className={`text-3xl font-bold ${summary.expiringCount > 0 ? 'text-orange-600' : 'text-foreground'}`}>
                 {summary.expiringCount}
               </div>
-              <p className={`text-xs mt-1 tracking-tight flex items-center gap-1 ${summary.expiringCount > 0 ? 'text-orange-700' : 'text-muted-foreground'}`}>
-                Needs attention <ArrowRight className="w-3 h-3" />
+              <p className={`text-xs mt-1 tracking-tight ${summary.expiringCount > 0 ? 'text-orange-700' : 'text-muted-foreground'}`}>
+                Within 14 days
+              </p>
+            </CardContent>
+          </Link>
+        </Card>
+
+        {/* Pending Review card */}
+        <Card className={`shadow-sm transition-all hover-elevate cursor-pointer ${pendingCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-sidebar-border/10'}`}>
+          <Link href="/pending" className="block">
+            <CardHeader className="pb-2">
+              <CardTitle className={`text-sm font-medium flex justify-between items-center ${pendingCount > 0 ? 'text-amber-800' : 'text-muted-foreground'}`}>
+                Pending Review
+                <Clock className={`w-4 h-4 ${pendingCount > 0 ? 'text-amber-500 animate-pulse' : 'text-primary/40'}`} />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-3xl font-bold ${pendingCount > 0 ? 'text-amber-600' : 'text-foreground'}`}>
+                {pendingCount}
+              </div>
+              <p className={`text-xs mt-1 tracking-tight ${pendingCount > 0 ? 'text-amber-700' : 'text-muted-foreground'}`}>
+                {pendingCount === 1 ? 'Donor submission' : 'Donor submissions'}
               </p>
             </CardContent>
           </Link>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tier Breakdown */}
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">T.I.E.R. Breakdown</CardTitle>
-            <CardDescription>Composition of current inventory by class</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {summary.byTier.map(tier => {
+      {/* Share Donate Link banner */}
+      <div className="rounded-xl bg-gradient-to-r from-[#1E7A4E]/10 to-[#2C4B6E]/10 border border-[#1E7A4E]/20 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="bg-[#1E7A4E]/10 rounded-full p-2 shrink-0">
+            <Heart className="w-5 h-5 text-[#1E7A4E]" />
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-foreground">Donor Intake Form</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Share this link with donors so they can submit items directly — no login needed.
+            </p>
+            <p className="text-xs font-mono text-[#2C4B6E] mt-1 break-all">{donateUrl}</p>
+          </div>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-[#1E7A4E]/30 text-[#1E7A4E] hover:bg-[#1E7A4E]/10 text-xs"
+            onClick={() => navigator.clipboard?.writeText(donateUrl)}
+          >
+            Copy link
+          </Button>
+          <a href={donateUrl} target="_blank" rel="noopener noreferrer">
+            <Button size="sm" variant="outline" className="text-xs gap-1">
+              Open <ExternalLink className="w-3 h-3" />
+            </Button>
+          </a>
+        </div>
+      </div>
+
+      {/* Tier Breakdown */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg">T.I.E.R. Breakdown</CardTitle>
+          <CardDescription>Distribution of items by classification tier</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {summary.byTier.map((tier) => {
               const tierColors: Record<string, string> = {
-                T: 'bg-tier-t text-tier-t',
-                I: 'bg-tier-i text-tier-i',
-                E: 'bg-tier-e text-tier-e',
-                R: 'bg-tier-r text-tier-r',
+                T: 'bg-[#C4700E]',
+                I: 'bg-[#3B5AA0]',
+                E: 'bg-[#1E7A4E]',
+                R: 'bg-[#A3442A]',
               };
-              const bg = tierColors[tier.tier].split(' ')[0];
-              const text = tierColors[tier.tier].split(' ')[1];
-              
-              const percentage = Math.round((tier.count / maxTierCount) * 100) || 0;
-              
+              const tierNames: Record<string, string> = {
+                T: 'Tactical',
+                I: 'Immediate',
+                E: 'Essential',
+                R: 'Reserve',
+              };
               return (
-                <div key={tier.tier} className="flex items-center gap-4">
-                  <div className="w-16">
-                    <TierBadge tier={tier.tier} />
-                  </div>
-                  <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${bg} rounded-full transition-all duration-1000 ease-out`}
-                      style={{ width: `${percentage}%` }}
+                <div key={tier.tier} className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-muted-foreground w-4">{tier.tier}</span>
+                  <div className="flex-1 bg-secondary rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${tierColors[tier.tier] ?? 'bg-primary'} transition-all`}
+                      style={{ width: `${(tier.count / maxTierCount) * 100}%` }}
                     />
                   </div>
-                  <div className={`w-12 text-right font-mono font-medium text-sm ${text}`}>
-                    {tier.count}
-                  </div>
+                  <span className="text-sm font-semibold w-8 text-right">{tier.count}</span>
+                  <span className="text-xs text-muted-foreground w-20 hidden sm:block">
+                    {tierNames[tier.tier]}
+                  </span>
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
-
-        {/* Pipeline */}
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">Pipeline Status</CardTitle>
-            <CardDescription>Items across operational stages</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col space-y-4">
-              {['intake', 'qc', 'storage', 'distributed'].map((stageName, index) => {
-                const count = summary.byStage.find(s => s.stage === stageName)?.count || 0;
-                return (
-                  <div key={stageName} className="flex items-center group">
-                    <div className="w-8 flex flex-col items-center justify-center">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-mono text-xs font-bold z-10 ring-4 ring-card">
-                        {index + 1}
-                      </div>
-                      {index < 3 && <div className="w-0.5 h-full bg-border -mb-8 mt-1 z-0" />}
-                    </div>
-                    <div className="ml-4 flex-1 flex justify-between items-center p-3 rounded-lg border border-transparent group-hover:border-border group-hover:bg-secondary/50 transition-colors">
-                      <StageChip stage={stageName as any} />
-                      <span className="font-mono text-lg font-semibold">{count}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Items */}
       <Card className="shadow-sm">
@@ -166,7 +207,9 @@ export default function Dashboard() {
             <CardDescription>Latest items logged into the system</CardDescription>
           </div>
           <Link href="/items">
-            <Button variant="outline" size="sm">View All</Button>
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              View All <ArrowRight className="w-3 h-3" />
+            </Button>
           </Link>
         </CardHeader>
         <CardContent>

@@ -4,6 +4,7 @@ import { setApiKey } from '@workspace/api-client-react';
 
 // Inject the API key into every request made by the generated hooks
 setApiKey(import.meta.env.VITE_DONATION_STATION_API_KEY ?? null);
+
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -17,31 +18,42 @@ import {
 
 import { Shell } from '@/components/layout/Shell';
 import Dashboard from '@/pages/Dashboard';
+import Donate from '@/pages/Donate';
 import ItemsList from '@/pages/ItemsList';
 import IntakeForm from '@/pages/IntakeForm';
 import ItemDetail from '@/pages/ItemDetail';
 import ExpiringItems from '@/pages/ExpiringItems';
 import RoutesList from '@/pages/RoutesList';
 import RouteDetail from '@/pages/RouteDetail';
+import PendingReview from '@/pages/PendingReview';
 
 const queryClient = new QueryClient();
 
 function Router() {
   return (
-    <Shell>
-      <RoutedErrorBoundary>
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/items" component={ItemsList} />
-          <Route path="/items/new" component={IntakeForm} />
-          <Route path="/items/:id" component={ItemDetail} />
-          <Route path="/expiring" component={ExpiringItems} />
-          <Route path="/routes" component={RoutesList} />
-          <Route path="/routes/:id" component={RouteDetail} />
-          <Route component={NotFound} />
-        </Switch>
-      </RoutedErrorBoundary>
-    </Shell>
+    <Switch>
+      {/* /donate is fully public — no Shell, no nav, no auth */}
+      <Route path="/donate" component={Donate} />
+
+      {/* All staff routes are wrapped in the Shell */}
+      <Route>
+        <Shell>
+          <RoutedErrorBoundary>
+            <Switch>
+              <Route path="/" component={Dashboard} />
+              <Route path="/items" component={ItemsList} />
+              <Route path="/items/new" component={IntakeForm} />
+              <Route path="/items/:id" component={ItemDetail} />
+              <Route path="/expiring" component={ExpiringItems} />
+              <Route path="/routes" component={RoutesList} />
+              <Route path="/routes/:id" component={RouteDetail} />
+              <Route path="/pending" component={PendingReview} />
+              <Route component={NotFound} />
+            </Switch>
+          </RoutedErrorBoundary>
+        </Shell>
+      </Route>
+    </Switch>
   );
 }
 

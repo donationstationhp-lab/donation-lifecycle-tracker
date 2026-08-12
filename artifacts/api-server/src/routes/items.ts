@@ -89,6 +89,16 @@ router.get("/items", async (req, res): Promise<void> => {
   if (temperatureZone) conditions.push(eq(donationItemsTable.temperatureZone, temperatureZone));
   if (search) conditions.push(like(donationItemsTable.name, `%${search}%`));
 
+  // ?pendingReview=true  → only pending items
+  // ?pendingReview=false → only non-pending items
+  // (omitted)            → all items
+  const pendingReviewParam = req.query.pendingReview;
+  if (pendingReviewParam === "true") {
+    conditions.push(eq(donationItemsTable.pendingReview, true));
+  } else if (pendingReviewParam === "false") {
+    conditions.push(eq(donationItemsTable.pendingReview, false));
+  }
+
   const items = await db
     .select()
     .from(donationItemsTable)
@@ -213,6 +223,34 @@ router.get("/items/expiring", async (req, res): Promise<void> => {
   }
 
   res.json({ expired, critical, warning, watch });
+});
+
+// ── POST /items/:id/approve ───────────────────────────────────────────────────
+// Clears the pendingReview flag, keeping the item at stage=intake for normal processing.
+router.post("/items/:id/approve", async (req, res): Promise<void> => {
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const item = await getItemById(id);
+  if (!item) { res.status(404).json({ error: "Item not found" }); return; }
+
+  const by = req.body?.by;
+
+  await db
+    .update(donationItemsTable)
+    .set({ pendingReview: false, updatedAt: new Date() })
+    .where(eq(donationItemsTable.id, id));
+
+  await db.insert(stageHistoryTable).values({
+    id: randomUUID(),
+    itemId: id,
+    fromStage: item.stage,
+    toStage: item.stage,
+    notes: ["Approved by staff — cleared for intake processing", by ? `By: ${by}` : null]
+      .filter(Boolean)
+      .join(" | "),
+  });
+
+  const updated = await getItemById(id);
+  res.json(updated);
 });
 
 // ── POST /items/:id/qc ───────────────────────────────────────────────────────

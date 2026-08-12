@@ -1,4 +1,4 @@
-import { pgTable, text, real, timestamp, date } from "drizzle-orm/pg-core";
+import { pgTable, text, real, timestamp, date, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -8,7 +8,7 @@ export const donationItemsTable = pgTable("donation_items", {
   name: text("name").notNull(),
   category: text("category").notNull(),
   tier: text("tier").notNull(), // T | I | E | R
-  condition: text("condition").notNull(), // good | fair | poor
+  condition: text("condition").notNull(), // good | fair | poor | excellent
   donor: text("donor").notNull(),
   recipient: text("recipient"),
   location: text("location"),
@@ -19,6 +19,7 @@ export const donationItemsTable = pgTable("donation_items", {
   lotNumber: text("lot_number").notNull(),
   powerConnectionReading: text("power_connection_reading").notNull().default(""),
   stage: text("stage").notNull().default("intake"), // intake | qc | storage | distributed
+  pendingReview: boolean("pending_review").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
