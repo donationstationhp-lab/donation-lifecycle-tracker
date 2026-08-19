@@ -7,14 +7,16 @@ import dashboardRouter from "./dashboard";
 import deliveryRoutesRouter from "./deliveryRoutes";
 import locationsRouter from "./locations";
 import cliExtrasRouter from "./cliExtras";
-
+import notionHealthRouter from "./notionHealth";
+import notionHealthRouter from "./notionHealth";
 const router: IRouter = Router();
 
 // ── Unauthenticated endpoints ────────────────────────────────────────────────
 // These are registered BEFORE the auth middleware.
 router.use(healthRouter);   // /healthz  /health
 router.use(publicRoutes);   // /public/donate
-
+router.use(notionHealthRouter); // /notion/health
+router.use(notionHealthRouter);
 // ── Auth gate ────────────────────────────────────────────────────────────────
 router.use(apiKeyAuth);
 
