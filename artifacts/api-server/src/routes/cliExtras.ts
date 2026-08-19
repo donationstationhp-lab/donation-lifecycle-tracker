@@ -32,7 +32,7 @@ router.get("/export", async (_req, res): Promise<void> => {
 });
 
 // ── Import ────────────────────────────────────────────────────────────────────
-// POST /import — bulk upsert items by itemId
+// POST /import — bulk upsert items by database id
 router.post("/import", async (req, res): Promise<void> => {
   const body = req.body;
   if (!Array.isArray(body)) {
@@ -41,65 +41,86 @@ router.post("/import", async (req, res): Promise<void> => {
   }
 
   const now = new Date();
-  let inserted = 0;
-  let skipped = 0;
-  const errors: string[] = [];
+  const ids: string[] = [];
 
   for (const raw of body) {
-    const itemId = raw.itemId ?? raw.item_id ?? raw.id;
-    if (!itemId || !raw.name) {
-      errors.push(`Skipped row missing itemId or name: ${JSON.stringify(raw).slice(0, 80)}`);
-      skipped++;
-      continue;
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      res.status(400).json({ error: "Each imported item must be a JSON object" });
+      return;
     }
 
-    // Check if item with this itemId already exists
-    const [existing] = await db
-      .select({ id: donationItemsTable.id })
-      .from(donationItemsTable)
-      .where(eq(donationItemsTable.itemId, String(itemId)));
-
-    if (existing) {
-      skipped++;
-      continue;
+    const item = raw as Record<string, unknown>;
+    const id = item.id;
+    if (id == null || String(id).trim() === "") {
+      res.status(400).json({ error: "Each imported item must include an id" });
+      return;
     }
 
-    const id = randomUUID();
-    const lotNumber = raw.lotNumber ?? raw.lot_number ?? raw.lot ?? generateLotNumber();
-    const tier = raw.tier ?? "R";
-    const stage = raw.stage ?? "intake";
+    const itemId = item.itemId ?? item.item_id ?? id;
+    const name = item.name;
+    if (name == null || String(name).trim() === "") {
+      res.status(400).json({ error: `Imported item ${String(id)} is missing name` });
+      return;
+    }
 
-    await db.insert(donationItemsTable).values({
-      id,
+    const values = {
+      id: String(id),
       itemId: String(itemId),
-      name: String(raw.name),
-      category: raw.category ? String(raw.category) : "General",
-      tier: String(tier),
-      condition: raw.condition ?? "good",
-      donor: raw.donor ? String(raw.donor) : "Unknown",
-      recipient: raw.recipient ? String(raw.recipient) : null,
-      location: raw.location ? String(raw.location) : null,
-      expiryDate: raw.expiryDate ?? raw.expiry_date ?? null,
-      temperatureZone: raw.temperatureZone ?? raw.temp_zone ?? "ambient",
-      weight: raw.weight != null ? Number(raw.weight) : null,
-      origin: raw.origin ? String(raw.origin) : null,
-      lotNumber: String(lotNumber),
-      powerConnectionReading: raw.powerConnectionReading ?? raw.power_connection_reading ?? computeNumerology(now),
-      stage: String(stage),
-    });
+      name: String(name),
+      category: item.category != null ? String(item.category) : "General",
+      tier: item.tier != null ? String(item.tier) : "R",
+      condition: item.condition != null ? String(item.condition) : "good",
+      donor: item.donor != null ? String(item.donor) : "Unknown",
+      recipient: stringOrNull(item.recipient),
+      location: stringOrNull(item.location),
+      expiryDate: stringOrNull(item.expiryDate ?? item.expiry_date),
+      temperatureZone: item.temperatureZone != null
+        ? String(item.temperatureZone)
+        : item.temp_zone != null
+          ? String(item.temp_zone)
+          : "ambient",
+      weight: numberOrNull(item.weight),
+      origin: stringOrNull(item.origin),
+      lotNumber: String(item.lotNumber ?? item.lot_number ?? item.lot ?? generateLotNumber()),
+      powerConnectionReading: String(
+        item.powerConnectionReading ??
+          item.power_connection_reading ??
+          computeNumerology(now),
+      ),
+      stage: item.stage != null ? String(item.stage) : "intake",
+      pendingReview: booleanOrDefault(item.pendingReview, false),
+    };
 
-    await db.insert(stageHistoryTable).values({
-      id: randomUUID(),
-      itemId: id,
-      fromStage: null,
-      toStage: stage,
-      notes: "Imported via bulk import",
-    });
+    await db
+      .insert(donationItemsTable)
+      .values(values)
+      .onConflictDoUpdate({
+        target: donationItemsTable.id,
+        set: {
+          itemId: values.itemId,
+          name: values.name,
+          category: values.category,
+          tier: values.tier,
+          condition: values.condition,
+          donor: values.donor,
+          recipient: values.recipient,
+          location: values.location,
+          expiryDate: values.expiryDate,
+          temperatureZone: values.temperatureZone,
+          weight: values.weight,
+          origin: values.origin,
+          lotNumber: values.lotNumber,
+          powerConnectionReading: values.powerConnectionReading,
+          stage: values.stage,
+          pendingReview: values.pendingReview,
+          updatedAt: now,
+        },
+      });
 
-    inserted++;
+    ids.push(values.id);
   }
 
-  res.json({ inserted, skipped, errors: errors.length > 0 ? errors : undefined });
+  res.json({ imported: ids.length, ids });
 });
 
 // ── Manifest ──────────────────────────────────────────────────────────────────
@@ -351,6 +372,26 @@ router.get("/report", async (_req, res): Promise<void> => {
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function stringOrNull(value: unknown): string | null {
+  if (value == null || String(value).trim() === "") return null;
+  return String(value);
+}
+
+function numberOrNull(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function booleanOrDefault(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    if (value.toLowerCase() === "true") return true;
+    if (value.toLowerCase() === "false") return false;
+  }
+  return fallback;
+}
+
 function generateLotNumber(): string {
   const num = Math.floor(1000 + Math.random() * 9000);
   return `LOT-${num}`;

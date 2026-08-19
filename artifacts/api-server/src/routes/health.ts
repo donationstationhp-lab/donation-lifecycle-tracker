@@ -1,17 +1,19 @@
 import { Router, type IRouter } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
 
-const router: IRouter = Router();
+const publicRouter: IRouter = Router();
+const protectedRouter: IRouter = Router();
 
-// Unauthenticated health check used by web app clients
-router.get("/healthz", (_req, res) => {
+// Legacy unauthenticated health check used by the deployment health probe.
+publicRouter.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
   res.json(data);
 });
 
-// CLI-facing unauthenticated endpoint — no auth middleware applied here
-router.get("/health", (_req, res) => {
-  res.json({ status: "ok", version: "1.0" });
+// CLI-facing health check. This router is mounted after apiKeyAuth.
+protectedRouter.get("/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-export default router;
+export const protectedHealthRouter = protectedRouter;
+export default publicRouter;
