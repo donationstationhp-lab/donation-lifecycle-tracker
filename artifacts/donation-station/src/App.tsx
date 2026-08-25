@@ -26,6 +26,7 @@ import ExpiringItems from '@/pages/ExpiringItems';
 import RoutesList from '@/pages/RoutesList';
 import RouteDetail from '@/pages/RouteDetail';
 import PendingReview from '@/pages/PendingReview';
+import Pickups from '@/pages/Pickups';
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ function Router() {
               <Route path="/items" component={ItemsList} />
               <Route path="/items/new" component={IntakeForm} />
               <Route path="/items/:id" component={ItemDetail} />
+              <Route path="/pickups" component={Pickups} />
               <Route path="/expiring" component={ExpiringItems} />
               <Route path="/routes" component={RoutesList} />
               <Route path="/routes/:id" component={RouteDetail} />

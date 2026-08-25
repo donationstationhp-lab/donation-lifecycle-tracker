@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 
@@ -26,6 +26,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/items', label: 'Items', icon: Package },
+    { href: '/pickups', label: 'Pickups', icon: ClipboardCheck },
     { href: '/expiring', label: 'Expiring', icon: AlertTriangle },
     { href: '/routes', label: 'Routes', icon: Truck },
     { href: '/pending', label: 'Pending Review', icon: Clock, badge: pendingCount },
