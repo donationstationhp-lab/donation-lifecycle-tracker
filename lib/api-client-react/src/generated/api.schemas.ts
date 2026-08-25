@@ -77,8 +77,12 @@ export interface DonationItem {
   origin?: string | null;
   /** Lot number in format LOT-XXXX */
   lotNumber: string;
-  /** Numerology reading on intake date */
   powerConnectionReading: string;
+  /**
+     * Numerology reading on intake date
+     * @nullable
+     */
+  sourcePickupId?: string | null;
   stage: DonationItemStage;
   createdAt: string;
   updatedAt: string;
@@ -259,10 +263,17 @@ export interface DashboardSummary {
   byStage: StageCount[];
   recentItems: DonationItem[];
   expiringCount: number;
+  pendingReviewCount: number;
+  pickupsPendingVerification: number;
+  pickupsConfirmedThisWeek: number;
+  flaggedPickupValues: number;
 }
 
 export interface RouteStop {
-  itemId: string;
+  /** @nullable */
+  itemId?: string | null;
+  /** @nullable */
+  pickupRequestId?: string | null;
   stopOrder: number;
   /** @nullable */
   notes?: string | null;
@@ -288,12 +299,85 @@ export interface DeliveryRoute {
   createdAt: string;
 }
 
+export type PickupStatus = typeof PickupStatus[keyof typeof PickupStatus];
+
+
+export const PickupStatus = {
+  unverified: 'unverified',
+  contact_made: 'contact_made',
+  confirmed: 'confirmed',
+  dispatched: 'dispatched',
+  completed: 'completed',
+  no_show: 'no_show',
+  false_address: 'false_address',
+  cancelled: 'cancelled',
+  closed_no_response: 'closed_no_response',
+} as const;
+
+export type PickupAddressType = typeof PickupAddressType[keyof typeof PickupAddressType];
+
+
+export const PickupAddressType = {
+  residence: 'residence',
+  business: 'business',
+  other: 'other',
+} as const;
+
+export type PickupOutcome = typeof PickupOutcome[keyof typeof PickupOutcome];
+
+
+export const PickupOutcome = {
+  completed: 'completed',
+  no_show: 'no_show',
+  false_address: 'false_address',
+  cancelled: 'cancelled',
+  flagged: 'flagged',
+} as const;
+
+export interface PickupRequest {
+  id: string;
+  status: PickupStatus;
+  phone: string;
+  /** @nullable */
+  name?: string | null;
+  address: string;
+  addressConfirmed: boolean;
+  addressVerified: boolean;
+  addressType: PickupAddressType;
+  requestedWindow: string;
+  /** @nullable */
+  confirmedDatetime?: string | null;
+  /** @nullable */
+  itemsDescribed?: string | null;
+  /** @nullable */
+  itemsReceived?: string | null;
+  confirmationSent: boolean;
+  confirmationReplied: boolean;
+  outcome?: PickupOutcome | null;
+  /** @nullable */
+  outcomeNotes?: string | null;
+  phoneFlagged: boolean;
+  addressFlagged: boolean;
+  requiresSupervisorApproval: boolean;
+  /** @nullable */
+  assignedDriver?: string | null;
+  /** @nullable */
+  linkedRouteId?: string | null;
+  contactAttempts: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface RouteStopDetail {
-  itemId: string;
+  /** @nullable */
+  itemId?: string | null;
+  /** @nullable */
+  pickupRequestId?: string | null;
   stopOrder: number;
   /** @nullable */
   notes?: string | null;
-  item: DonationItem;
+  item?: DonationItem | null;
+  pickup?: PickupRequest | null;
 }
 
 export type DeliveryRouteDetail = DeliveryRoute & {
@@ -305,6 +389,155 @@ export interface DeliveryRouteInput {
   date: string;
   notes?: string;
   stops?: RouteStop[];
+}
+
+export interface PickupRequestInput {
+  phone: string;
+  /** @nullable */
+  name?: string | null;
+  address: string;
+  addressConfirmed?: boolean;
+  addressVerified?: boolean;
+  addressType?: PickupAddressType;
+  requestedWindow: string;
+  /** @nullable */
+  confirmedDatetime?: string | null;
+  /** @nullable */
+  itemsDescribed?: string | null;
+  confirmationSent?: boolean;
+  confirmationReplied?: boolean;
+  /** @nullable */
+  assignedDriver?: string | null;
+}
+
+export interface PickupRequestUpdate {
+  phone?: string;
+  /** @nullable */
+  name?: string | null;
+  address?: string;
+  addressConfirmed?: boolean;
+  addressVerified?: boolean;
+  addressType?: PickupAddressType;
+  requestedWindow?: string;
+  /** @nullable */
+  confirmedDatetime?: string | null;
+  /** @nullable */
+  itemsDescribed?: string | null;
+  /** @nullable */
+  itemsReceived?: string | null;
+  confirmationSent?: boolean;
+  confirmationReplied?: boolean;
+  /** @nullable */
+  assignedDriver?: string | null;
+  /** @nullable */
+  outcomeNotes?: string | null;
+}
+
+export type PickupContactAttemptInputResult = typeof PickupContactAttemptInputResult[keyof typeof PickupContactAttemptInputResult];
+
+
+export const PickupContactAttemptInputResult = {
+  contacted: 'contacted',
+  no_response: 'no_response',
+} as const;
+
+export interface PickupContactAttemptInput {
+  result: PickupContactAttemptInputResult;
+  notes?: string;
+}
+
+export interface PickupOutcomeInput {
+  outcome: PickupOutcome;
+  notes?: string;
+}
+
+export type PickupCompleteInputCondition = typeof PickupCompleteInputCondition[keyof typeof PickupCompleteInputCondition];
+
+
+export const PickupCompleteInputCondition = {
+  good: 'good',
+  fair: 'fair',
+  poor: 'poor',
+} as const;
+
+export interface PickupCompleteInput {
+  itemsReceived: string;
+  condition?: PickupCompleteInputCondition;
+  category?: string;
+  notes?: string;
+}
+
+export interface PickupContactAttempt {
+  id: string;
+  pickupRequestId: string;
+  attemptNumber: number;
+  result: string;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+}
+
+export type PickupFlagType = typeof PickupFlagType[keyof typeof PickupFlagType];
+
+
+export const PickupFlagType = {
+  phone: 'phone',
+  address: 'address',
+} as const;
+
+export interface PickupFlag {
+  id: string;
+  type: PickupFlagType;
+  value: string;
+  reason: string;
+  pickupRequestId: string;
+  count: number;
+  supervisorApproved: boolean;
+  associatedPickupIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PickupRequestDetail = PickupRequest & {
+  contactHistory: PickupContactAttempt[];
+  flags: PickupFlag[];
+};
+
+export interface PickupCompletionResponse {
+  pickup: PickupRequestDetail;
+  item: DonationItem;
+}
+
+export interface PickupRouteInput {
+  linkedRouteId: string;
+  assignedDriver?: string;
+  /** @nullable */
+  confirmedDatetime?: string | null;
+}
+
+export interface PickupFlagInput {
+  type: PickupFlagType;
+  value: string;
+  reason: string;
+}
+
+export interface PickupFlagUpdate {
+  supervisorApproved?: boolean;
+}
+
+export interface DispatchBlockedResponse {
+  error: string;
+  missing: string[];
+}
+
+export interface ConfirmationTemplate {
+  id: string;
+  body: string;
+  updatedAt: string;
+}
+
+export interface ConfirmationTemplateInput {
+  body: string;
 }
 
 export type DeliveryRouteUpdateStatus = typeof DeliveryRouteUpdateStatus[keyof typeof DeliveryRouteUpdateStatus];
@@ -359,5 +592,27 @@ export const ListItemsTemperatureZone = {
   ambient: 'ambient',
   refrigerated: 'refrigerated',
   frozen: 'frozen',
+} as const;
+
+export type ListPickupsParams = {
+status?: ListPickupsStatus;
+flagged?: boolean;
+from?: string;
+to?: string;
+};
+
+export type ListPickupsStatus = typeof ListPickupsStatus[keyof typeof ListPickupsStatus];
+
+
+export const ListPickupsStatus = {
+  unverified: 'unverified',
+  contact_made: 'contact_made',
+  confirmed: 'confirmed',
+  dispatched: 'dispatched',
+  completed: 'completed',
+  no_show: 'no_show',
+  false_address: 'false_address',
+  cancelled: 'cancelled',
+  closed_no_response: 'closed_no_response',
 } as const;
 

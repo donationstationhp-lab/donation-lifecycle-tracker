@@ -1,7 +1,13 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { db, deliveryRoutesTable, routeStopsTable, donationItemsTable } from "@workspace/db";
+import {
+  db,
+  deliveryRoutesTable,
+  routeStopsTable,
+  donationItemsTable,
+  pickupRequestsTable,
+} from "@workspace/db";
 import {
   GetRouteParams,
   UpdateRouteParams,
@@ -105,11 +111,19 @@ router.get("/routes/:id", async (req, res): Promise<void> => {
 
   const stopsWithItems = await Promise.all(
     stops.map(async (stop) => {
-      const [item] = await db
-        .select()
-        .from(donationItemsTable)
-        .where(eq(donationItemsTable.id, stop.itemId));
-      return { ...stop, item };
+      const [item] = stop.itemId
+        ? await db
+            .select()
+            .from(donationItemsTable)
+            .where(eq(donationItemsTable.id, stop.itemId))
+        : [];
+      const [pickup] = stop.pickupRequestId
+        ? await db
+            .select()
+            .from(pickupRequestsTable)
+            .where(eq(pickupRequestsTable.id, stop.pickupRequestId))
+        : [];
+      return { ...stop, item: item ?? null, pickup: pickup ?? null };
     })
   );
 
@@ -131,11 +145,14 @@ router.patch("/routes/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const { stops, ...routeFields } = parsed.data;
+  const { stops, date, ...routeFields } = parsed.data;
 
   const [route] = await db
     .update(deliveryRoutesTable)
-    .set(routeFields)
+    .set({
+      ...routeFields,
+      ...(date !== undefined ? { date: date.toISOString().slice(0, 10) } : {}),
+    })
     .where(eq(deliveryRoutesTable.id, params.data.id))
     .returning();
 
@@ -151,6 +168,7 @@ router.patch("/routes/:id", async (req, res): Promise<void> => {
         id: randomUUID(),
         routeId: route.id,
         itemId: stop.itemId,
+        pickupRequestId: stop.pickupRequestId ?? null,
         stopOrder: stop.stopOrder,
         notes: stop.notes ?? null,
       }));

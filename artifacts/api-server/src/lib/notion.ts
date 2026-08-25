@@ -18,5 +18,9 @@ export function getNotionEnv(): NotionEnv {
     throw new Error(`Missing required env vars: ${missing.join(", ")}`);
   }
 
-  return { apiKey, itemsDataSourceUrl, routesDataSourceUrl };
+  return {
+    apiKey: apiKey!,
+    itemsDataSourceUrl: itemsDataSourceUrl!,
+    routesDataSourceUrl: routesDataSourceUrl!,
+  };
 }

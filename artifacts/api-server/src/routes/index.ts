@@ -8,6 +8,7 @@ import deliveryRoutesRouter from "./deliveryRoutes";
 import locationsRouter from "./locations";
 import cliExtrasRouter from "./cliExtras";
 import notionHealthRouter from "./notionHealth";
+import pickupsRouter from "./pickups";
 
 const router: IRouter = Router();
 
@@ -27,5 +28,6 @@ router.use(dashboardRouter);
 router.use(deliveryRoutesRouter);
 router.use(locationsRouter);
 router.use(cliExtrasRouter);
+router.use(pickupsRouter);
 
 export default router;

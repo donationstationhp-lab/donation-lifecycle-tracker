@@ -16,6 +16,10 @@ tags:
     description: Dashboard and summary operations
   - name: routes
     description: Delivery route operations
+  - name: pickups
+    description: Donation pickup verification operations
+  - name: flags
+    description: Pickup phone and address flag operations
 paths:
   /healthz:
     get:
@@ -322,6 +326,325 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /pickups:
+    get:
+      operationId: listPickups
+      tags: [pickups]
+      summary: List pickup requests
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [unverified, contact_made, confirmed, dispatched, completed, no_show, false_address, cancelled, closed_no_response]
+        - name: flagged
+          in: query
+          schema:
+            type: boolean
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Pickup requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PickupRequest"
+    post:
+      operationId: createPickup
+      tags: [pickups]
+      summary: Create a pickup request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickupRequestInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupRequestDetail"
+
+  /pickups/{id}:
+    get:
+      operationId: getPickup
+      tags: [pickups]
+      summary: Get a pickup request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pickup request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupRequestDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updatePickup
+      tags: [pickups]
+      summary: Update pickup verification details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickupRequestUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupRequestDetail"
+
+  /pickups/{id}/contact-attempt:
+    post:
+      operationId: logPickupContactAttempt
+      tags: [pickups]
+      summary: Log a contact attempt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickupContactAttemptInput"
+      responses:
+        "200":
+          description: Updated pickup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupRequestDetail"
+
+  /pickups/{id}/dispatch:
+    post:
+      operationId: dispatchPickup
+      tags: [pickups]
+      summary: Dispatch a verified pickup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Dispatched pickup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupRequestDetail"
+        "409":
+          description: Verification requirements are incomplete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DispatchBlockedResponse"
+
+  /pickups/{id}/outcome:
+    post:
+      operationId: recordPickupOutcome
+      tags: [pickups]
+      summary: Record a pickup outcome
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickupOutcomeInput"
+      responses:
+        "200":
+          description: Updated pickup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupRequestDetail"
+
+  /pickups/{id}/complete:
+    post:
+      operationId: completePickup
+      tags: [pickups]
+      summary: Complete a pickup and create intake inventory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickupCompleteInput"
+      responses:
+        "200":
+          description: Completed pickup and created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupCompletionResponse"
+
+  /pickups/{id}/route:
+    post:
+      operationId: assignPickupRoute
+      tags: [pickups]
+      summary: Assign a confirmed pickup to a route
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickupRouteInput"
+      responses:
+        "200":
+          description: Updated pickup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupRequestDetail"
+
+  /pickups/{id}/flags:
+    post:
+      operationId: createPickupFlag
+      tags: [flags]
+      summary: Flag a phone number or address
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickupFlagInput"
+      responses:
+        "201":
+          description: Flagged pickup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupRequestDetail"
+
+  /flags:
+    get:
+      operationId: listPickupFlags
+      tags: [flags]
+      summary: List pickup flags
+      responses:
+        "200":
+          description: Pickup flags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PickupFlag"
+
+  /flags/{id}:
+    patch:
+      operationId: updatePickupFlag
+      tags: [flags]
+      summary: Update flag supervisor approval
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickupFlagUpdate"
+      responses:
+        "200":
+          description: Updated flag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PickupFlag"
+
+  /confirmation-template:
+    get:
+      operationId: getConfirmationTemplate
+      tags: [pickups]
+      summary: Get the pickup confirmation template
+      responses:
+        "200":
+          description: Confirmation template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmationTemplate"
+    put:
+      operationId: updateConfirmationTemplate
+      tags: [pickups]
+      summary: Update the pickup confirmation template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmationTemplateInput"
+      responses:
+        "200":
+          description: Updated template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmationTemplate"
 components:
   schemas:
     HealthStatus:
@@ -393,6 +716,8 @@ components:
           description: Lot number in format LOT-XXXX
         powerConnectionReading:
           type: string
+        sourcePickupId:
+          type: ["string", "null"]
           description: Numerology reading on intake date
         stage:
           type: string
@@ -594,6 +919,10 @@ components:
         - byStage
         - recentItems
         - expiringCount
+        - pendingReviewCount
+        - pickupsPendingVerification
+        - pickupsConfirmedThisWeek
+        - flaggedPickupValues
       properties:
         totalItems:
           type: number
@@ -611,15 +940,24 @@ components:
             $ref: "#/components/schemas/DonationItem"
         expiringCount:
           type: number
+        pendingReviewCount:
+          type: number
+        pickupsPendingVerification:
+          type: number
+        pickupsConfirmedThisWeek:
+          type: number
+        flaggedPickupValues:
+          type: number
 
     RouteStop:
       type: object
       required:
-        - itemId
         - stopOrder
       properties:
         itemId:
-          type: string
+          type: ["string", "null"]
+        pickupRequestId:
+          type: ["string", "null"]
         stopOrder:
           type: number
         notes:
@@ -668,18 +1006,24 @@ components:
     RouteStopDetail:
       type: object
       required:
-        - itemId
         - stopOrder
-        - item
       properties:
         itemId:
-          type: string
+          type: ["string", "null"]
+        pickupRequestId:
+          type: ["string", "null"]
         stopOrder:
           type: number
         notes:
           type: ["string", "null"]
         item:
-          $ref: "#/components/schemas/DonationItem"
+          oneOf:
+            - $ref: "#/components/schemas/DonationItem"
+            - type: "null"
+        pickup:
+          oneOf:
+            - $ref: "#/components/schemas/PickupRequest"
+            - type: "null"
 
     DeliveryRouteInput:
       type: object
@@ -698,6 +1042,357 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RouteStop"
+
+    PickupStatus:
+      type: string
+      enum: [unverified, contact_made, confirmed, dispatched, completed, no_show, false_address, cancelled, closed_no_response]
+
+    PickupOutcome:
+      type: string
+      enum: [completed, no_show, false_address, cancelled, flagged]
+
+    PickupAddressType:
+      type: string
+      enum: [residence, business, other]
+
+    PickupRequest:
+      type: object
+      required:
+        - id
+        - status
+        - phone
+        - address
+        - addressConfirmed
+        - addressVerified
+        - addressType
+        - requestedWindow
+        - confirmationSent
+        - confirmationReplied
+        - phoneFlagged
+        - addressFlagged
+        - requiresSupervisorApproval
+        - contactAttempts
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        status:
+          $ref: "#/components/schemas/PickupStatus"
+        phone:
+          type: string
+        name:
+          type: ["string", "null"]
+        address:
+          type: string
+        addressConfirmed:
+          type: boolean
+        addressVerified:
+          type: boolean
+        addressType:
+          $ref: "#/components/schemas/PickupAddressType"
+        requestedWindow:
+          type: string
+        confirmedDatetime:
+          type: ["string", "null"]
+          format: date-time
+        itemsDescribed:
+          type: ["string", "null"]
+        itemsReceived:
+          type: ["string", "null"]
+        confirmationSent:
+          type: boolean
+        confirmationReplied:
+          type: boolean
+        outcome:
+          oneOf:
+            - $ref: "#/components/schemas/PickupOutcome"
+            - type: "null"
+        outcomeNotes:
+          type: ["string", "null"]
+        phoneFlagged:
+          type: boolean
+        addressFlagged:
+          type: boolean
+        requiresSupervisorApproval:
+          type: boolean
+        assignedDriver:
+          type: ["string", "null"]
+        linkedRouteId:
+          type: ["string", "null"]
+        contactAttempts:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PickupRequestInput:
+      type: object
+      required:
+        - phone
+        - address
+        - requestedWindow
+      properties:
+        phone:
+          type: string
+        name:
+          type: ["string", "null"]
+        address:
+          type: string
+        addressConfirmed:
+          type: boolean
+        addressVerified:
+          type: boolean
+        addressType:
+          $ref: "#/components/schemas/PickupAddressType"
+        requestedWindow:
+          type: string
+        confirmedDatetime:
+          type: ["string", "null"]
+          format: date-time
+        itemsDescribed:
+          type: ["string", "null"]
+        confirmationSent:
+          type: boolean
+        confirmationReplied:
+          type: boolean
+        assignedDriver:
+          type: ["string", "null"]
+
+    PickupRequestUpdate:
+      type: object
+      properties:
+        phone:
+          type: string
+        name:
+          type: ["string", "null"]
+        address:
+          type: string
+        addressConfirmed:
+          type: boolean
+        addressVerified:
+          type: boolean
+        addressType:
+          $ref: "#/components/schemas/PickupAddressType"
+        requestedWindow:
+          type: string
+        confirmedDatetime:
+          type: ["string", "null"]
+          format: date-time
+        itemsDescribed:
+          type: ["string", "null"]
+        itemsReceived:
+          type: ["string", "null"]
+        confirmationSent:
+          type: boolean
+        confirmationReplied:
+          type: boolean
+        assignedDriver:
+          type: ["string", "null"]
+        outcomeNotes:
+          type: ["string", "null"]
+
+    PickupContactAttemptInput:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: string
+          enum: [contacted, no_response]
+        notes:
+          type: string
+
+    PickupOutcomeInput:
+      type: object
+      required:
+        - outcome
+      properties:
+        outcome:
+          $ref: "#/components/schemas/PickupOutcome"
+        notes:
+          type: string
+
+    PickupCompleteInput:
+      type: object
+      required:
+        - itemsReceived
+      properties:
+        itemsReceived:
+          type: string
+        condition:
+          type: string
+          enum: [good, fair, poor]
+        category:
+          type: string
+        notes:
+          type: string
+
+    PickupCompletionResponse:
+      type: object
+      required:
+        - pickup
+        - item
+      properties:
+        pickup:
+          $ref: "#/components/schemas/PickupRequestDetail"
+        item:
+          $ref: "#/components/schemas/DonationItem"
+
+    PickupRouteInput:
+      type: object
+      required:
+        - linkedRouteId
+      properties:
+        linkedRouteId:
+          type: string
+        assignedDriver:
+          type: string
+        confirmedDatetime:
+          type: ["string", "null"]
+          format: date-time
+
+    PickupFlagType:
+      type: string
+      enum: [phone, address]
+
+    PickupFlag:
+      type: object
+      required:
+        - id
+        - type
+        - value
+        - reason
+        - pickupRequestId
+        - count
+        - supervisorApproved
+        - createdAt
+        - updatedAt
+        - associatedPickupIds
+      properties:
+        id:
+          type: string
+        type:
+          $ref: "#/components/schemas/PickupFlagType"
+        value:
+          type: string
+        reason:
+          type: string
+        pickupRequestId:
+          type: string
+        count:
+          type: number
+        supervisorApproved:
+          type: boolean
+        associatedPickupIds:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PickupFlagInput:
+      type: object
+      required:
+        - type
+        - value
+        - reason
+      properties:
+        type:
+          $ref: "#/components/schemas/PickupFlagType"
+        value:
+          type: string
+        reason:
+          type: string
+
+    PickupFlagUpdate:
+      type: object
+      properties:
+        supervisorApproved:
+          type: boolean
+
+    PickupContactAttempt:
+      type: object
+      required:
+        - id
+        - pickupRequestId
+        - attemptNumber
+        - result
+        - createdAt
+      properties:
+        id:
+          type: string
+        pickupRequestId:
+          type: string
+        attemptNumber:
+          type: number
+        result:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    PickupRequestDetail:
+      allOf:
+        - $ref: "#/components/schemas/PickupRequest"
+        - type: object
+          required:
+            - contactHistory
+            - flags
+          properties:
+            contactHistory:
+              type: array
+              items:
+                $ref: "#/components/schemas/PickupContactAttempt"
+            flags:
+              type: array
+              items:
+                $ref: "#/components/schemas/PickupFlag"
+
+    DispatchBlockedResponse:
+      type: object
+      required:
+        - error
+        - missing
+      properties:
+        error:
+          type: string
+        missing:
+          type: array
+          items:
+            type: string
+
+    ConfirmationTemplate:
+      type: object
+      required:
+        - id
+        - body
+        - updatedAt
+      properties:
+        id:
+          type: string
+        body:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    ConfirmationTemplateInput:
+      type: object
+      required:
+        - body
+      properties:
+        body:
+          type: string
 
     DeliveryRouteUpdate:
       type: object

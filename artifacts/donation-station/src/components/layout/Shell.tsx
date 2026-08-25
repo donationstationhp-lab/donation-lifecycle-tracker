@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 
@@ -27,9 +27,10 @@ export function Shell({ children }: { children: ReactNode }) {
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/items', label: 'Items', icon: Package },
     { href: '/pickups', label: 'Pickups', icon: ClipboardCheck },
+    { href: '/pickup-flags', label: 'Flags', icon: Flag },
     { href: '/expiring', label: 'Expiring', icon: AlertTriangle },
     { href: '/routes', label: 'Routes', icon: Truck },
-    { href: '/pending', label: 'Pending Review', icon: Clock, badge: pendingCount },
+    { href: '/pending', label: 'Review', icon: Clock, badge: pendingCount },
   ];
 
   return (
@@ -80,7 +81,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </Link>
           {/* Quick link to public donor form */}
           <a
-            href="/donation-station/donate"
+            href="/donate"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors py-1"
@@ -116,15 +117,15 @@ export function Shell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Content */}
-        <div className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">
+        <div className="flex-1 p-4 md:p-8 w-full max-w-full lg:max-w-7xl mx-auto h-full flex flex-col">
           {children}
         </div>
       </main>
 
       {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border flex justify-around p-2 pb-safe z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border flex justify-around p-2 pb-safe z-50 overflow-x-auto">
         {navItems.map((item) => (
-          <Link key={item.href} href={item.href} className="flex-1">
+          <Link key={item.href} href={item.href} className="flex-1 min-w-[60px]">
             <div
               className={`relative flex flex-col items-center p-2 rounded-lg ${
                 location === item.href ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
@@ -136,8 +137,8 @@ export function Shell({ children }: { children: ReactNode }) {
                   {item.badge > 9 ? '9+' : item.badge}
                 </span>
               )}
-              <span className="text-[10px] font-medium mt-1">
-                {item.label === 'Pending Review' ? 'Review' : item.label}
+              <span className="text-[10px] font-medium mt-1 truncate max-w-full">
+                {item.label}
               </span>
             </div>
           </Link>

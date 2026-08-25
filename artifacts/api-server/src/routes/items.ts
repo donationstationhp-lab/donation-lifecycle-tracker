@@ -34,6 +34,10 @@ function computeNumerology(date: Date): string {
   return String(sum);
 }
 
+function toDateString(value: Date | undefined): string | null {
+  return value ? value.toISOString().slice(0, 10) : null;
+}
+
 async function getItemById(id: string) {
   const [item] = await db
     .select()
@@ -131,7 +135,7 @@ router.post("/items", async (req, res): Promise<void> => {
   }
 
   const id = randomUUID();
-  const itemId = parsed.data.itemId ?? generateItemId();
+  const itemId = generateItemId();
   const lotNumber = parsed.data.lotNumber ?? generateLotNumber();
   const powerConnectionReading = parsed.data.powerConnectionReading ?? computeNumerology(now);
 
@@ -147,7 +151,7 @@ router.post("/items", async (req, res): Promise<void> => {
       donor: parsed.data.donor,
       recipient: parsed.data.recipient ?? null,
       location: parsed.data.location ?? null,
-      expiryDate: parsed.data.expiryDate ?? null,
+      expiryDate: toDateString(parsed.data.expiryDate),
       temperatureZone: parsed.data.temperatureZone ?? "ambient",
       weight: parsed.data.weight ?? null,
       origin: parsed.data.origin ?? null,
@@ -348,9 +352,14 @@ router.patch("/items/:id", async (req, res): Promise<void> => {
   const parsed = UpdateItemBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
+  const { expiryDate, ...updates } = parsed.data;
   const [item] = await db
     .update(donationItemsTable)
-    .set({ ...parsed.data, updatedAt: new Date() })
+    .set({
+      ...updates,
+      ...(expiryDate !== undefined ? { expiryDate: toDateString(expiryDate) } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(donationItemsTable.id, params.data.id))
     .returning();
 

@@ -3,3 +3,7 @@ export * from "./stageHistory";
 export * from "./deliveryRoutes";
 export * from "./routeStops";
 export * from "./locations";
+export * from "./pickupRequests";
+export * from "./pickupFlags";
+export * from "./pickupContactAttempts";
+export * from "./confirmationTemplates";

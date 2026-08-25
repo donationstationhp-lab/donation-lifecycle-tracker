@@ -15,4 +15,8 @@ export interface DashboardSummary {
   byStage: StageCount[];
   recentItems: DonationItem[];
   expiringCount: number;
+  pendingReviewCount: number;
+  pickupsPendingVerification: number;
+  pickupsConfirmedThisWeek: number;
+  flaggedPickupValues: number;
 }

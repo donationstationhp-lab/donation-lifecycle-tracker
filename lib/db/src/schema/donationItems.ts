@@ -18,6 +18,7 @@ export const donationItemsTable = pgTable("donation_items", {
   origin: text("origin"),
   lotNumber: text("lot_number").notNull(),
   powerConnectionReading: text("power_connection_reading").notNull().default(""),
+  sourcePickupId: text("source_pickup_id"),
   stage: text("stage").notNull().default("intake"), // intake | qc | storage | distributed
   pendingReview: boolean("pending_review").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

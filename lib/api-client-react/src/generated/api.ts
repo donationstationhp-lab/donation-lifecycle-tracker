@@ -20,11 +20,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ConfirmationTemplate,
+  ConfirmationTemplateInput,
   DashboardSummary,
   DeliveryRoute,
   DeliveryRouteDetail,
   DeliveryRouteInput,
   DeliveryRouteUpdate,
+  DispatchBlockedResponse,
   DonationItem,
   DonationItemDetail,
   DonationItemInput,
@@ -33,6 +36,19 @@ import type {
   ExpiringItemsResponse,
   HealthStatus,
   ListItemsParams,
+  ListPickupsParams,
+  PickupCompleteInput,
+  PickupCompletionResponse,
+  PickupContactAttemptInput,
+  PickupFlag,
+  PickupFlagInput,
+  PickupFlagUpdate,
+  PickupOutcomeInput,
+  PickupRequest,
+  PickupRequestDetail,
+  PickupRequestInput,
+  PickupRequestUpdate,
+  PickupRouteInput,
   StageAdvance
 } from './api.schemas';
 
@@ -1108,5 +1124,1037 @@ export const useDeleteRoute = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getDeleteRouteMutationOptions(options));
+    }
+
+export const getListPickupsUrl = (params?: ListPickupsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/pickups?${stringifiedParams}` : `/api/pickups`
+}
+
+/**
+ * @summary List pickup requests
+ */
+export const listPickups = async (params?: ListPickupsParams, options?: Parameters<typeof customFetch>[1]): Promise<PickupRequest[]> => {
+
+  return customFetch<PickupRequest[]>(getListPickupsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPickupsQueryKey = (params?: ListPickupsParams,) => {
+    return [
+    `/api/pickups`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListPickupsQueryOptions = <TData = Awaited<ReturnType<typeof listPickups>>, TError = ErrorType<unknown>>(params?: ListPickupsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPickups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPickupsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPickups>>> = ({ signal }) => listPickups(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPickups>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPickupsQueryResult = NonNullable<Awaited<ReturnType<typeof listPickups>>>
+export type ListPickupsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List pickup requests
+ */
+
+export function useListPickups<TData = Awaited<ReturnType<typeof listPickups>>, TError = ErrorType<unknown>>(
+ params?: ListPickupsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPickups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPickupsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePickupUrl = () => {
+
+
+
+
+  return `/api/pickups`
+}
+
+/**
+ * @summary Create a pickup request
+ */
+export const createPickup = async (pickupRequestInput: PickupRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<PickupRequestDetail> => {
+
+  return customFetch<PickupRequestDetail>(getCreatePickupUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pickupRequestInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePickupMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPickup>>, TError,{data: BodyType<PickupRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPickup>>, TError,{data: BodyType<PickupRequestInput>}, TContext> => {
+
+const mutationKey = ['createPickup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPickup>>, {data: BodyType<PickupRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPickup(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePickupMutationResult = NonNullable<Awaited<ReturnType<typeof createPickup>>>
+    export type CreatePickupMutationBody = BodyType<PickupRequestInput>
+    export type CreatePickupMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a pickup request
+ */
+export const useCreatePickup = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPickup>>, TError,{data: BodyType<PickupRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPickup>>,
+        TError,
+        {data: BodyType<PickupRequestInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePickupMutationOptions(options));
+    }
+
+export const getGetPickupUrl = (id: string,) => {
+
+
+
+
+  return `/api/pickups/${id}`
+}
+
+/**
+ * @summary Get a pickup request
+ */
+export const getPickup = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<PickupRequestDetail> => {
+
+  return customFetch<PickupRequestDetail>(getGetPickupUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPickupQueryKey = (id: string,) => {
+    return [
+    `/api/pickups/${id}`
+    ] as const;
+    }
+
+
+export const getGetPickupQueryOptions = <TData = Awaited<ReturnType<typeof getPickup>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPickup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPickupQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPickup>>> = ({ signal }) => getPickup(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPickup>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPickupQueryResult = NonNullable<Awaited<ReturnType<typeof getPickup>>>
+export type GetPickupQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get a pickup request
+ */
+
+export function useGetPickup<TData = Awaited<ReturnType<typeof getPickup>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPickup>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPickupQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdatePickupUrl = (id: string,) => {
+
+
+
+
+  return `/api/pickups/${id}`
+}
+
+/**
+ * @summary Update pickup verification details
+ */
+export const updatePickup = async (id: string,
+    pickupRequestUpdate: PickupRequestUpdate, options?: Parameters<typeof customFetch>[1]): Promise<PickupRequestDetail> => {
+
+  return customFetch<PickupRequestDetail>(getUpdatePickupUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pickupRequestUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdatePickupMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePickup>>, TError,{id: string;data: BodyType<PickupRequestUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePickup>>, TError,{id: string;data: BodyType<PickupRequestUpdate>}, TContext> => {
+
+const mutationKey = ['updatePickup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePickup>>, {id: string;data: BodyType<PickupRequestUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePickup(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePickupMutationResult = NonNullable<Awaited<ReturnType<typeof updatePickup>>>
+    export type UpdatePickupMutationBody = BodyType<PickupRequestUpdate>
+    export type UpdatePickupMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update pickup verification details
+ */
+export const useUpdatePickup = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePickup>>, TError,{id: string;data: BodyType<PickupRequestUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePickup>>,
+        TError,
+        {id: string;data: BodyType<PickupRequestUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdatePickupMutationOptions(options));
+    }
+
+export const getLogPickupContactAttemptUrl = (id: string,) => {
+
+
+
+
+  return `/api/pickups/${id}/contact-attempt`
+}
+
+/**
+ * @summary Log a contact attempt
+ */
+export const logPickupContactAttempt = async (id: string,
+    pickupContactAttemptInput: PickupContactAttemptInput, options?: Parameters<typeof customFetch>[1]): Promise<PickupRequestDetail> => {
+
+  return customFetch<PickupRequestDetail>(getLogPickupContactAttemptUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pickupContactAttemptInput)
+  }
+);}
+
+
+
+
+
+export const getLogPickupContactAttemptMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logPickupContactAttempt>>, TError,{id: string;data: BodyType<PickupContactAttemptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof logPickupContactAttempt>>, TError,{id: string;data: BodyType<PickupContactAttemptInput>}, TContext> => {
+
+const mutationKey = ['logPickupContactAttempt'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof logPickupContactAttempt>>, {id: string;data: BodyType<PickupContactAttemptInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  logPickupContactAttempt(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LogPickupContactAttemptMutationResult = NonNullable<Awaited<ReturnType<typeof logPickupContactAttempt>>>
+    export type LogPickupContactAttemptMutationBody = BodyType<PickupContactAttemptInput>
+    export type LogPickupContactAttemptMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Log a contact attempt
+ */
+export const useLogPickupContactAttempt = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof logPickupContactAttempt>>, TError,{id: string;data: BodyType<PickupContactAttemptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof logPickupContactAttempt>>,
+        TError,
+        {id: string;data: BodyType<PickupContactAttemptInput>},
+        TContext
+      > => {
+      return useMutation(getLogPickupContactAttemptMutationOptions(options));
+    }
+
+export const getDispatchPickupUrl = (id: string,) => {
+
+
+
+
+  return `/api/pickups/${id}/dispatch`
+}
+
+/**
+ * @summary Dispatch a verified pickup
+ */
+export const dispatchPickup = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<PickupRequestDetail> => {
+
+  return customFetch<PickupRequestDetail>(getDispatchPickupUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDispatchPickupMutationOptions = <TError = ErrorType<DispatchBlockedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dispatchPickup>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof dispatchPickup>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['dispatchPickup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof dispatchPickup>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  dispatchPickup(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DispatchPickupMutationResult = NonNullable<Awaited<ReturnType<typeof dispatchPickup>>>
+
+    export type DispatchPickupMutationError = ErrorType<DispatchBlockedResponse>
+
+    /**
+ * @summary Dispatch a verified pickup
+ */
+export const useDispatchPickup = <TError = ErrorType<DispatchBlockedResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dispatchPickup>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof dispatchPickup>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDispatchPickupMutationOptions(options));
+    }
+
+export const getRecordPickupOutcomeUrl = (id: string,) => {
+
+
+
+
+  return `/api/pickups/${id}/outcome`
+}
+
+/**
+ * @summary Record a pickup outcome
+ */
+export const recordPickupOutcome = async (id: string,
+    pickupOutcomeInput: PickupOutcomeInput, options?: Parameters<typeof customFetch>[1]): Promise<PickupRequestDetail> => {
+
+  return customFetch<PickupRequestDetail>(getRecordPickupOutcomeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pickupOutcomeInput)
+  }
+);}
+
+
+
+
+
+export const getRecordPickupOutcomeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordPickupOutcome>>, TError,{id: string;data: BodyType<PickupOutcomeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordPickupOutcome>>, TError,{id: string;data: BodyType<PickupOutcomeInput>}, TContext> => {
+
+const mutationKey = ['recordPickupOutcome'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordPickupOutcome>>, {id: string;data: BodyType<PickupOutcomeInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  recordPickupOutcome(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordPickupOutcomeMutationResult = NonNullable<Awaited<ReturnType<typeof recordPickupOutcome>>>
+    export type RecordPickupOutcomeMutationBody = BodyType<PickupOutcomeInput>
+    export type RecordPickupOutcomeMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Record a pickup outcome
+ */
+export const useRecordPickupOutcome = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordPickupOutcome>>, TError,{id: string;data: BodyType<PickupOutcomeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordPickupOutcome>>,
+        TError,
+        {id: string;data: BodyType<PickupOutcomeInput>},
+        TContext
+      > => {
+      return useMutation(getRecordPickupOutcomeMutationOptions(options));
+    }
+
+export const getCompletePickupUrl = (id: string,) => {
+
+
+
+
+  return `/api/pickups/${id}/complete`
+}
+
+/**
+ * @summary Complete a pickup and create intake inventory
+ */
+export const completePickup = async (id: string,
+    pickupCompleteInput: PickupCompleteInput, options?: Parameters<typeof customFetch>[1]): Promise<PickupCompletionResponse> => {
+
+  return customFetch<PickupCompletionResponse>(getCompletePickupUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pickupCompleteInput)
+  }
+);}
+
+
+
+
+
+export const getCompletePickupMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completePickup>>, TError,{id: string;data: BodyType<PickupCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completePickup>>, TError,{id: string;data: BodyType<PickupCompleteInput>}, TContext> => {
+
+const mutationKey = ['completePickup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completePickup>>, {id: string;data: BodyType<PickupCompleteInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  completePickup(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompletePickupMutationResult = NonNullable<Awaited<ReturnType<typeof completePickup>>>
+    export type CompletePickupMutationBody = BodyType<PickupCompleteInput>
+    export type CompletePickupMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Complete a pickup and create intake inventory
+ */
+export const useCompletePickup = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completePickup>>, TError,{id: string;data: BodyType<PickupCompleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completePickup>>,
+        TError,
+        {id: string;data: BodyType<PickupCompleteInput>},
+        TContext
+      > => {
+      return useMutation(getCompletePickupMutationOptions(options));
+    }
+
+export const getAssignPickupRouteUrl = (id: string,) => {
+
+
+
+
+  return `/api/pickups/${id}/route`
+}
+
+/**
+ * @summary Assign a confirmed pickup to a route
+ */
+export const assignPickupRoute = async (id: string,
+    pickupRouteInput: PickupRouteInput, options?: Parameters<typeof customFetch>[1]): Promise<PickupRequestDetail> => {
+
+  return customFetch<PickupRequestDetail>(getAssignPickupRouteUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pickupRouteInput)
+  }
+);}
+
+
+
+
+
+export const getAssignPickupRouteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignPickupRoute>>, TError,{id: string;data: BodyType<PickupRouteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignPickupRoute>>, TError,{id: string;data: BodyType<PickupRouteInput>}, TContext> => {
+
+const mutationKey = ['assignPickupRoute'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignPickupRoute>>, {id: string;data: BodyType<PickupRouteInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  assignPickupRoute(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignPickupRouteMutationResult = NonNullable<Awaited<ReturnType<typeof assignPickupRoute>>>
+    export type AssignPickupRouteMutationBody = BodyType<PickupRouteInput>
+    export type AssignPickupRouteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Assign a confirmed pickup to a route
+ */
+export const useAssignPickupRoute = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignPickupRoute>>, TError,{id: string;data: BodyType<PickupRouteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assignPickupRoute>>,
+        TError,
+        {id: string;data: BodyType<PickupRouteInput>},
+        TContext
+      > => {
+      return useMutation(getAssignPickupRouteMutationOptions(options));
+    }
+
+export const getCreatePickupFlagUrl = (id: string,) => {
+
+
+
+
+  return `/api/pickups/${id}/flags`
+}
+
+/**
+ * @summary Flag a phone number or address
+ */
+export const createPickupFlag = async (id: string,
+    pickupFlagInput: PickupFlagInput, options?: Parameters<typeof customFetch>[1]): Promise<PickupRequestDetail> => {
+
+  return customFetch<PickupRequestDetail>(getCreatePickupFlagUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pickupFlagInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePickupFlagMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPickupFlag>>, TError,{id: string;data: BodyType<PickupFlagInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPickupFlag>>, TError,{id: string;data: BodyType<PickupFlagInput>}, TContext> => {
+
+const mutationKey = ['createPickupFlag'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPickupFlag>>, {id: string;data: BodyType<PickupFlagInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createPickupFlag(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePickupFlagMutationResult = NonNullable<Awaited<ReturnType<typeof createPickupFlag>>>
+    export type CreatePickupFlagMutationBody = BodyType<PickupFlagInput>
+    export type CreatePickupFlagMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Flag a phone number or address
+ */
+export const useCreatePickupFlag = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPickupFlag>>, TError,{id: string;data: BodyType<PickupFlagInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPickupFlag>>,
+        TError,
+        {id: string;data: BodyType<PickupFlagInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePickupFlagMutationOptions(options));
+    }
+
+export const getListPickupFlagsUrl = () => {
+
+
+
+
+  return `/api/flags`
+}
+
+/**
+ * @summary List pickup flags
+ */
+export const listPickupFlags = async ( options?: Parameters<typeof customFetch>[1]): Promise<PickupFlag[]> => {
+
+  return customFetch<PickupFlag[]>(getListPickupFlagsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPickupFlagsQueryKey = () => {
+    return [
+    `/api/flags`
+    ] as const;
+    }
+
+
+export const getListPickupFlagsQueryOptions = <TData = Awaited<ReturnType<typeof listPickupFlags>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPickupFlags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPickupFlagsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPickupFlags>>> = ({ signal }) => listPickupFlags({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPickupFlags>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPickupFlagsQueryResult = NonNullable<Awaited<ReturnType<typeof listPickupFlags>>>
+export type ListPickupFlagsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List pickup flags
+ */
+
+export function useListPickupFlags<TData = Awaited<ReturnType<typeof listPickupFlags>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPickupFlags>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPickupFlagsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdatePickupFlagUrl = (id: string,) => {
+
+
+
+
+  return `/api/flags/${id}`
+}
+
+/**
+ * @summary Update flag supervisor approval
+ */
+export const updatePickupFlag = async (id: string,
+    pickupFlagUpdate: PickupFlagUpdate, options?: Parameters<typeof customFetch>[1]): Promise<PickupFlag> => {
+
+  return customFetch<PickupFlag>(getUpdatePickupFlagUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pickupFlagUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdatePickupFlagMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePickupFlag>>, TError,{id: string;data: BodyType<PickupFlagUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePickupFlag>>, TError,{id: string;data: BodyType<PickupFlagUpdate>}, TContext> => {
+
+const mutationKey = ['updatePickupFlag'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePickupFlag>>, {id: string;data: BodyType<PickupFlagUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePickupFlag(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePickupFlagMutationResult = NonNullable<Awaited<ReturnType<typeof updatePickupFlag>>>
+    export type UpdatePickupFlagMutationBody = BodyType<PickupFlagUpdate>
+    export type UpdatePickupFlagMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update flag supervisor approval
+ */
+export const useUpdatePickupFlag = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePickupFlag>>, TError,{id: string;data: BodyType<PickupFlagUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePickupFlag>>,
+        TError,
+        {id: string;data: BodyType<PickupFlagUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdatePickupFlagMutationOptions(options));
+    }
+
+export const getGetConfirmationTemplateUrl = () => {
+
+
+
+
+  return `/api/confirmation-template`
+}
+
+/**
+ * @summary Get the pickup confirmation template
+ */
+export const getConfirmationTemplate = async ( options?: Parameters<typeof customFetch>[1]): Promise<ConfirmationTemplate> => {
+
+  return customFetch<ConfirmationTemplate>(getGetConfirmationTemplateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetConfirmationTemplateQueryKey = () => {
+    return [
+    `/api/confirmation-template`
+    ] as const;
+    }
+
+
+export const getGetConfirmationTemplateQueryOptions = <TData = Awaited<ReturnType<typeof getConfirmationTemplate>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConfirmationTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetConfirmationTemplateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConfirmationTemplate>>> = ({ signal }) => getConfirmationTemplate({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConfirmationTemplate>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetConfirmationTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof getConfirmationTemplate>>>
+export type GetConfirmationTemplateQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the pickup confirmation template
+ */
+
+export function useGetConfirmationTemplate<TData = Awaited<ReturnType<typeof getConfirmationTemplate>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConfirmationTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetConfirmationTemplateQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateConfirmationTemplateUrl = () => {
+
+
+
+
+  return `/api/confirmation-template`
+}
+
+/**
+ * @summary Update the pickup confirmation template
+ */
+export const updateConfirmationTemplate = async (confirmationTemplateInput: ConfirmationTemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<ConfirmationTemplate> => {
+
+  return customFetch<ConfirmationTemplate>(getUpdateConfirmationTemplateUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(confirmationTemplateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateConfirmationTemplateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfirmationTemplate>>, TError,{data: BodyType<ConfirmationTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateConfirmationTemplate>>, TError,{data: BodyType<ConfirmationTemplateInput>}, TContext> => {
+
+const mutationKey = ['updateConfirmationTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateConfirmationTemplate>>, {data: BodyType<ConfirmationTemplateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateConfirmationTemplate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateConfirmationTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof updateConfirmationTemplate>>>
+    export type UpdateConfirmationTemplateMutationBody = BodyType<ConfirmationTemplateInput>
+    export type UpdateConfirmationTemplateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update the pickup confirmation template
+ */
+export const useUpdateConfirmationTemplate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateConfirmationTemplate>>, TError,{data: BodyType<ConfirmationTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateConfirmationTemplate>>,
+        TError,
+        {data: BodyType<ConfirmationTemplateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateConfirmationTemplateMutationOptions(options));
     }
 

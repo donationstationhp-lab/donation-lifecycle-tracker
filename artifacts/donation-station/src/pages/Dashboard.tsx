@@ -3,7 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'wouter';
-import { AlertTriangle, ArrowRight, Package, TrendingUp, Clock, Heart, ExternalLink } from 'lucide-react';
+import {
+  AlertTriangle, ArrowRight, Package, TrendingUp, Clock, Heart, ExternalLink,
+  ClipboardCheck, CalendarCheck, ShieldAlert,
+} from 'lucide-react';
 import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -125,6 +128,51 @@ export default function Dashboard() {
             </CardContent>
           </Link>
         </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link href="/pickups" className="block">
+          <Card className={`shadow-sm transition-all hover-elevate h-full ${summary.pickupsPendingVerification > 0 ? 'border-amber-200 bg-amber-50/60' : ''}`}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
+                Pickup Verification
+                <ClipboardCheck className="w-4 h-4 text-primary/60" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{summary.pickupsPendingVerification}</div>
+              <p className="text-xs text-muted-foreground mt-1">Awaiting verification</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/pickups" className="block">
+          <Card className="shadow-sm transition-all hover-elevate h-full">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
+                Confirmed This Week
+                <CalendarCheck className="w-4 h-4 text-green-600/60" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-700">{summary.pickupsConfirmedThisWeek}</div>
+              <p className="text-xs text-muted-foreground mt-1">Ready or in progress</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/pickup-flags" className="block">
+          <Card className={`shadow-sm transition-all hover-elevate h-full ${summary.flaggedPickupValues > 0 ? 'border-red-200 bg-red-50/60' : ''}`}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
+                Pickup Flags
+                <ShieldAlert className="w-4 h-4 text-red-600/60" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-red-700">{summary.flaggedPickupValues}</div>
+              <p className="text-xs text-muted-foreground mt-1">Phone or address values</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Share Donate Link banner */}

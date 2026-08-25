@@ -43,7 +43,8 @@ export const ListItemsResponseItem = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -87,7 +88,8 @@ export const CreateItemResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -116,7 +118,8 @@ export const GetItemResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -169,7 +172,8 @@ export const UpdateItemResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -213,7 +217,8 @@ export const AdvanceItemStageResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -239,7 +244,8 @@ export const ListExpiringItemsResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -262,7 +268,8 @@ export const ListExpiringItemsResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -285,7 +292,8 @@ export const ListExpiringItemsResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -308,7 +316,8 @@ export const ListExpiringItemsResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -347,12 +356,17 @@ export const GetDashboardResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })),
-  "expiringCount": zod.number()
+  "expiringCount": zod.number(),
+  "pendingReviewCount": zod.number(),
+  "pickupsPendingVerification": zod.number(),
+  "pickupsConfirmedThisWeek": zod.number(),
+  "flaggedPickupValues": zod.number()
 })
 
 
@@ -379,7 +393,8 @@ export const CreateRouteBody = zod.object({
   "date": zod.coerce.date(),
   "notes": zod.string().optional(),
   "stops": zod.array(zod.object({
-  "itemId": zod.string(),
+  "itemId": zod.string().nullish(),
+  "pickupRequestId": zod.string().nullish(),
   "stopOrder": zod.number(),
   "notes": zod.string().nullish()
 })).optional()
@@ -413,10 +428,11 @@ export const GetRouteResponse = zod.object({
   "createdAt": zod.coerce.date()
 }).and(zod.object({
   "stops": zod.array(zod.object({
-  "itemId": zod.string(),
+  "itemId": zod.string().nullish(),
+  "pickupRequestId": zod.string().nullish(),
   "stopOrder": zod.number(),
   "notes": zod.string().nullish(),
-  "item": zod.object({
+  "item": zod.union([zod.object({
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -431,11 +447,38 @@ export const GetRouteResponse = zod.object({
   "weight": zod.number().nullish(),
   "origin": zod.string().nullish(),
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
-  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
-})
+}),zod.null()]).optional(),
+  "pickup": zod.union([zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]).optional()
 }))
 }))
 
@@ -453,7 +496,8 @@ export const UpdateRouteBody = zod.object({
   "status": zod.enum(['planned', 'in_progress', 'completed']).optional(),
   "notes": zod.string().optional(),
   "stops": zod.array(zod.object({
-  "itemId": zod.string(),
+  "itemId": zod.string().nullish(),
+  "pickupRequestId": zod.string().nullish(),
   "stopOrder": zod.number(),
   "notes": zod.string().nullish()
 })).optional()
@@ -478,5 +522,695 @@ export const DeleteRouteParams = zod.object({
 })
 
 export const DeleteRouteResponse = zod.void()
+
+
+/**
+ * @summary List pickup requests
+ */
+export const ListPickupsQueryParams = zod.object({
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']).optional(),
+  "flagged": zod.coerce.boolean().optional(),
+  "from": zod.date().optional(),
+  "to": zod.date().optional()
+})
+
+export const ListPickupsResponseItem = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListPickupsResponse = zod.array(ListPickupsResponseItem)
+
+
+/**
+ * @summary Create a pickup request
+ */
+export const CreatePickupBody = zod.object({
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean().optional(),
+  "addressVerified": zod.boolean().optional(),
+  "addressType": zod.enum(['residence', 'business', 'other']).optional(),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "confirmationSent": zod.boolean().optional(),
+  "confirmationReplied": zod.boolean().optional(),
+  "assignedDriver": zod.string().nullish()
+})
+
+export const CreatePickupResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "contactHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "pickupRequestId": zod.string(),
+  "attemptNumber": zod.number(),
+  "result": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Get a pickup request
+ */
+export const GetPickupParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetPickupResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "contactHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "pickupRequestId": zod.string(),
+  "attemptNumber": zod.number(),
+  "result": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Update pickup verification details
+ */
+export const UpdatePickupParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdatePickupBody = zod.object({
+  "phone": zod.string().optional(),
+  "name": zod.string().nullish(),
+  "address": zod.string().optional(),
+  "addressConfirmed": zod.boolean().optional(),
+  "addressVerified": zod.boolean().optional(),
+  "addressType": zod.enum(['residence', 'business', 'other']).optional(),
+  "requestedWindow": zod.string().optional(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean().optional(),
+  "confirmationReplied": zod.boolean().optional(),
+  "assignedDriver": zod.string().nullish(),
+  "outcomeNotes": zod.string().nullish()
+})
+
+export const UpdatePickupResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "contactHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "pickupRequestId": zod.string(),
+  "attemptNumber": zod.number(),
+  "result": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Log a contact attempt
+ */
+export const LogPickupContactAttemptParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const LogPickupContactAttemptBody = zod.object({
+  "result": zod.enum(['contacted', 'no_response']),
+  "notes": zod.string().optional()
+})
+
+export const LogPickupContactAttemptResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "contactHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "pickupRequestId": zod.string(),
+  "attemptNumber": zod.number(),
+  "result": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Dispatch a verified pickup
+ */
+export const DispatchPickupParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DispatchPickupResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "contactHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "pickupRequestId": zod.string(),
+  "attemptNumber": zod.number(),
+  "result": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Record a pickup outcome
+ */
+export const RecordPickupOutcomeParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RecordPickupOutcomeBody = zod.object({
+  "outcome": zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),
+  "notes": zod.string().optional()
+})
+
+export const RecordPickupOutcomeResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "contactHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "pickupRequestId": zod.string(),
+  "attemptNumber": zod.number(),
+  "result": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Complete a pickup and create intake inventory
+ */
+export const CompletePickupParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CompletePickupBody = zod.object({
+  "itemsReceived": zod.string(),
+  "condition": zod.enum(['good', 'fair', 'poor']).optional(),
+  "category": zod.string().optional(),
+  "notes": zod.string().optional()
+})
+
+export const CompletePickupResponse = zod.object({
+  "pickup": zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "contactHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "pickupRequestId": zod.string(),
+  "attemptNumber": zod.number(),
+  "result": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})),
+  "item": zod.object({
+  "id": zod.string(),
+  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "name": zod.string(),
+  "category": zod.string(),
+  "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
+  "condition": zod.enum(['good', 'fair', 'poor']),
+  "donor": zod.string(),
+  "recipient": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "expiryDate": zod.coerce.date().nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().nullish(),
+  "origin": zod.string().nullish(),
+  "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Assign a confirmed pickup to a route
+ */
+export const AssignPickupRouteParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AssignPickupRouteBody = zod.object({
+  "linkedRouteId": zod.string(),
+  "assignedDriver": zod.string().optional(),
+  "confirmedDatetime": zod.coerce.date().nullish()
+})
+
+export const AssignPickupRouteResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "contactHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "pickupRequestId": zod.string(),
+  "attemptNumber": zod.number(),
+  "result": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Flag a phone number or address
+ */
+export const CreatePickupFlagParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const CreatePickupFlagBody = zod.object({
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string()
+})
+
+export const CreatePickupFlagResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['unverified', 'contact_made', 'confirmed', 'dispatched', 'completed', 'no_show', 'false_address', 'cancelled', 'closed_no_response']),
+  "phone": zod.string(),
+  "name": zod.string().nullish(),
+  "address": zod.string(),
+  "addressConfirmed": zod.boolean(),
+  "addressVerified": zod.boolean(),
+  "addressType": zod.enum(['residence', 'business', 'other']),
+  "requestedWindow": zod.string(),
+  "confirmedDatetime": zod.coerce.date().nullish(),
+  "itemsDescribed": zod.string().nullish(),
+  "itemsReceived": zod.string().nullish(),
+  "confirmationSent": zod.boolean(),
+  "confirmationReplied": zod.boolean(),
+  "outcome": zod.union([zod.enum(['completed', 'no_show', 'false_address', 'cancelled', 'flagged']),zod.null()]).optional(),
+  "outcomeNotes": zod.string().nullish(),
+  "phoneFlagged": zod.boolean(),
+  "addressFlagged": zod.boolean(),
+  "requiresSupervisorApproval": zod.boolean(),
+  "assignedDriver": zod.string().nullish(),
+  "linkedRouteId": zod.string().nullish(),
+  "contactAttempts": zod.number(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "contactHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "pickupRequestId": zod.string(),
+  "attemptNumber": zod.number(),
+  "result": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "flags": zod.array(zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary List pickup flags
+ */
+export const ListPickupFlagsResponseItem = zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListPickupFlagsResponse = zod.array(ListPickupFlagsResponseItem)
+
+
+/**
+ * @summary Update flag supervisor approval
+ */
+export const UpdatePickupFlagParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdatePickupFlagBody = zod.object({
+  "supervisorApproved": zod.boolean().optional()
+})
+
+export const UpdatePickupFlagResponse = zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['phone', 'address']),
+  "value": zod.string(),
+  "reason": zod.string(),
+  "pickupRequestId": zod.string(),
+  "count": zod.number(),
+  "supervisorApproved": zod.boolean(),
+  "associatedPickupIds": zod.array(zod.string()),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get the pickup confirmation template
+ */
+export const GetConfirmationTemplateResponse = zod.object({
+  "id": zod.string(),
+  "body": zod.string(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update the pickup confirmation template
+ */
+export const UpdateConfirmationTemplateBody = zod.object({
+  "body": zod.string()
+})
+
+export const UpdateConfirmationTemplateResponse = zod.object({
+  "id": zod.string(),
+  "body": zod.string(),
+  "updatedAt": zod.coerce.date()
+})
 
 

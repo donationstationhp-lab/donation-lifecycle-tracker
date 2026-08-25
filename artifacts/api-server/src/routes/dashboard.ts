@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
-import { db, donationItemsTable } from "@workspace/db";
+import { db, donationItemsTable, pickupFlagsTable, pickupRequestsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -50,7 +50,33 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
   // Count items awaiting staff review
   const pendingReviewCount = allItems.filter((i) => i.pendingReview).length;
 
-  res.json({ totalItems, byTier, byStage, recentItems, expiringCount, pendingReviewCount });
+  const pickups = await db.select().from(pickupRequestsTable);
+  const flags = await db.select().from(pickupFlagsTable);
+  const startOfWeek = new Date(now);
+  startOfWeek.setHours(0, 0, 0, 0);
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+
+  const pickupsPendingVerification = pickups.filter((pickup) =>
+    ["unverified", "contact_made"].includes(pickup.status),
+  ).length;
+  const pickupsConfirmedThisWeek = pickups.filter(
+    (pickup) =>
+      ["confirmed", "dispatched", "completed"].includes(pickup.status) &&
+      pickup.updatedAt >= startOfWeek,
+  ).length;
+  const flaggedPickupValues = flags.length;
+
+  res.json({
+    totalItems,
+    byTier,
+    byStage,
+    recentItems,
+    expiringCount,
+    pendingReviewCount,
+    pickupsPendingVerification,
+    pickupsConfirmedThisWeek,
+    flaggedPickupValues,
+  });
 });
 
 export default router;

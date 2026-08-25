@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './confirmationTemplate';
+export * from './confirmationTemplateInput';
 export * from './dashboardSummary';
 export * from './deliveryRoute';
 export * from './deliveryRouteDetail';
@@ -13,6 +15,7 @@ export * from './deliveryRouteInput';
 export * from './deliveryRouteStatus';
 export * from './deliveryRouteUpdate';
 export * from './deliveryRouteUpdateStatus';
+export * from './dispatchBlockedResponse';
 export * from './donationItem';
 export * from './donationItemCondition';
 export * from './donationItemDetail';
@@ -36,6 +39,27 @@ export * from './listItemsParams';
 export * from './listItemsStage';
 export * from './listItemsTemperatureZone';
 export * from './listItemsTier';
+export * from './listPickupsParams';
+export * from './listPickupsStatus';
+export * from './pickupAddressType';
+export * from './pickupCompleteInput';
+export * from './pickupCompleteInputCondition';
+export * from './pickupCompletionResponse';
+export * from './pickupContactAttempt';
+export * from './pickupContactAttemptInput';
+export * from './pickupContactAttemptInputResult';
+export * from './pickupFlag';
+export * from './pickupFlagInput';
+export * from './pickupFlagType';
+export * from './pickupFlagUpdate';
+export * from './pickupOutcome';
+export * from './pickupOutcomeInput';
+export * from './pickupRequest';
+export * from './pickupRequestDetail';
+export * from './pickupRequestInput';
+export * from './pickupRequestUpdate';
+export * from './pickupRouteInput';
+export * from './pickupStatus';
 export * from './routeStop';
 export * from './routeStopDetail';
 export * from './stageAdvance';

@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ArrowLeft, Truck, MapPin, Calendar, CheckCircle2, Clock, Navigation, 
-  Package, FileText, Loader2, GripVertical
+  Package, FileText, Loader2, GripVertical, ClipboardCheck
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { TierBadge } from '@/components/shared';
@@ -131,7 +131,7 @@ export default function RouteDetail() {
             Manifest & Stops
           </CardTitle>
           <CardDescription>
-            {route.stops.length} {route.stops.length === 1 ? 'item' : 'items'} scheduled for this delivery route.
+            {route.stops.length} {route.stops.length === 1 ? 'stop' : 'stops'} scheduled for this route.
           </CardDescription>
         </CardHeader>
         
@@ -146,7 +146,10 @@ export default function RouteDetail() {
             <div className="divide-y divide-border/50">
               {/* Sort stops by stopOrder */}
               {[...route.stops].sort((a, b) => a.stopOrder - b.stopOrder).map((stop, index) => (
-                <div key={stop.itemId} className="flex items-stretch group hover:bg-secondary/20 transition-colors">
+                <div
+                  key={stop.itemId ?? stop.pickupRequestId ?? `stop-${stop.stopOrder}`}
+                  className="flex items-stretch group hover:bg-secondary/20 transition-colors"
+                >
                   <div className="w-12 md:w-16 shrink-0 flex flex-col items-center py-4 border-r border-border/50 bg-secondary/10">
                     <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm ring-2 ring-white">
                       {stop.stopOrder}
@@ -158,24 +161,40 @@ export default function RouteDetail() {
                   
                   <div className="flex-1 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-start gap-4">
-                      <div className="hidden md:flex mt-1">
-                        <Package className="w-5 h-5 text-muted-foreground" />
-                      </div>
+                       <div className="hidden md:flex mt-1">
+                         {stop.item ? <Package className="w-5 h-5 text-muted-foreground" /> : <ClipboardCheck className="w-5 h-5 text-primary" />}
+                       </div>
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Link href={`/items/${stop.item.id}`} className="font-bold text-lg hover:text-primary hover:underline">
-                            {stop.item.name}
-                          </Link>
-                          <span className="text-xs font-mono bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
-                            {stop.item.itemId}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                          <TierBadge tier={stop.item.tier} />
-                          <span>•</span>
-                          <span>Recipient: <span className="font-medium text-foreground">{stop.item.recipient || 'Not specified'}</span></span>
-                        </div>
+                         {stop.item ? (
+                           <>
+                             <div className="flex items-center gap-2 mb-1">
+                               <Link href={`/items/${stop.item.id}`} className="font-bold text-lg hover:text-primary hover:underline">
+                                 {stop.item.name}
+                               </Link>
+                               <span className="text-xs font-mono bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
+                                 {stop.item.itemId}
+                               </span>
+                             </div>
+                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                               <TierBadge tier={stop.item.tier} />
+                               <span>•</span>
+                               <span>Recipient: <span className="font-medium text-foreground">{stop.item.recipient || 'Not specified'}</span></span>
+                             </div>
+                           </>
+                         ) : stop.pickup ? (
+                           <>
+                             <div className="flex items-center gap-2 mb-1">
+                               <span className="font-bold text-lg">Pickup: {stop.pickup.name || stop.pickup.phone}</span>
+                               <Badge className="capitalize bg-primary/10 text-primary border-0">{stop.pickup.status.replaceAll('_', ' ')}</Badge>
+                             </div>
+                             <div className="text-sm text-muted-foreground mb-2">
+                               {stop.pickup.address}
+                               {stop.pickup.itemsDescribed ? <span> • {stop.pickup.itemsDescribed}</span> : null}
+                             </div>
+                           </>
+                         ) : (
+                           <p className="font-medium text-muted-foreground">Unavailable stop details</p>
+                         )}
                         
                         {stop.notes && (
                           <div className="text-sm bg-white border border-border p-2 rounded italic text-muted-foreground mt-2">
@@ -186,13 +205,19 @@ export default function RouteDetail() {
                     </div>
                     
                     <div className="shrink-0 flex items-center gap-4">
-                      <div className="text-right hidden md:block">
-                        <div className="text-xs text-muted-foreground">Location</div>
-                        <div className="font-medium text-sm">{stop.item.location || 'Unknown'}</div>
-                      </div>
-                      <Link href={`/items/${stop.item.id}`}>
-                        <Button variant="outline" size="sm">View Item</Button>
-                      </Link>
+                       <div className="text-right hidden md:block">
+                         <div className="text-xs text-muted-foreground">{stop.item ? 'Location' : 'Pickup window'}</div>
+                         <div className="font-medium text-sm">{stop.item?.location || stop.pickup?.requestedWindow || 'Unknown'}</div>
+                       </div>
+                       {stop.item ? (
+                         <Link href={`/items/${stop.item.id}`}>
+                           <Button variant="outline" size="sm">View Item</Button>
+                         </Link>
+                       ) : stop.pickup ? (
+                         <Link href="/pickups">
+                           <Button variant="outline" size="sm">View Pickup</Button>
+                         </Link>
+                       ) : null}
                     </div>
                   </div>
                 </div>
