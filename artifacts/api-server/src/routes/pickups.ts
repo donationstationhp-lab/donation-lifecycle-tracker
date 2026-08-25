@@ -58,6 +58,17 @@ function dispatchMissing(pickup: typeof pickupRequestsTable.$inferSelect): strin
   return missing;
 }
 
+async function dispatchMissingWithFlags(
+  pickup: typeof pickupRequestsTable.$inferSelect,
+): Promise<string[]> {
+  const missing = dispatchMissing(pickup);
+  const flags = await matchingFlags(pickup);
+  if (flags.some((flag) => flag.count >= 2 && !flag.supervisorApproved)) {
+    missing.push("Supervisor approval for repeated phone/address flags");
+  }
+  return missing;
+}
+
 function outcomeToStatus(outcome: string): string | null {
   const statuses: Record<string, string> = {
     completed: "completed",
@@ -147,7 +158,9 @@ async function syncExistingFlagState(
   const flags = await matchingFlags(pickup);
   const phoneFlagged = flags.some((flag) => flag.type === "phone");
   const addressFlagged = flags.some((flag) => flag.type === "address");
-  const requiresSupervisorApproval = flags.some((flag) => flag.count >= 2);
+  const requiresSupervisorApproval = flags.some(
+    (flag) => flag.count >= 2 && !flag.supervisorApproved,
+  );
 
   if (
     phoneFlagged !== pickup.phoneFlagged ||
@@ -223,7 +236,9 @@ async function countOutcomeForValue(
 }
 
 function derivedStatus(pickup: typeof pickupRequestsTable.$inferSelect): string {
-  if (pickup.status === "closed_no_response") return pickup.status;
+  if (!["unverified", "contact_made", "confirmed"].includes(pickup.status)) {
+    return pickup.status;
+  }
   return dispatchMissing(pickup).length === 0 ? "confirmed" : pickup.status;
 }
 
@@ -331,6 +346,10 @@ router.patch("/pickups/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Pickup request not found" });
     return;
   }
+  if (!["unverified", "contact_made", "confirmed"].includes(pickup.status)) {
+    res.status(409).json({ error: "Only an active pickup can be edited" });
+    return;
+  }
   if (pickup.status === "closed_no_response" && body.data.confirmedDatetime) {
     res.status(409).json({ error: "Closed pickup requests cannot be scheduled" });
     return;
@@ -374,6 +393,10 @@ router.post("/pickups/:id/contact-attempt", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Pickup request not found" });
     return;
   }
+  if (!["unverified", "contact_made"].includes(pickup.status)) {
+    res.status(409).json({ error: "Contact attempts are only allowed before pickup confirmation" });
+    return;
+  }
 
   const attemptNumber = pickup.contactAttempts + 1;
   const closed = body.data.result === "no_response" && attemptNumber >= 2;
@@ -414,7 +437,16 @@ router.post("/pickups/:id/dispatch", async (req, res): Promise<void> => {
     return;
   }
 
-  const missing = dispatchMissing(pickup);
+  if (pickup.status !== "confirmed") {
+    res.status(409).json({
+      error: "Pickup must be confirmed before dispatch",
+      missing: ["All verification requirements must be complete"],
+    });
+    return;
+  }
+
+  const synchronized = await syncExistingFlagState(pickup);
+  const missing = await dispatchMissingWithFlags(synchronized);
   if (missing.length > 0) {
     res.status(409).json({ error: "Pickup is not ready to dispatch", missing });
     return;
@@ -443,6 +475,14 @@ router.post("/pickups/:id/outcome", async (req, res): Promise<void> => {
   const pickup = await getPickup(params.data.id);
   if (!pickup) {
     res.status(404).json({ error: "Pickup request not found" });
+    return;
+  }
+  if (!["confirmed", "dispatched"].includes(pickup.status)) {
+    res.status(409).json({ error: "Only confirmed or dispatched pickups can have an outcome" });
+    return;
+  }
+  if (body.data.outcome === "completed") {
+    res.status(409).json({ error: "Use the completion action to create the intake item" });
     return;
   }
 
@@ -514,45 +554,79 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
   }
 
   const now = new Date();
-  const [completed] = await db
-    .update(pickupRequestsTable)
-    .set({
-      status: "completed",
-      outcome: "completed",
-      itemsReceived: body.data.itemsReceived,
-      outcomeNotes: body.data.notes ?? pickup.outcomeNotes,
-      updatedAt: now,
-    })
-    .where(eq(pickupRequestsTable.id, pickup.id))
-    .returning();
+  const completion = await db.transaction(async (tx) => {
+    const [existingItem] = await tx
+      .select()
+      .from(donationItemsTable)
+      .where(eq(donationItemsTable.sourcePickupId, pickup.id));
+    if (existingItem) {
+      return { pickup, item: existingItem };
+    }
 
-  const [item] = await db
-    .insert(donationItemsTable)
-    .values({
+    const [completed] = await tx
+      .update(pickupRequestsTable)
+      .set({
+        status: "completed",
+        outcome: "completed",
+        itemsReceived: body.data.itemsReceived,
+        outcomeNotes: body.data.notes ?? pickup.outcomeNotes,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(pickupRequestsTable.id, pickup.id),
+          eq(pickupRequestsTable.status, "dispatched"),
+        ),
+      )
+      .returning();
+    if (!completed) return null;
+
+    const [item] = await tx
+      .insert(donationItemsTable)
+      .values({
+        id: randomUUID(),
+        itemId: generateItemId(),
+        name: body.data.itemsReceived,
+        category: body.data.category ?? "Pickup Donation",
+        tier: "R",
+        condition: body.data.condition ?? "good",
+        donor: completed.name?.trim() || completed.phone,
+        origin: completed.address,
+        lotNumber: generateLotNumber(),
+        powerConnectionReading: computeNumerology(now),
+        sourcePickupId: completed.id,
+        stage: "intake",
+      })
+      .returning();
+
+    await tx.insert(stageHistoryTable).values({
       id: randomUUID(),
-      itemId: generateItemId(),
-      name: body.data.itemsReceived,
-      category: body.data.category ?? "Pickup Donation",
-      tier: "R",
-      condition: body.data.condition ?? "good",
-      donor: completed.name?.trim() || completed.phone,
-      origin: completed.address,
-      lotNumber: generateLotNumber(),
-      powerConnectionReading: computeNumerology(now),
-      sourcePickupId: completed.id,
-      stage: "intake",
-    })
-    .returning();
+      itemId: item.id,
+      fromStage: null,
+      toStage: "intake",
+      notes: `Received from completed pickup ${completed.id}${body.data.notes ? ` | ${body.data.notes}` : ""}`,
+    });
 
-  await db.insert(stageHistoryTable).values({
-    id: randomUUID(),
-    itemId: item.id,
-    fromStage: null,
-    toStage: "intake",
-    notes: `Received from completed pickup ${completed.id}${body.data.notes ? ` | ${body.data.notes}` : ""}`,
+    return { pickup: completed, item };
   });
 
-  res.json({ pickup: await pickupDetail(completed), item });
+  if (!completion) {
+    const current = await getPickup(pickup.id);
+    if (current?.status === "completed") {
+      const [existingItem] = await db
+        .select()
+        .from(donationItemsTable)
+        .where(eq(donationItemsTable.sourcePickupId, pickup.id));
+      if (existingItem) {
+        res.json({ pickup: await pickupDetail(current), item: existingItem });
+        return;
+      }
+    }
+    res.status(409).json({ error: "Pickup was already completed or is no longer dispatched" });
+    return;
+  }
+
+  res.json({ pickup: await pickupDetail(completion.pickup), item: completion.item });
 });
 
 // POST /pickups/:id/route
@@ -583,6 +657,12 @@ router.post("/pickups/:id/route", async (req, res): Promise<void> => {
   if (!route) {
     res.status(404).json({ error: "Delivery route not found" });
     return;
+  }
+
+  if (pickup.linkedRouteId && pickup.linkedRouteId !== route.id) {
+    await db
+      .delete(routeStopsTable)
+      .where(eq(routeStopsTable.pickupRequestId, pickup.id));
   }
 
   const existingStops = await db
@@ -667,6 +747,15 @@ router.patch("/flags/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Pickup flag not found" });
     return;
   }
+  const allPickups = await db.select().from(pickupRequestsTable);
+  await Promise.all(
+    allPickups
+      .filter((pickup) => {
+        const value = flag.type === "phone" ? pickup.phone : pickup.address;
+        return normalizeFlagValue(flag.type, value) === normalizeFlagValue(flag.type, flag.value);
+      })
+      .map((pickup) => syncExistingFlagState(pickup)),
+  );
   res.json(await enrichFlag(flag));
 });
 

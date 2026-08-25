@@ -1,0 +1,1 @@
+- [Pickup lifecycle safety](pickup-lifecycle-safety.md) — Server-side transitions keep verification, route stops, flags, and intake records consistent.
