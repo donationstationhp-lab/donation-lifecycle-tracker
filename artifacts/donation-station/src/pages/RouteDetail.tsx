@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRoute, Link } from 'wouter';
 import { useGetRoute, getGetRouteQueryKey, useUpdateRoute, DeliveryRouteUpdateStatus } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -6,11 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ArrowLeft, Truck, MapPin, Calendar, CheckCircle2, Clock, Navigation, 
-  Package, FileText, Loader2, GripVertical, ClipboardCheck
+  Package, FileText, Loader2, ClipboardCheck, Pencil
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { TierBadge } from '@/components/shared';
@@ -27,6 +31,18 @@ export default function RouteDetail() {
   });
   
   const updateRoute = useUpdateRoute();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editRoute, setEditRoute] = useState({ name: '', date: '', notes: '' });
+
+  useEffect(() => {
+    if (route) {
+      setEditRoute({
+        name: route.name,
+        date: route.date.slice(0, 10),
+        notes: route.notes ?? '',
+      });
+    }
+  }, [route]);
 
   const handleStatusChange = (newStatus: DeliveryRouteUpdateStatus) => {
     updateRoute.mutate({ id, data: { status: newStatus } }, {
@@ -38,6 +54,52 @@ export default function RouteDetail() {
       onError: (err: any) => {
         toast({ title: 'Error', description: err.message || 'Failed to update status', variant: 'destructive' });
       }
+    });
+  };
+
+  const handleEditDialogChange = (open: boolean) => {
+    setIsEditDialogOpen(open);
+    if (open && route) {
+      setEditRoute({
+        name: route.name,
+        date: route.date.slice(0, 10),
+        notes: route.notes ?? '',
+      });
+    }
+  };
+
+  const handleRouteDetailsUpdate = () => {
+    const name = editRoute.name.trim();
+    if (!name || !editRoute.date) {
+      toast({
+        title: 'Missing fields',
+        description: 'Route name and date are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    updateRoute.mutate({
+      id,
+      data: {
+        name,
+        date: editRoute.date,
+        notes: editRoute.notes,
+      },
+    }, {
+      onSuccess: () => {
+        setIsEditDialogOpen(false);
+        queryClient.invalidateQueries({ queryKey: getGetRouteQueryKey(id) });
+        queryClient.invalidateQueries({ queryKey: ['/api/routes'] });
+        toast({ title: 'Route updated', description: 'Route details saved successfully.' });
+      },
+      onError: (err: any) => {
+        toast({
+          title: 'Error',
+          description: err.message || 'Failed to update route',
+          variant: 'destructive',
+        });
+      },
     });
   };
 
@@ -84,35 +146,86 @@ export default function RouteDetail() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-border shadow-sm">
-          <span className="text-sm font-semibold text-muted-foreground uppercase pl-2">Status</span>
-          <Select 
-            value={route.status} 
-            onValueChange={(v) => handleStatusChange(v as DeliveryRouteUpdateStatus)}
-            disabled={updateRoute.isPending}
-          >
-            <SelectTrigger className={`w-40 border-0 ${
-              route.status === 'completed' ? 'bg-green-50 text-green-700' : 
-              route.status === 'in_progress' ? 'bg-amber-50 text-amber-700' : 
-              'bg-blue-50 text-blue-700'
-            }`}>
-              {updateRoute.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="planned">
-                <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Planned</div>
-              </SelectItem>
-              <SelectItem value="in_progress">
-                <div className="flex items-center gap-2"><Clock className="w-4 h-4" /> In Progress</div>
-              </SelectItem>
-              <SelectItem value="completed">
-                <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Completed</div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <Button variant="outline" onClick={() => handleEditDialogChange(true)} disabled={updateRoute.isPending}>
+            <Pencil className="w-4 h-4 mr-2" />
+            Edit Route
+          </Button>
+          <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-border shadow-sm">
+            <span className="text-sm font-semibold text-muted-foreground uppercase pl-2">Status</span>
+            <Select
+              value={route.status}
+              onValueChange={(v) => handleStatusChange(v as DeliveryRouteUpdateStatus)}
+              disabled={updateRoute.isPending}
+            >
+              <SelectTrigger className={`w-40 border-0 ${
+                route.status === 'completed' ? 'bg-green-50 text-green-700' :
+                route.status === 'in_progress' ? 'bg-amber-50 text-amber-700' :
+                'bg-blue-50 text-blue-700'
+              }`}>
+                {updateRoute.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="planned">
+                  <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /> Planned</div>
+                </SelectItem>
+                <SelectItem value="in_progress">
+                  <div className="flex items-center gap-2"><Clock className="w-4 h-4" /> In Progress</div>
+                </SelectItem>
+                <SelectItem value="completed">
+                  <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Completed</div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Delivery Route</DialogTitle>
+            <DialogDescription>Update the route name, scheduled date, or notes.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-route-name">Route Name</Label>
+              <Input
+                id="edit-route-name"
+                placeholder="e.g. Downtown Shelters Run"
+                value={editRoute.name}
+                onChange={(event) => setEditRoute((current) => ({ ...current, name: event.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-route-date">Scheduled Date</Label>
+              <Input
+                id="edit-route-date"
+                type="date"
+                value={editRoute.date}
+                onChange={(event) => setEditRoute((current) => ({ ...current, date: event.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-route-notes">Notes (Optional)</Label>
+              <Textarea
+                id="edit-route-notes"
+                placeholder="Driver info, vehicle assignment..."
+                value={editRoute.notes}
+                onChange={(event) => setEditRoute((current) => ({ ...current, notes: event.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleRouteDetailsUpdate} disabled={updateRoute.isPending}>
+              {updateRoute.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {route.notes && (
         <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-lg flex gap-3 text-sm">
