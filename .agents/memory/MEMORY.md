@@ -1,1 +1,2 @@
 - [Pickup lifecycle safety](pickup-lifecycle-safety.md) — Server-side transitions keep verification, route stops, flags, and intake records consistent.
+- [Staff authorization roles](staff-authorization-roles.md) — Clerk accounts require an assigned staff role; supervisor actions stay server-enforced.

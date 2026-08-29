@@ -10,10 +10,13 @@ import {
   useUpdatePickupFlag,
   getListPickupFlagsQueryKey,
 } from '@workspace/api-client-react';
+import { useUser } from '@clerk/react';
 
 export default function PickupFlags() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
+  const isSupervisor = user?.publicMetadata.role === 'supervisor';
 
   const { data: flags, isLoading } = useListPickupFlags();
 
@@ -23,7 +26,14 @@ export default function PickupFlags() {
         toast({ title: 'Flag supervisor-approved' });
         queryClient.invalidateQueries({ queryKey: getListPickupFlagsQueryKey() });
         // We could also invalidate pickups but the user typically navigates back
-      }
+      },
+      onError: (error) => {
+        toast({
+          title: 'Approval denied',
+          description: error instanceof Error ? error.message : 'Supervisor access is required.',
+          variant: 'destructive',
+        });
+      },
     }
   });
 
@@ -51,6 +61,11 @@ export default function PickupFlags() {
             <CardDescription>
               These values have been flagged. Associated pickups cannot be dispatched until a supervisor approves the flag.
             </CardDescription>
+            {!isSupervisor && (
+              <CardDescription className="font-medium text-amber-700">
+                You can review these records, but only a supervisor can approve them.
+              </CardDescription>
+            )}
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
@@ -71,7 +86,7 @@ export default function PickupFlags() {
                       <p className="text-sm text-muted-foreground">{flag.reason}</p>
                       <p className="text-xs text-muted-foreground mt-1">Reported {flag.count} time{flag.count > 1 ? 's' : ''}</p>
                     </div>
-                    <Button
+                    {isSupervisor && <Button
                       size="sm"
                       variant="outline"
                       className="shrink-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
@@ -79,7 +94,7 @@ export default function PickupFlags() {
                       disabled={approveFlag.isPending}
                     >
                       <ShieldCheck className="w-4 h-4 mr-2" /> Approve & Override
-                    </Button>
+                    </Button>}
                   </div>
                 ))}
               </div>

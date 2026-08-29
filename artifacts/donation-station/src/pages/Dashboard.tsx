@@ -1,4 +1,4 @@
-import { useGetDashboard } from '@workspace/api-client-react';
+import { customFetch, useGetDashboard } from '@workspace/api-client-react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,15 +11,13 @@ import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
-const API_KEY = import.meta.env.VITE_DONATION_STATION_API_KEY ?? '';
-
 function usePendingCount() {
   const { data } = useQuery<unknown[]>({
     queryKey: ['pending-count'],
     queryFn: () =>
-      fetch('/api/items?pendingReview=true', {
-        headers: { 'X-API-Key': API_KEY },
-      }).then((r) => (r.ok ? r.json() : [])),
+      customFetch<unknown[]>('/api/items?pendingReview=true', {
+        responseType: 'json',
+      }),
     refetchInterval: 30000,
     staleTime: 15000,
   });

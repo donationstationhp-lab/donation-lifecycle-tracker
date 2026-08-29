@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { Router, type IRouter } from "express";
+import { requireSupervisor } from "../middlewares/apiKeyAuth";
 import {
   AssignPickupRouteBody,
   AssignPickupRouteParams,
@@ -727,7 +728,7 @@ router.get("/flags", async (_req, res): Promise<void> => {
 });
 
 // PATCH /flags/:id
-router.patch("/flags/:id", async (req, res): Promise<void> => {
+router.patch("/flags/:id", requireSupervisor, async (req, res): Promise<void> => {
   const params = UpdatePickupFlagParams.safeParse({ id: rawParam(req.params.id) });
   const body = UpdatePickupFlagBody.safeParse(req.body);
   if (!params.success) {

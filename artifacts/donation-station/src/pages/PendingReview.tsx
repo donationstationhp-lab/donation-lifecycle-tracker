@@ -16,20 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-
-const API_BASE = '/api';
-const API_KEY = import.meta.env.VITE_DONATION_STATION_API_KEY ?? '';
-
-function apiFetch(path: string, init?: RequestInit) {
-  return fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-Key': API_KEY,
-      ...(init?.headers ?? {}),
-    },
-  });
-}
+import { customFetch } from '@workspace/api-client-react';
 
 interface DonationItem {
   id: string;
@@ -72,18 +59,17 @@ export default function PendingReview() {
   const { data: items, isLoading, isError } = useQuery<DonationItem[]>({
     queryKey: ['pending-items'],
     queryFn: () =>
-      apiFetch('/items?pendingReview=true').then((r) => {
-        if (!r.ok) throw new Error('Failed to load');
-        return r.json();
+      customFetch<DonationItem[]>('/api/items?pendingReview=true', {
+        responseType: 'json',
       }),
     refetchInterval: 20000,
   });
 
   const approve = useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/items/${id}/approve`, { method: 'POST' }).then((r) => {
-        if (!r.ok) throw new Error('Approve failed');
-        return r.json();
+      customFetch(`/api/items/${id}/approve`, {
+        method: 'POST',
+        responseType: 'json',
       }),
     onSuccess: (_, id) => {
       toast({ title: 'Item approved', description: 'It has been cleared for intake processing.' });
@@ -100,9 +86,7 @@ export default function PendingReview() {
 
   const reject = useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/items/${id}`, { method: 'DELETE' }).then((r) => {
-        if (!r.ok && r.status !== 204) throw new Error('Reject failed');
-      }),
+      customFetch(`/api/items/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       toast({ title: 'Item rejected', description: 'The donation has been removed from the system.' });
       qc.invalidateQueries({ queryKey: ['pending-items'] });

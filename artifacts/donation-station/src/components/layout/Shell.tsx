@@ -3,16 +3,16 @@ import { Link, useLocation } from 'wouter';
 import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
-
-const API_KEY = import.meta.env.VITE_DONATION_STATION_API_KEY ?? '';
+import { UserButton } from '@clerk/react';
+import { customFetch } from '@workspace/api-client-react';
 
 function usePendingCount() {
   const { data } = useQuery<unknown[]>({
     queryKey: ['pending-count'],
     queryFn: () =>
-      fetch('/api/items?pendingReview=true', {
-        headers: { 'X-API-Key': API_KEY },
-      }).then((r) => (r.ok ? r.json() : [])),
+      customFetch<unknown[]>('/api/items?pendingReview=true', {
+        responseType: 'json',
+      }),
     refetchInterval: 30000,
     staleTime: 15000,
   });
@@ -81,13 +81,16 @@ export function Shell({ children }: { children: ReactNode }) {
           </Link>
           {/* Quick link to public donor form */}
           <a
-            href="/donate"
+            href={`${import.meta.env.BASE_URL}donate`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors py-1"
           >
             <span>↗</span> Donor form
           </a>
+          <div className="flex items-center justify-center pt-2">
+            <UserButton />
+          </div>
         </div>
       </aside>
 
@@ -100,6 +103,7 @@ export function Shell({ children }: { children: ReactNode }) {
             Donation Station
           </h1>
           <div className="flex items-center gap-2">
+            <UserButton />
             {pendingCount > 0 && (
               <Link href="/pending">
                 <span className="flex items-center gap-1 bg-amber-400 text-[#1e2a38] text-xs font-bold px-2 py-1 rounded-full">
