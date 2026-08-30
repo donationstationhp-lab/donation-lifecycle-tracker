@@ -1,3 +1,4 @@
 - [Pickup lifecycle safety](pickup-lifecycle-safety.md) — Server-side transitions keep verification, route stops, flags, and intake records consistent.
 - [Staff authorization roles](staff-authorization-roles.md) — Clerk accounts require an assigned staff role; supervisor actions stay server-enforced.
 - [Workspace build defaults](workspace-build-defaults.md) — Vite configs need safe static-build defaults while still honoring workflow environment values.
+- [Google Sheets append serialization](google-sheets-append-serialization.md) — use a database-backed single writer because concurrent table-boundary discovery can overwrite rows.

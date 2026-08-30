@@ -1,5 +1,5 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { db, notificationOutboxTable } from "@workspace/db";
 import { logger } from "./logger";
 
@@ -12,7 +12,7 @@ export function canClaimOutboxLease(status: string): boolean {
 
 export class GoogleSheetsAttendAdapter implements AttendSheetsAdapter {
   private readonly spreadsheetId = process.env.ATTEND_SHEETS_SPREADSHEET_ID;
-  private readonly range = process.env.ATTEND_SHEETS_RANGE ?? "ATTEND Events!A:G";
+  private readonly range = process.env.ATTEND_SHEETS_RANGE ?? "'ATTEND Events'!A:G";
   private readonly connectors: ReplitConnectors;
   constructor(connectors = new ReplitConnectors()) { this.connectors = connectors; }
 
@@ -26,6 +26,35 @@ export class GoogleSheetsAttendAdapter implements AttendSheetsAdapter {
     );
     if (!response.ok) throw new Error(`Google Sheets append failed (${response.status})`);
   }
+}
+
+let attendAppendQueue: Promise<void> = Promise.resolve();
+
+export async function withAttendSheetAppendLock<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended('attend-google-sheets-append', 0))`,
+    );
+    return operation();
+  });
+}
+
+/**
+ * Sheets append uses the current table boundary, so concurrent appends can
+ * target the same next row. The PostgreSQL advisory lock coordinates every API
+ * instance; the local queue avoids opening transactions that only wait on it.
+ */
+export function queueAttendSheetAppend(
+  adapter: AttendSheetsAdapter,
+  row: readonly string[],
+): Promise<void> {
+  const operation = attendAppendQueue.then(() =>
+    withAttendSheetAppendLock(() => adapter.append(row)),
+  );
+  attendAppendQueue = operation.catch(() => undefined);
+  return operation;
 }
 
 /** Best-effort post-commit delivery.  It deliberately cannot affect the transition. */
@@ -42,7 +71,15 @@ export async function deliverAttendOutbox(
     .returning();
   if (!message) return;
   try {
-    await adapter.append([message.id, message.eventType, message.aggregateType, message.aggregateId, message.dedupeKey, message.payload, message.createdAt.toISOString()]);
+    await queueAttendSheetAppend(adapter, [
+      message.id,
+      message.eventType,
+      message.aggregateType,
+      message.aggregateId,
+      message.dedupeKey,
+      message.payload,
+      message.createdAt.toISOString(),
+    ]);
     await db.update(notificationOutboxTable).set({ status: "sent", sentAt: new Date(), attempts: message.attempts + 1, lastError: null }).where(and(eq(notificationOutboxTable.id, id), eq(notificationOutboxTable.status, "processing")));
   } catch (error) {
     const description = error instanceof Error ? error.message : "Unknown Sheets delivery error";

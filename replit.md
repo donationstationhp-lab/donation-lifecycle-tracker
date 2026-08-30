@@ -13,6 +13,16 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 
+### ATTEND Google Sheets delivery
+
+- Destination: [ATTEND Events](https://docs.google.com/spreadsheets/d/1ZGnTDKb3LNlWT7fSNBTBmVLyQoDcD7RfFy5589Eh-bA/edit)
+- Shared configuration: `ATTEND_SHEETS_SPREADSHEET_ID` selects the destination and `ATTEND_SHEETS_RANGE` is `'ATTEND Events'!A:G`.
+- Header order: `id`, `eventType`, `aggregateType`, `aggregateId`, `dedupeKey`, `payload`, `createdAt`.
+- Keep sharing restricted to the connected Google account and operators who need the event feed. The API uses only the Google Sheets endpoint, the configured spreadsheet ID, and the configured range; it does not use Google Drive or enumerate other files.
+- A PostgreSQL advisory lock serializes appends across autoscaled API instances so concurrent transitions cannot select the same next sheet row.
+- Delivery is best-effort after the database transaction commits. The `notification_outbox` table remains the durable source of truth for delivery status and retries.
+- Release verification on August 30, 2026 exercised claim and transfer transitions through the API, confirmed 10 durable outbox events were sent once, and read back 10 unique matching dedupe keys from the configured sheet.
+
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
