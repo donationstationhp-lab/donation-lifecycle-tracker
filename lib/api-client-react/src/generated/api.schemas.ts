@@ -5,6 +5,194 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+export interface RecipientAccount {
+  id: string;
+  name: string;
+  type: string;
+  /** @nullable */
+  contactName?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecipientAccountInput {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  type: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+}
+
+export interface RecipientAccountSummary {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export type ClaimStatus = typeof ClaimStatus[keyof typeof ClaimStatus];
+
+
+export const ClaimStatus = {
+  submitted: 'submitted',
+  verified: 'verified',
+  approved: 'approved',
+  fulfilled: 'fulfilled',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Claim {
+  id: string;
+  accountId: string;
+  itemId: string;
+  status: ClaimStatus;
+  submittedBy: string;
+  /** @nullable */
+  approvedBy?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClaimInput {
+  accountId: string;
+  itemId: string;
+  notes?: string;
+}
+
+export type ClaimEvidenceKind = typeof ClaimEvidenceKind[keyof typeof ClaimEvidenceKind];
+
+
+export const ClaimEvidenceKind = {
+  identity: 'identity',
+  eligibility: 'eligibility',
+  need: 'need',
+} as const;
+
+export interface ClaimEvidence {
+  id: string;
+  claimId: string;
+  kind: ClaimEvidenceKind;
+  reference: string;
+  note: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export type ClaimEvidenceInputKind = typeof ClaimEvidenceInputKind[keyof typeof ClaimEvidenceInputKind];
+
+
+export const ClaimEvidenceInputKind = {
+  identity: 'identity',
+  eligibility: 'eligibility',
+  need: 'need',
+} as const;
+
+export interface ClaimEvidenceInput {
+  kind: ClaimEvidenceInputKind;
+  /** @minLength 1 */
+  reference: string;
+  /** @minLength 1 */
+  note: string;
+}
+
+export interface ClaimHistoryEntry {
+  id: string;
+  claimId: string;
+  /** @nullable */
+  fromStatus?: string | null;
+  toStatus: string;
+  by: string;
+  /** @nullable */
+  notes?: string | null;
+  timestamp: string;
+}
+
+export interface ItemSummary {
+  id: string;
+  itemId: string;
+  name: string;
+  stage: string;
+}
+
+export type ClaimDetail = Claim & {
+  evidence: ClaimEvidence[];
+  history: ClaimHistoryEntry[];
+  account: RecipientAccountSummary;
+  item: ItemSummary;
+};
+
+export type TransferStatus = typeof TransferStatus[keyof typeof TransferStatus];
+
+
+export const TransferStatus = {
+  planned: 'planned',
+  released: 'released',
+  received: 'received',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Transfer {
+  id: string;
+  claimId: string;
+  accountId: string;
+  itemId: string;
+  status: TransferStatus;
+  /** @nullable */
+  releasedBy?: string | null;
+  /** @nullable */
+  receivedBy?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransferInput {
+  claimId: string;
+  accountId: string;
+  itemId: string;
+  notes?: string;
+}
+
+export interface TransferHistoryEntry {
+  id: string;
+  transferId: string;
+  /** @nullable */
+  fromStatus?: string | null;
+  toStatus: string;
+  by: string;
+  /** @nullable */
+  notes?: string | null;
+  timestamp: string;
+}
+
+export interface ClaimSummary {
+  id: string;
+  accountId: string;
+  itemId: string;
+  status: string;
+}
+
+export type TransferDetail = Transfer & {
+  history: TransferHistoryEntry[];
+  account: RecipientAccountSummary;
+  claim: ClaimSummary;
+  item: ItemSummary;
+};
+
+export interface StatusTransitionInput {
+  status: string;
+  notes?: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -98,8 +286,23 @@ export interface StageHistoryEntry {
   notes?: string | null;
 }
 
+export interface ItemClaimSummary {
+  id: string;
+  accountId: string;
+  status: string;
+}
+
+export interface ItemTransferSummary {
+  id: string;
+  claimId: string;
+  accountId: string;
+  status: string;
+}
+
 export type DonationItemDetail = DonationItem & {
   history: StageHistoryEntry[];
+  claims?: ItemClaimSummary[];
+  transfers?: ItemTransferSummary[];
 };
 
 export type DonationItemInputTier = typeof DonationItemInputTier[keyof typeof DonationItemInputTier];
@@ -614,5 +817,56 @@ export const ListPickupsStatus = {
   false_address: 'false_address',
   cancelled: 'cancelled',
   closed_no_response: 'closed_no_response',
+} as const;
+
+export type ListAccountsParams = {
+search?: string;
+type?: string;
+};
+
+export type ListClaimsParams = {
+status?: ListClaimsStatus;
+accountId?: string;
+itemId?: string;
+itemStage?: ListClaimsItemStage;
+};
+
+export type ListClaimsStatus = typeof ListClaimsStatus[keyof typeof ListClaimsStatus];
+
+
+export const ListClaimsStatus = {
+  submitted: 'submitted',
+  verified: 'verified',
+  approved: 'approved',
+  fulfilled: 'fulfilled',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+} as const;
+
+export type ListClaimsItemStage = typeof ListClaimsItemStage[keyof typeof ListClaimsItemStage];
+
+
+export const ListClaimsItemStage = {
+  intake: 'intake',
+  qc: 'qc',
+  storage: 'storage',
+  distributed: 'distributed',
+} as const;
+
+export type ListTransfersParams = {
+status?: ListTransfersStatus;
+accountId?: string;
+itemId?: string;
+claimId?: string;
+};
+
+export type ListTransfersStatus = typeof ListTransfersStatus[keyof typeof ListTransfersStatus];
+
+
+export const ListTransfersStatus = {
+  planned: 'planned',
+  released: 'released',
+  received: 'received',
+  cancelled: 'cancelled',
 } as const;
 

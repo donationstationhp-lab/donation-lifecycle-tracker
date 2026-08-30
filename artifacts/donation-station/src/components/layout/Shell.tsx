@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag, FileText, ArrowRightLeft, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { UserButton } from '@clerk/react';
@@ -26,6 +26,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/items', label: 'Items', icon: Package },
+    { href: '/accounts', label: 'Accounts', icon: Users },
+    { href: '/claims', label: 'Claims', icon: FileText },
+    { href: '/transfers', label: 'Transfers', icon: ArrowRightLeft },
     { href: '/pickups', label: 'Pickups', icon: ClipboardCheck },
     { href: '/pickup-flags', label: 'Flags', icon: Flag },
     { href: '/expiring', label: 'Expiring', icon: AlertTriangle },

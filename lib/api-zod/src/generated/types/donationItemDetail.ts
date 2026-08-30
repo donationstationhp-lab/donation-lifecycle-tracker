@@ -6,8 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DonationItem } from './donationItem';
+import type { ItemClaimSummary } from './itemClaimSummary';
+import type { ItemTransferSummary } from './itemTransferSummary';
 import type { StageHistoryEntry } from './stageHistoryEntry';
 
 export type DonationItemDetail = DonationItem & {
   history: StageHistoryEntry[];
+  claims?: ItemClaimSummary[];
+  transfers?: ItemTransferSummary[];
 };

@@ -130,7 +130,18 @@ export const GetItemResponse = zod.object({
   "toStage": zod.string(),
   "timestamp": zod.coerce.date(),
   "notes": zod.string().nullish()
-}))
+})),
+  "claims": zod.array(zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "status": zod.string()
+})).optional(),
+  "transfers": zod.array(zod.object({
+  "id": zod.string(),
+  "claimId": zod.string(),
+  "accountId": zod.string(),
+  "status": zod.string()
+})).optional()
 }))
 
 
@@ -1212,5 +1223,292 @@ export const UpdateConfirmationTemplateResponse = zod.object({
   "body": zod.string(),
   "updatedAt": zod.coerce.date()
 })
+
+
+export const ListAccountsQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "type": zod.coerce.string().optional()
+})
+
+export const ListAccountsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "contactName": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListAccountsResponse = zod.array(ListAccountsResponseItem)
+
+
+
+
+
+
+export const CreateAccountBody = zod.object({
+  "name": zod.string().min(1),
+  "type": zod.string().min(1),
+  "contactName": zod.string().optional(),
+  "contactEmail": zod.string().optional(),
+  "contactPhone": zod.string().optional()
+})
+
+export const CreateAccountResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "contactName": zod.string().nullish(),
+  "contactEmail": zod.string().nullish(),
+  "contactPhone": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const ListClaimsQueryParams = zod.object({
+  "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']).optional(),
+  "accountId": zod.coerce.string().optional(),
+  "itemId": zod.coerce.string().optional(),
+  "itemStage": zod.enum(['intake', 'qc', 'storage', 'distributed']).optional()
+})
+
+export const ListClaimsResponseItem = zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
+  "submittedBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListClaimsResponse = zod.array(ListClaimsResponseItem)
+
+
+export const CreateClaimBody = zod.object({
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "notes": zod.string().optional()
+})
+
+export const CreateClaimResponse = zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
+  "submittedBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const AddClaimEvidenceParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+
+
+
+
+export const AddClaimEvidenceBody = zod.object({
+  "kind": zod.enum(['identity', 'eligibility', 'need']),
+  "reference": zod.string().min(1),
+  "note": zod.string().min(1)
+})
+
+export const AddClaimEvidenceResponse = zod.object({
+  "id": zod.string(),
+  "claimId": zod.string(),
+  "kind": zod.enum(['identity', 'eligibility', 'need']),
+  "reference": zod.string(),
+  "note": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const GetClaimParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetClaimResponse = zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
+  "submittedBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "evidence": zod.array(zod.object({
+  "id": zod.string(),
+  "claimId": zod.string(),
+  "kind": zod.enum(['identity', 'eligibility', 'need']),
+  "reference": zod.string(),
+  "note": zod.string(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "history": zod.array(zod.object({
+  "id": zod.string(),
+  "claimId": zod.string(),
+  "fromStatus": zod.string().nullish(),
+  "toStatus": zod.string(),
+  "by": zod.string(),
+  "notes": zod.string().nullish(),
+  "timestamp": zod.coerce.date()
+})),
+  "account": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string()
+}),
+  "item": zod.object({
+  "id": zod.string(),
+  "itemId": zod.string(),
+  "name": zod.string(),
+  "stage": zod.string()
+})
+}))
+
+
+export const TransitionClaimParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const TransitionClaimBody = zod.object({
+  "status": zod.string(),
+  "notes": zod.string().optional()
+})
+
+export const TransitionClaimResponse = zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
+  "submittedBy": zod.string(),
+  "approvedBy": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const ListTransfersQueryParams = zod.object({
+  "status": zod.enum(['planned', 'released', 'received', 'cancelled']).optional(),
+  "accountId": zod.coerce.string().optional(),
+  "itemId": zod.coerce.string().optional(),
+  "claimId": zod.coerce.string().optional()
+})
+
+export const ListTransfersResponseItem = zod.object({
+  "id": zod.string(),
+  "claimId": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "status": zod.enum(['planned', 'released', 'received', 'cancelled']),
+  "releasedBy": zod.string().nullish(),
+  "receivedBy": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListTransfersResponse = zod.array(ListTransfersResponseItem)
+
+
+export const CreateTransferBody = zod.object({
+  "claimId": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "notes": zod.string().optional()
+})
+
+export const CreateTransferResponse = zod.object({
+  "id": zod.string(),
+  "claimId": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "status": zod.enum(['planned', 'released', 'received', 'cancelled']),
+  "releasedBy": zod.string().nullish(),
+  "receivedBy": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const TransitionTransferParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const TransitionTransferBody = zod.object({
+  "status": zod.string(),
+  "notes": zod.string().optional()
+})
+
+export const TransitionTransferResponse = zod.object({
+  "id": zod.string(),
+  "claimId": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "status": zod.enum(['planned', 'released', 'received', 'cancelled']),
+  "releasedBy": zod.string().nullish(),
+  "receivedBy": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const GetTransferParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetTransferResponse = zod.object({
+  "id": zod.string(),
+  "claimId": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "status": zod.enum(['planned', 'released', 'received', 'cancelled']),
+  "releasedBy": zod.string().nullish(),
+  "receivedBy": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "history": zod.array(zod.object({
+  "id": zod.string(),
+  "transferId": zod.string(),
+  "fromStatus": zod.string().nullish(),
+  "toStatus": zod.string(),
+  "by": zod.string(),
+  "notes": zod.string().nullish(),
+  "timestamp": zod.coerce.date()
+})),
+  "account": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string()
+}),
+  "claim": zod.object({
+  "id": zod.string(),
+  "accountId": zod.string(),
+  "itemId": zod.string(),
+  "status": zod.string()
+}),
+  "item": zod.object({
+  "id": zod.string(),
+  "itemId": zod.string(),
+  "name": zod.string(),
+  "stage": zod.string()
+})
+}))
 
 

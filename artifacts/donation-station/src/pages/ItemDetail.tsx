@@ -10,9 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from '@/components/ui/textarea';
 import { 
   ArrowLeft, ArrowRight, Package, MapPin, Calendar, Scale, Map, 
-  User, CheckCircle2, History, Loader2, ArrowUpCircle
+  User, CheckCircle2, History, Loader2, ArrowUpCircle, FileText, ArrowRightLeft
 } from 'lucide-react';
 import { TierBadge, StageChip, ConditionChip, TempZoneIcon, NumerologyReading } from '@/components/shared';
+import { ClaimStatusBadge } from './ClaimsList';
+import { TransferStatusBadge } from './TransfersList';
 import { format } from 'date-fns';
 
 const stageFlow: DonationItemStage[] = ['intake', 'qc', 'storage', 'distributed'];
@@ -224,6 +226,53 @@ export default function ItemDetail() {
               )}
             </CardContent>
           </Card>
+
+          {(item.claims && item.claims.length > 0) || (item.transfers && item.transfers.length > 0) ? (
+            <Card className="shadow-sm border-blue-100 bg-blue-50/20">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold uppercase text-blue-900 tracking-wider flex items-center gap-2">
+                  <ArrowRightLeft className="w-4 h-4" />
+                  Allocations
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {item.claims?.map(claim => (
+                  <div key={claim.id} className="bg-white p-3 rounded-md border border-blue-100 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm font-medium">Claim</span>
+                      </div>
+                      <Link href={`/claims/${claim.id}`} className="text-blue-600 hover:text-blue-800 flex items-center text-xs">
+                        View <ArrowRight className="w-3 h-3 ml-1" />
+                      </Link>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <span className="text-xs text-muted-foreground">Status</span>
+                      <ClaimStatusBadge status={claim.status as any} />
+                    </div>
+                  </div>
+                ))}
+                {item.transfers?.map(transfer => (
+                  <div key={transfer.id} className="bg-white p-3 rounded-md border border-blue-100 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ArrowRightLeft className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm font-medium">Transfer</span>
+                      </div>
+                      <Link href={`/transfers/${transfer.id}`} className="text-blue-600 hover:text-blue-800 flex items-center text-xs">
+                        View <ArrowRight className="w-3 h-3 ml-1" />
+                      </Link>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <span className="text-xs text-muted-foreground">Status</span>
+                      <TransferStatusBadge status={transfer.status as any} />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card className="shadow-sm">
             <CardHeader>

@@ -645,8 +645,251 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConfirmationTemplate"
+  /accounts:
+    get:
+      operationId: listAccounts
+      tags: [accounts]
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { type: string }
+      responses:
+        "200": { description: Accounts, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/RecipientAccount" } } } } }
+    post:
+      operationId: createAccount
+      tags: [accounts]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/RecipientAccountInput" } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/RecipientAccount" } } } }
+  /claims:
+    get:
+      operationId: listClaims
+      tags: [claims]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [submitted, verified, approved, fulfilled, rejected, cancelled] } }
+        - { name: accountId, in: query, schema: { type: string } }
+        - { name: itemId, in: query, schema: { type: string } }
+        - { name: itemStage, in: query, schema: { type: string, enum: [intake, qc, storage, distributed] } }
+      responses:
+        "200": { description: Claims, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Claim" } } } } }
+    post:
+      operationId: createClaim
+      tags: [claims]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ClaimInput" } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/Claim" } } } }
+  /claims/{id}/evidence:
+    post:
+      operationId: addClaimEvidence
+      tags: [claims]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ClaimEvidenceInput" } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/ClaimEvidence" } } } }
+  /claims/{id}:
+    get:
+      operationId: getClaim
+      tags: [claims]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: Claim detail, content: { application/json: { schema: { $ref: "#/components/schemas/ClaimDetail" } } } }
+  /claims/{id}/status:
+    patch:
+      operationId: transitionClaim
+      tags: [claims]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/StatusTransitionInput" } } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Claim" } } } }
+  /transfers:
+    get:
+      operationId: listTransfers
+      tags: [transfers]
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [planned, released, received, cancelled] } }
+        - { name: accountId, in: query, schema: { type: string } }
+        - { name: itemId, in: query, schema: { type: string } }
+        - { name: claimId, in: query, schema: { type: string } }
+      responses:
+        "200": { description: Transfers, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Transfer" } } } } }
+    post:
+      operationId: createTransfer
+      tags: [transfers]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TransferInput" } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/Transfer" } } } }
+  /transfers/{id}/status:
+    patch:
+      operationId: transitionTransfer
+      tags: [transfers]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/StatusTransitionInput" } } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Transfer" } } } }
+  /transfers/{id}:
+    get:
+      operationId: getTransfer
+      tags: [transfers]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: Transfer detail, content: { application/json: { schema: { $ref: "#/components/schemas/TransferDetail" } } } }
 components:
   schemas:
+    RecipientAccount:
+      type: object
+      required: [id, name, type, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string }
+        contactName: { type: ["string", "null"] }
+        contactEmail: { type: ["string", "null"] }
+        contactPhone: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    RecipientAccountInput:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string, minLength: 1 }
+        type: { type: string, minLength: 1 }
+        contactName: { type: string }
+        contactEmail: { type: string }
+        contactPhone: { type: string }
+    RecipientAccountSummary:
+      type: object
+      required: [id, name, type]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        type: { type: string }
+    Claim:
+      type: object
+      required: [id, accountId, itemId, status, submittedBy, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        accountId: { type: string }
+        itemId: { type: string }
+        status: { type: string, enum: [submitted, verified, approved, fulfilled, rejected, cancelled] }
+        submittedBy: { type: string }
+        approvedBy: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ClaimInput:
+      type: object
+      required: [accountId, itemId]
+      properties:
+        accountId: { type: string }
+        itemId: { type: string }
+        notes: { type: string }
+    ClaimEvidence:
+      type: object
+      required: [id, claimId, kind, reference, note, createdBy, createdAt]
+      properties:
+        id: { type: string }
+        claimId: { type: string }
+        kind: { type: string, enum: [identity, eligibility, need] }
+        reference: { type: string }
+        note: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
+    ClaimEvidenceInput:
+      type: object
+      required: [kind, reference, note]
+      properties:
+        kind: { type: string, enum: [identity, eligibility, need] }
+        reference: { type: string, minLength: 1 }
+        note: { type: string, minLength: 1 }
+    ClaimHistoryEntry:
+      type: object
+      required: [id, claimId, toStatus, by, timestamp]
+      properties:
+        id: { type: string }
+        claimId: { type: string }
+        fromStatus: { type: ["string", "null"] }
+        toStatus: { type: string }
+        by: { type: string }
+        notes: { type: ["string", "null"] }
+        timestamp: { type: string, format: date-time }
+    ItemSummary:
+      type: object
+      required: [id, itemId, name, stage]
+      properties:
+        id: { type: string }
+        itemId: { type: string }
+        name: { type: string }
+        stage: { type: string }
+    ClaimDetail:
+      allOf:
+        - $ref: "#/components/schemas/Claim"
+        - type: object
+          required: [evidence, history, account, item]
+          properties:
+            evidence: { type: array, items: { $ref: "#/components/schemas/ClaimEvidence" } }
+            history: { type: array, items: { $ref: "#/components/schemas/ClaimHistoryEntry" } }
+            account: { $ref: "#/components/schemas/RecipientAccountSummary" }
+            item: { $ref: "#/components/schemas/ItemSummary" }
+    Transfer:
+      type: object
+      required: [id, claimId, accountId, itemId, status, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        claimId: { type: string }
+        accountId: { type: string }
+        itemId: { type: string }
+        status: { type: string, enum: [planned, released, received, cancelled] }
+        releasedBy: { type: ["string", "null"] }
+        receivedBy: { type: ["string", "null"] }
+        notes: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TransferInput:
+      type: object
+      required: [claimId, accountId, itemId]
+      properties:
+        claimId: { type: string }
+        accountId: { type: string }
+        itemId: { type: string }
+        notes: { type: string }
+    TransferHistoryEntry:
+      type: object
+      required: [id, transferId, toStatus, by, timestamp]
+      properties:
+        id: { type: string }
+        transferId: { type: string }
+        fromStatus: { type: ["string", "null"] }
+        toStatus: { type: string }
+        by: { type: string }
+        notes: { type: ["string", "null"] }
+        timestamp: { type: string, format: date-time }
+    ClaimSummary:
+      type: object
+      required: [id, accountId, itemId, status]
+      properties:
+        id: { type: string }
+        accountId: { type: string }
+        itemId: { type: string }
+        status: { type: string }
+    TransferDetail:
+      allOf:
+        - $ref: "#/components/schemas/Transfer"
+        - type: object
+          required: [history, account, claim, item]
+          properties:
+            history: { type: array, items: { $ref: "#/components/schemas/TransferHistoryEntry" } }
+            account: { $ref: "#/components/schemas/RecipientAccountSummary" }
+            claim: { $ref: "#/components/schemas/ClaimSummary" }
+            item: { $ref: "#/components/schemas/ItemSummary" }
+    StatusTransitionInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+        notes: { type: string }
     HealthStatus:
       type: object
       properties:
@@ -740,6 +983,30 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/StageHistoryEntry"
+            claims:
+              type: array
+              items:
+                $ref: "#/components/schemas/ItemClaimSummary"
+            transfers:
+              type: array
+              items:
+                $ref: "#/components/schemas/ItemTransferSummary"
+
+    ItemClaimSummary:
+      type: object
+      required: [id, accountId, status]
+      properties:
+        id: { type: string }
+        accountId: { type: string }
+        status: { type: string }
+    ItemTransferSummary:
+      type: object
+      required: [id, claimId, accountId, status]
+      properties:
+        id: { type: string }
+        claimId: { type: string }
+        accountId: { type: string }
+        status: { type: string }
 
     StageHistoryEntry:
       type: object

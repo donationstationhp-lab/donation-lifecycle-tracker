@@ -9,6 +9,7 @@ import locationsRouter from "./locations";
 import cliExtrasRouter from "./cliExtras";
 import notionHealthRouter from "./notionHealth";
 import pickupsRouter from "./pickups";
+import attendRouter from "./attend";
 
 const router: IRouter = Router();
 
@@ -29,5 +30,6 @@ router.use(deliveryRoutesRouter);
 router.use(locationsRouter);
 router.use(cliExtrasRouter);
 router.use(pickupsRouter);
+router.use(attendRouter);
 
 export default router;

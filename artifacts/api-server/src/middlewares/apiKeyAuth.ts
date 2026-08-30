@@ -74,6 +74,7 @@ export function createApiKeyAuth({
       }
       res.locals.staffRole = role;
       res.locals.authMethod = "clerk";
+      res.locals.staffUserId = userId;
       next();
     } catch {
       res.status(401).json({ error: "Unable to validate staff session" });
