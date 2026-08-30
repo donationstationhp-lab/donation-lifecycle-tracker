@@ -23,8 +23,14 @@ const event = (aggregateType: string, aggregateId: string, to: string) => ({
   id: randomUUID(), aggregateType, aggregateId, eventType: `${aggregateType}.${to}`,
   dedupeKey: `${aggregateType}:${aggregateId}:${to}`, payload: JSON.stringify({ aggregateId, status: to }),
 });
-const isUniqueViolation = (error: unknown) =>
-  typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "23505";
+const isUniqueViolation = (error: unknown): boolean => {
+  let current = error;
+  while (typeof current === "object" && current !== null) {
+    if ("code" in current && (current as { code?: string }).code === "23505") return true;
+    current = "cause" in current ? (current as { cause?: unknown }).cause : undefined;
+  }
+  return false;
+};
 
 router.get("/accounts", async (req, res): Promise<void> => {
   const parsed = ListAccountsQueryParams.safeParse(req.query);
