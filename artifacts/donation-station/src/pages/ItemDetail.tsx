@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useRoute, Link } from 'wouter';
-import { useGetItem, getGetItemQueryKey, useAdvanceItemStage, DonationItemStage } from '@workspace/api-client-react';
+import { useGetItem, getGetItemQueryKey, useQcItem, useStoreItem, useDistributeItem, DonationItemStage } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  ArrowLeft, ArrowRight, Package, MapPin, Calendar, Scale, Map, 
+import {
+  ArrowLeft, ArrowRight, Package, MapPin, Calendar, Scale, Map,
   User, CheckCircle2, History, Loader2, ArrowUpCircle
 } from 'lucide-react';
 import { TierBadge, StageChip, ConditionChip, TempZoneIcon, NumerologyReading } from '@/components/shared';
@@ -17,19 +18,33 @@ import { format } from 'date-fns';
 
 const stageFlow: DonationItemStage[] = ['intake', 'qc', 'storage', 'distributed'];
 
+const stageLabels: Record<string, string> = {
+  qc: 'Quality Control',
+  storage: 'Storage',
+  distributed: 'Distribution',
+};
+
 export default function ItemDetail() {
   const [, params] = useRoute('/items/:id');
   const id = params?.id || '';
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { data: item, isLoading, isError } = useGetItem(id, { 
-    query: { enabled: !!id, queryKey: getGetItemQueryKey(id) } 
+  const { data: item, isLoading, isError } = useGetItem(id, {
+    query: { enabled: !!id, queryKey: getGetItemQueryKey(id) }
   });
-  const advanceStage = useAdvanceItemStage();
+  const qcItem = useQcItem();
+  const storeItem = useStoreItem();
+  const distributeItem = useDistributeItem();
+  const isAdvancing = qcItem.isPending || storeItem.isPending || distributeItem.isPending;
 
   const [isAdvanceDialogOpen, setIsAdvanceDialogOpen] = useState(false);
+  const [advanceBy, setAdvanceBy] = useState('');
   const [advanceNotes, setAdvanceNotes] = useState('');
+  const [qcPassed, setQcPassed] = useState<boolean | null>(null);
+  const [maintenance, setMaintenance] = useState('');
+  const [storageLocation, setStorageLocation] = useState('');
+  const [recipient, setRecipient] = useState('');
 
   if (isLoading) {
     return (
@@ -58,35 +73,73 @@ export default function ItemDetail() {
   const currentStageIndex = stageFlow.indexOf(item.stage);
   const nextStage = currentStageIndex < stageFlow.length - 1 ? stageFlow[currentStageIndex + 1] : null;
 
-  const handleAdvance = () => {
-    if (!nextStage) return;
-    
-    advanceStage.mutate({
-      id,
-      data: {
-        stage: nextStage as any,
-        notes: advanceNotes || undefined
-      }
-    }, {
-      onSuccess: (updatedData) => {
-        setIsAdvanceDialogOpen(false);
-        setAdvanceNotes('');
-        queryClient.invalidateQueries({ queryKey: getGetItemQueryKey(id) });
-        queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/items'] });
-        toast({
-          title: "Stage Advanced",
-          description: `${item.itemId} is now in ${nextStage}`,
-        });
-      },
-      onError: (err: any) => {
-        toast({
-          title: "Error advancing stage",
-          description: err.message || "An error occurred.",
-          variant: "destructive"
-        });
-      }
+  const openAdvanceDialog = () => {
+    setAdvanceBy('');
+    setAdvanceNotes('');
+    setQcPassed(null);
+    setMaintenance('');
+    setStorageLocation(item.location ?? '');
+    setRecipient(item.recipient ?? '');
+    setIsAdvanceDialogOpen(true);
+  };
+
+  const isAdvanceValid =
+    nextStage === 'qc' ? qcPassed !== null :
+    nextStage === 'storage' ? storageLocation.trim().length > 0 :
+    nextStage === 'distributed' ? recipient.trim().length > 0 :
+    false;
+
+  const handleAdvanceSuccess = () => {
+    setIsAdvanceDialogOpen(false);
+    queryClient.invalidateQueries({ queryKey: getGetItemQueryKey(id) });
+    queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+    toast({
+      title: "Stage Advanced",
+      description: `${item.itemId} is now in ${stageLabels[nextStage!] ?? nextStage}`,
     });
+  };
+
+  const handleAdvanceError = (err: any) => {
+    toast({
+      title: "Error advancing stage",
+      description: err.message || "An error occurred.",
+      variant: "destructive"
+    });
+  };
+
+  const handleAdvance = () => {
+    if (!nextStage || !isAdvanceValid) return;
+
+    if (nextStage === 'qc') {
+      qcItem.mutate({
+        id,
+        data: {
+          passed: qcPassed as boolean,
+          by: advanceBy || undefined,
+          notes: advanceNotes || undefined,
+          maintenance: qcPassed === false ? (maintenance || undefined) : undefined,
+        }
+      }, { onSuccess: handleAdvanceSuccess, onError: handleAdvanceError });
+    } else if (nextStage === 'storage') {
+      storeItem.mutate({
+        id,
+        data: {
+          location: storageLocation,
+          by: advanceBy || undefined,
+          notes: advanceNotes || undefined,
+        }
+      }, { onSuccess: handleAdvanceSuccess, onError: handleAdvanceError });
+    } else if (nextStage === 'distributed') {
+      distributeItem.mutate({
+        id,
+        data: {
+          recipient,
+          by: advanceBy || undefined,
+          notes: advanceNotes || undefined,
+        }
+      }, { onSuccess: handleAdvanceSuccess, onError: handleAdvanceError });
+    }
   };
 
   return (
@@ -112,11 +165,11 @@ export default function ItemDetail() {
         </div>
 
         {nextStage && (
-          <Button 
-            onClick={() => setIsAdvanceDialogOpen(true)}
+          <Button
+            onClick={openAdvanceDialog}
             className="w-full md:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
           >
-            Advance to {nextStage.charAt(0).toUpperCase() + nextStage.slice(1)}
+            Advance to {stageLabels[nextStage] ?? nextStage}
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         )}
@@ -265,7 +318,7 @@ export default function ItemDetail() {
       <Dialog open={isAdvanceDialogOpen} onOpenChange={setIsAdvanceDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Advance Stage to {nextStage}</DialogTitle>
+            <DialogTitle>Advance to {nextStage ? (stageLabels[nextStage] ?? nextStage) : ''}</DialogTitle>
             <DialogDescription>
               Are you sure you want to move {item.itemId} to the next stage in the pipeline?
             </DialogDescription>
@@ -276,11 +329,97 @@ export default function ItemDetail() {
               <ArrowRight className="w-4 h-4 text-muted-foreground" />
               {nextStage && <StageChip stage={nextStage as any} />}
             </div>
-            
+
+            {nextStage === 'qc' && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Inspector (Optional)</label>
+                  <Input
+                    placeholder="Who performed the inspection?"
+                    value={advanceBy}
+                    onChange={(e) => setAdvanceBy(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Result</label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={qcPassed === true ? 'default' : 'outline'}
+                      className={qcPassed === true ? 'bg-emerald-600 hover:bg-emerald-600/90 text-white flex-1' : 'flex-1'}
+                      onClick={() => setQcPassed(true)}
+                    >
+                      Pass
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={qcPassed === false ? 'default' : 'outline'}
+                      className={qcPassed === false ? 'bg-red-600 hover:bg-red-600/90 text-white flex-1' : 'flex-1'}
+                      onClick={() => setQcPassed(false)}
+                    >
+                      Fail
+                    </Button>
+                  </div>
+                </div>
+                {qcPassed === false && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Maintenance Required</label>
+                    <Input
+                      placeholder="What needs to be fixed before this can proceed?"
+                      value={maintenance}
+                      onChange={(e) => setMaintenance(e.target.value)}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            {nextStage === 'storage' && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Storage Location</label>
+                  <Input
+                    placeholder="Warehouse A, Shelf 3..."
+                    value={storageLocation}
+                    onChange={(e) => setStorageLocation(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Assigned By (Optional)</label>
+                  <Input
+                    placeholder="Who placed this item in storage?"
+                    value={advanceBy}
+                    onChange={(e) => setAdvanceBy(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+
+            {nextStage === 'distributed' && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Recipient / Organization</label>
+                  <Input
+                    placeholder="Who is receiving this item?"
+                    value={recipient}
+                    onChange={(e) => setRecipient(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Distributed By (Optional)</label>
+                  <Input
+                    placeholder="Who handled the distribution?"
+                    value={advanceBy}
+                    onChange={(e) => setAdvanceBy(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+
             <div className="space-y-2">
               <label htmlFor="notes" className="text-sm font-medium">Notes (Optional)</label>
-              <Textarea 
-                id="notes" 
+              <Textarea
+                id="notes"
                 placeholder="Any observations, quality check results, or movement details..."
                 value={advanceNotes}
                 onChange={(e) => setAdvanceNotes(e.target.value)}
@@ -290,12 +429,12 @@ export default function ItemDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAdvanceDialogOpen(false)}>Cancel</Button>
-            <Button 
-              onClick={handleAdvance} 
-              disabled={advanceStage.isPending}
+            <Button
+              onClick={handleAdvance}
+              disabled={isAdvancing || !isAdvanceValid}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              {advanceStage.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
+              {isAdvancing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
               Confirm Move
             </Button>
           </DialogFooter>

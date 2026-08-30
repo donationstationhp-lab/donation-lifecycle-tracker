@@ -25,6 +25,7 @@ import type {
   DeliveryRouteDetail,
   DeliveryRouteInput,
   DeliveryRouteUpdate,
+  DistributeInput,
   DonationItem,
   DonationItemDetail,
   DonationItemInput,
@@ -33,7 +34,9 @@ import type {
   ExpiringItemsResponse,
   HealthStatus,
   ListItemsParams,
-  StageAdvance
+  QcInput,
+  StageAdvance,
+  StoreInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -586,6 +589,222 @@ export const useAdvanceItemStage = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAdvanceItemStageMutationOptions(options));
+    }
+
+export const getQcItemUrl = (id: string,) => {
+
+
+
+
+  return `/api/items/${id}/qc`
+}
+
+/**
+ * @summary Record a quality control inspection and advance to QC stage
+ */
+export const qcItem = async (id: string,
+    qcInput: QcInput, options?: Parameters<typeof customFetch>[1]): Promise<DonationItem> => {
+
+  return customFetch<DonationItem>(getQcItemUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(qcInput)
+  }
+);}
+
+
+
+
+
+export const getQcItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof qcItem>>, TError,{id: string;data: BodyType<QcInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof qcItem>>, TError,{id: string;data: BodyType<QcInput>}, TContext> => {
+
+const mutationKey = ['qcItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof qcItem>>, {id: string;data: BodyType<QcInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  qcItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type QcItemMutationResult = NonNullable<Awaited<ReturnType<typeof qcItem>>>
+    export type QcItemMutationBody = BodyType<QcInput>
+    export type QcItemMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Record a quality control inspection and advance to QC stage
+ */
+export const useQcItem = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof qcItem>>, TError,{id: string;data: BodyType<QcInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof qcItem>>,
+        TError,
+        {id: string;data: BodyType<QcInput>},
+        TContext
+      > => {
+      return useMutation(getQcItemMutationOptions(options));
+    }
+
+export const getStoreItemUrl = (id: string,) => {
+
+
+
+
+  return `/api/items/${id}/store`
+}
+
+/**
+ * @summary Record storage placement and advance to Storage stage
+ */
+export const storeItem = async (id: string,
+    storeInput: StoreInput, options?: Parameters<typeof customFetch>[1]): Promise<DonationItem> => {
+
+  return customFetch<DonationItem>(getStoreItemUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(storeInput)
+  }
+);}
+
+
+
+
+
+export const getStoreItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storeItem>>, TError,{id: string;data: BodyType<StoreInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof storeItem>>, TError,{id: string;data: BodyType<StoreInput>}, TContext> => {
+
+const mutationKey = ['storeItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storeItem>>, {id: string;data: BodyType<StoreInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  storeItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StoreItemMutationResult = NonNullable<Awaited<ReturnType<typeof storeItem>>>
+    export type StoreItemMutationBody = BodyType<StoreInput>
+    export type StoreItemMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Record storage placement and advance to Storage stage
+ */
+export const useStoreItem = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storeItem>>, TError,{id: string;data: BodyType<StoreInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof storeItem>>,
+        TError,
+        {id: string;data: BodyType<StoreInput>},
+        TContext
+      > => {
+      return useMutation(getStoreItemMutationOptions(options));
+    }
+
+export const getDistributeItemUrl = (id: string,) => {
+
+
+
+
+  return `/api/items/${id}/distribute`
+}
+
+/**
+ * @summary Record distribution and advance to Distributed stage
+ */
+export const distributeItem = async (id: string,
+    distributeInput: DistributeInput, options?: Parameters<typeof customFetch>[1]): Promise<DonationItem> => {
+
+  return customFetch<DonationItem>(getDistributeItemUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(distributeInput)
+  }
+);}
+
+
+
+
+
+export const getDistributeItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof distributeItem>>, TError,{id: string;data: BodyType<DistributeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof distributeItem>>, TError,{id: string;data: BodyType<DistributeInput>}, TContext> => {
+
+const mutationKey = ['distributeItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof distributeItem>>, {id: string;data: BodyType<DistributeInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  distributeItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DistributeItemMutationResult = NonNullable<Awaited<ReturnType<typeof distributeItem>>>
+    export type DistributeItemMutationBody = BodyType<DistributeInput>
+    export type DistributeItemMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Record distribution and advance to Distributed stage
+ */
+export const useDistributeItem = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof distributeItem>>, TError,{id: string;data: BodyType<DistributeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof distributeItem>>,
+        TError,
+        {id: string;data: BodyType<DistributeInput>},
+        TContext
+      > => {
+      return useMutation(getDistributeItemMutationOptions(options));
     }
 
 export const getListExpiringItemsUrl = () => {
