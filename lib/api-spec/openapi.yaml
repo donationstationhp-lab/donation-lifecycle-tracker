@@ -477,6 +477,10 @@ components:
           type: string
         powerConnectionReading:
           type: string
+        receivedBy:
+          type: string
+        notes:
+          type: string
 
     DonationItemUpdate:
       type: object

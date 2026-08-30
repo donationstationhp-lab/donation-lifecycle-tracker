@@ -69,7 +69,9 @@ export const CreateItemBody = zod.object({
   "weight": zod.number().optional(),
   "origin": zod.string().optional(),
   "lotNumber": zod.string(),
-  "powerConnectionReading": zod.string().optional()
+  "powerConnectionReading": zod.string().optional(),
+  "receivedBy": zod.string().optional(),
+  "notes": zod.string().optional()
 })
 
 export const CreateItemResponse = zod.object({

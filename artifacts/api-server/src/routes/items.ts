@@ -159,8 +159,8 @@ router.post("/items", async (req, res): Promise<void> => {
 
   const historyParts = [
     "Item received at intake",
-    req.body.notes ? `Notes: ${req.body.notes}` : null,
-    req.body.by ? `By: ${req.body.by}` : null,
+    parsed.data.notes ? `Notes: ${parsed.data.notes}` : null,
+    parsed.data.receivedBy ? `Received by: ${parsed.data.receivedBy}` : null,
   ].filter(Boolean);
 
   await db.insert(stageHistoryTable).values({

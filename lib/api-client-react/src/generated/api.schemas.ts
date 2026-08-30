@@ -140,6 +140,8 @@ export interface DonationItemInput {
   origin?: string;
   lotNumber: string;
   powerConnectionReading?: string;
+  receivedBy?: string;
+  notes?: string;
 }
 
 export type DonationItemUpdateTier = typeof DonationItemUpdateTier[keyof typeof DonationItemUpdateTier];
