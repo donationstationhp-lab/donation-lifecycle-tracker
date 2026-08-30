@@ -131,12 +131,16 @@ export const notificationOutboxTable = pgTable(
     status: text("status").notNull().default("pending"),
     attempts: integer("attempts").notNull().default(0),
     lastError: text("last_error"),
+    nextRetryAt: timestamp("next_retry_at", { withTimezone: true }),
+    processingLeaseUntil: timestamp("processing_lease_until", { withTimezone: true }),
+    processingLeaseToken: text("processing_lease_token"),
     sentAt: timestamp("sent_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
     dedupe: uniqueIndex("notification_outbox_dedupe_idx").on(table.dedupeKey),
     pendingIndex: index("notification_outbox_status_idx").on(table.status),
+    retryIndex: index("notification_outbox_retry_idx").on(table.status, table.nextRetryAt),
   }),
 );
 

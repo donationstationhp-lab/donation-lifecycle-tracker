@@ -5,6 +5,35 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+export type AttendOutboxEntryStatus = typeof AttendOutboxEntryStatus[keyof typeof AttendOutboxEntryStatus];
+
+
+export const AttendOutboxEntryStatus = {
+  pending: 'pending',
+  processing: 'processing',
+  failed: 'failed',
+  sent: 'sent',
+} as const;
+
+export interface AttendOutboxEntry {
+  id: string;
+  eventType: string;
+  aggregateType: string;
+  aggregateId: string;
+  dedupeKey: string;
+  status: AttendOutboxEntryStatus;
+  attempts: number;
+  /** @nullable */
+  lastError?: string | null;
+  /** @nullable */
+  nextRetryAt?: string | null;
+  /** @nullable */
+  processingLeaseUntil?: string | null;
+  /** @nullable */
+  sentAt?: string | null;
+  createdAt: string;
+}
+
 export interface RecipientAccount {
   id: string;
   name: string;

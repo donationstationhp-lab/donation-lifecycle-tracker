@@ -2,4 +2,5 @@
 - [Staff authorization roles](staff-authorization-roles.md) — Clerk accounts require an assigned staff role; supervisor actions stay server-enforced.
 - [Workspace build defaults](workspace-build-defaults.md) — Vite configs need safe static-build defaults while still honoring workflow environment values.
 - [Google Sheets append serialization](google-sheets-append-serialization.md) — use a database-backed single writer because concurrent table-boundary discovery can overwrite rows.
+- [Outbox retry lease fencing](outbox-retry-lease-fencing.md) — retry claims and external delivery must share a lock and use claim tokens to prevent stale workers from duplicating sends.
 - [PostgreSQL error unwrapping](postgres-error-unwrapping.md) — Drizzle query failures may wrap PostgreSQL codes; inspect nested causes before mapping expected conflicts.

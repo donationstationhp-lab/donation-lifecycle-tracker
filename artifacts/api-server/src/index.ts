@@ -1,6 +1,7 @@
 import "dotenv/config";
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startAttendOutboxRetryWorker } from "./lib/attendSheets";
 
 const rawPort = process.env["PORT"];
 
@@ -23,4 +24,5 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  startAttendOutboxRetryWorker();
 });

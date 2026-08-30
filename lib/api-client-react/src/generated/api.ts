@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AttendOutboxEntry,
   Claim,
   ClaimDetail,
   ClaimEvidence,
@@ -164,6 +165,7 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
 export const getListItemsUrl = (params?: ListItemsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -241,7 +243,6 @@ export function useListItems<TData = Awaited<ReturnType<typeof listItems>>, TErr
 
   return withQueryKey(query, queryOptions.queryKey);
 }
-
 export const getCreateItemUrl = () => {
 
 
@@ -383,6 +384,7 @@ export function useGetItem<TData = Awaited<ReturnType<typeof getItem>>, TError =
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
 export const getUpdateItemUrl = (id: string,) => {
 
 
@@ -668,6 +670,7 @@ export function useListExpiringItems<TData = Awaited<ReturnType<typeof listExpir
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
 export const getGetDashboardUrl = () => {
 
 
@@ -738,13 +741,6 @@ export function useGetDashboard<TData = Awaited<ReturnType<typeof getDashboard>>
 
   return withQueryKey(query, queryOptions.queryKey);
 }
-
-
-
-
-
-
-
 export const getListRoutesUrl = () => {
 
 
@@ -2902,6 +2898,83 @@ export function useGetTransfer<TData = Awaited<ReturnType<typeof getTransfer>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetTransferQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAttendOutboxUrl = () => {
+
+
+
+
+  return `/api/attend/outbox`
+}
+
+/**
+ * @summary List ATTEND Google Sheets delivery status
+ */
+export const listAttendOutbox = async ( options?: Parameters<typeof customFetch>[1]): Promise<AttendOutboxEntry[]> => {
+
+  return customFetch<AttendOutboxEntry[]>(getListAttendOutboxUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAttendOutboxQueryKey = () => {
+    return [
+    `/api/attend/outbox`
+    ] as const;
+    }
+
+
+export const getListAttendOutboxQueryOptions = <TData = Awaited<ReturnType<typeof listAttendOutbox>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendOutbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAttendOutboxQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAttendOutbox>>> = ({ signal }) => listAttendOutbox({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAttendOutbox>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAttendOutboxQueryResult = NonNullable<Awaited<ReturnType<typeof listAttendOutbox>>>
+export type ListAttendOutboxQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List ATTEND Google Sheets delivery status
+ */
+
+export function useListAttendOutbox<TData = Awaited<ReturnType<typeof listAttendOutbox>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendOutbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAttendOutboxQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

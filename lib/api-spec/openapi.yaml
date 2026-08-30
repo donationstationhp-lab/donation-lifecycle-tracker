@@ -20,6 +20,8 @@ tags:
     description: Donation pickup verification operations
   - name: flags
     description: Pickup phone and address flag operations
+  - name: attend
+    description: ATTEND allocation and delivery operations
 paths:
   /healthz:
     get:
@@ -736,8 +738,38 @@ paths:
       parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
       responses:
         "200": { description: Transfer detail, content: { application/json: { schema: { $ref: "#/components/schemas/TransferDetail" } } } }
+  /attend/outbox:
+    get:
+      operationId: listAttendOutbox
+      tags: [attend]
+      summary: List ATTEND Google Sheets delivery status
+      responses:
+        "200":
+          description: Recent ATTEND delivery status without event payloads or connector credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendOutboxEntry"
 components:
   schemas:
+    AttendOutboxEntry:
+      type: object
+      required: [id, eventType, aggregateType, aggregateId, dedupeKey, status, attempts, createdAt]
+      properties:
+        id: { type: string }
+        eventType: { type: string }
+        aggregateType: { type: string }
+        aggregateId: { type: string }
+        dedupeKey: { type: string }
+        status: { type: string, enum: [pending, processing, failed, sent] }
+        attempts: { type: number }
+        lastError: { type: ["string", "null"] }
+        nextRetryAt: { type: ["string", "null"], format: date-time }
+        processingLeaseUntil: { type: ["string", "null"], format: date-time }
+        sentAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
     RecipientAccount:
       type: object
       required: [id, name, type, createdAt, updatedAt]

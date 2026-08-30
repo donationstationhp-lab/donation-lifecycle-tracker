@@ -1512,3 +1512,23 @@ export const GetTransferResponse = zod.object({
 }))
 
 
+/**
+ * @summary List ATTEND Google Sheets delivery status
+ */
+export const ListAttendOutboxResponseItem = zod.object({
+  "id": zod.string(),
+  "eventType": zod.string(),
+  "aggregateType": zod.string(),
+  "aggregateId": zod.string(),
+  "dedupeKey": zod.string(),
+  "status": zod.enum(['pending', 'processing', 'failed', 'sent']),
+  "attempts": zod.number(),
+  "lastError": zod.string().nullish(),
+  "nextRetryAt": zod.coerce.date().nullish(),
+  "processingLeaseUntil": zod.coerce.date().nullish(),
+  "sentAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAttendOutboxResponse = zod.array(ListAttendOutboxResponseItem)
+
+

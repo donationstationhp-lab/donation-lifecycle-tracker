@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, like } from "drizzle-orm";
+import { and, desc, eq, like } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
   db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
@@ -12,6 +12,7 @@ import {
   ListTransfersQueryParams, ListTransfersResponse, TransitionClaimBody, TransitionClaimParams,
   TransitionClaimResponse, TransitionTransferBody, TransitionTransferParams, TransitionTransferResponse,
   GetClaimParams, GetClaimResponse, GetTransferParams, GetTransferResponse,
+  ListAttendOutboxResponse,
 } from "@workspace/api-zod";
 import { requireSupervisor } from "../middlewares/apiKeyAuth";
 import { canCollectEvidence, validateClaimTransition, validateTransferTransition, type ClaimStatus, type TransferStatus } from "../lib/attendTransitions";
@@ -31,6 +32,28 @@ const isUniqueViolation = (error: unknown): boolean => {
   }
   return false;
 };
+
+router.get("/attend/outbox", async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: notificationOutboxTable.id,
+      eventType: notificationOutboxTable.eventType,
+      aggregateType: notificationOutboxTable.aggregateType,
+      aggregateId: notificationOutboxTable.aggregateId,
+      dedupeKey: notificationOutboxTable.dedupeKey,
+      status: notificationOutboxTable.status,
+      attempts: notificationOutboxTable.attempts,
+      lastError: notificationOutboxTable.lastError,
+      nextRetryAt: notificationOutboxTable.nextRetryAt,
+      processingLeaseUntil: notificationOutboxTable.processingLeaseUntil,
+      sentAt: notificationOutboxTable.sentAt,
+      createdAt: notificationOutboxTable.createdAt,
+    })
+    .from(notificationOutboxTable)
+    .orderBy(desc(notificationOutboxTable.createdAt))
+    .limit(100);
+  res.json(ListAttendOutboxResponse.parse(rows));
+});
 
 router.get("/accounts", async (req, res): Promise<void> => {
   const parsed = ListAccountsQueryParams.safeParse(req.query);
