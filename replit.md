@@ -7,6 +7,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
+- `pnpm run build` is self-contained and does not require `PORT` or `BASE_PATH`; artifact workflows still override their own runtime values.
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
@@ -38,7 +39,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- The root `pnpm run build` must work without artifact-specific environment variables. The mockup build defaults to port `8081` and base path `/__mockup`; Donation Station defaults to port `23423` and base path `/`. Managed workflow values are defined in each artifact's `.replit-artifact/artifact.toml` and take precedence when present.
 
 ## Pointers
 
