@@ -5,6 +5,16 @@ import { timingSafeEqual } from "node:crypto";
 export type StaffRole = "staff" | "supervisor";
 const roleCache = new Map<string, { role: StaffRole; expiresAt: number }>();
 
+type ApiAuthRequest = Request;
+type RoleResolver = (req: ApiAuthRequest) => Promise<StaffRole | null>;
+type UserIdResolver = (req: ApiAuthRequest) => string | null | undefined;
+
+export interface ApiKeyAuthDependencies {
+  getRole?: RoleResolver;
+  getUserId?: UserIdResolver;
+  getExpectedApiKey?: () => string | undefined;
+}
+
 function safeEqual(provided: string, expected: string): boolean {
   const left = Buffer.from(provided);
   const right = Buffer.from(expected);
@@ -27,41 +37,51 @@ async function getClerkRole(req: Request): Promise<StaffRole | null> {
   return role;
 }
 
-export async function apiKeyAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  const expected = process.env.DONATION_STATION_API_KEY;
-  const provided = req.headers["x-api-key"];
-  if (
-    expected &&
-    typeof provided === "string" &&
-    safeEqual(provided, expected)
-  ) {
-    res.locals.staffRole = "supervisor" satisfies StaffRole;
-    res.locals.authMethod = "api-key";
-    next();
-    return;
-  }
+export function createApiKeyAuth({
+  getRole = getClerkRole,
+  getUserId = (req) => getAuth(req).userId,
+  getExpectedApiKey = () => process.env.DONATION_STATION_API_KEY,
+}: ApiKeyAuthDependencies = {}) {
+  return async function apiKeyAuth(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    const expected = getExpectedApiKey();
+    const provided = req.headers["x-api-key"];
+    if (
+      expected &&
+      typeof provided === "string" &&
+      safeEqual(provided, expected)
+    ) {
+      res.locals.staffRole = "supervisor" satisfies StaffRole;
+      res.locals.authMethod = "api-key";
+      next();
+      return;
+    }
 
-  try {
-    const role = await getClerkRole(req);
-    if (!getAuth(req).userId) {
+    const userId = getUserId(req);
+    if (!userId) {
       res.status(401).json({ error: "Staff sign-in required" });
       return;
     }
-    if (!role) {
-      res.status(403).json({ error: "Staff access has not been assigned" });
-      return;
+
+    try {
+      const role = await getRole(req);
+      if (!role) {
+        res.status(403).json({ error: "Staff access has not been assigned" });
+        return;
+      }
+      res.locals.staffRole = role;
+      res.locals.authMethod = "clerk";
+      next();
+    } catch {
+      res.status(401).json({ error: "Unable to validate staff session" });
     }
-    res.locals.staffRole = role;
-    res.locals.authMethod = "clerk";
-    next();
-  } catch {
-    res.status(401).json({ error: "Unable to validate staff session" });
-  }
+  };
 }
+
+export const apiKeyAuth = createApiKeyAuth();
 
 export function requireSupervisor(
   _req: Request,

@@ -17,3 +17,17 @@ For new protected routes, require a validated staff role; add a separate
 server-side supervisor check for overrides or other sensitive decisions. The
 web client must attach Clerk bearer tokens to protected API calls in
 development, where the production-only same-origin Clerk proxy is disabled.
+
+Keep the trusted API-key path separate from Clerk authorization: an exact
+server-held key may grant the privileged automation role, but any mismatch
+must continue through normal authentication and fail closed rather than become
+anonymous access.
+
+**Why:** A malformed or stale CLI credential must never turn a protected
+request into an unauthenticated one, and the browser must not receive
+credential or donor-contact details in an authorization error.
+
+**How to apply:** When changing the auth middleware, test signed-out,
+unassigned, staff, supervisor, valid-key, and invalid-key cases independently;
+assert both status/role behavior and that sensitive values are absent from
+responses.
