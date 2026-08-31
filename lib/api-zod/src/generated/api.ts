@@ -320,6 +320,92 @@ export const ListExpiringItemsResponse = zod.object({
 
 
 /**
+ * @summary List donors with computed lifecycle stage
+ */
+export const ListDonorsQueryParams = zod.object({
+  "stage": zod.enum(['prospect', 'first-gift', 'active', 'lapsing', 'lapsed', 'reactivated']).optional(),
+  "search": zod.coerce.string().optional()
+})
+
+export const ListDonorsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "contact": zod.string().nullish(),
+  "organization": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "stage": zod.enum(['prospect', 'first-gift', 'active', 'lapsing', 'lapsed', 'reactivated']).describe('Derived from gift recency and history — not stored'),
+  "giftCount": zod.number(),
+  "lastGiftAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+export const ListDonorsResponse = zod.array(ListDonorsResponseItem)
+
+
+/**
+ * @summary Create a donor
+ */
+export const CreateDonorBody = zod.object({
+  "name": zod.string(),
+  "contact": zod.string().optional(),
+  "organization": zod.string().optional(),
+  "notes": zod.string().optional()
+})
+
+export const CreateDonorResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "contact": zod.string().nullish(),
+  "organization": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "stage": zod.enum(['prospect', 'first-gift', 'active', 'lapsing', 'lapsed', 'reactivated']).describe('Derived from gift recency and history — not stored'),
+  "giftCount": zod.number(),
+  "lastGiftAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get a donor by ID, including the items they've given
+ */
+export const GetDonorParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetDonorResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "contact": zod.string().nullish(),
+  "organization": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "stage": zod.enum(['prospect', 'first-gift', 'active', 'lapsing', 'lapsed', 'reactivated']).describe('Derived from gift recency and history — not stored'),
+  "giftCount": zod.number(),
+  "lastGiftAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "name": zod.string(),
+  "category": zod.string(),
+  "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
+  "condition": zod.enum(['good', 'fair', 'poor']),
+  "donor": zod.string(),
+  "recipient": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "expiryDate": zod.coerce.date().nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().nullish(),
+  "origin": zod.string().nullish(),
+  "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
+  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
  * @summary Dashboard summary data
  */
 export const GetDashboardResponse = zod.object({
