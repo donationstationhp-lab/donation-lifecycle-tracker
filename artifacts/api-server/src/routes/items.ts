@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, and, like } from "drizzle-orm";
+import { eq, desc, and, like, ilike } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { db, donationItemsTable, stageHistoryTable, claimsTable, transfersTable } from "@workspace/db";
+import { db, donationItemsTable, stageHistoryTable, claimsTable, transfersTable, donorsTable } from "@workspace/db";
 import {
   ListItemsQueryParams,
   CreateItemBody,
@@ -36,6 +36,23 @@ function computeNumerology(date: Date): string {
 
 function toDateString(value: Date | undefined): string | null {
   return value ? value.toISOString().slice(0, 10) : null;
+}
+
+// Resolves an item's free-text `donor` field to a donor row, creating one
+// if no case-insensitive name match exists. Keeps intake (staff form, CLI,
+// public /donate form) working with a plain donor name while still linking
+// items to a tracked donor for lifecycle purposes.
+async function resolveDonorId(donorName: string): Promise<string> {
+  const trimmed = donorName.trim();
+  const [existing] = await db
+    .select({ id: donorsTable.id })
+    .from(donorsTable)
+    .where(ilike(donorsTable.name, trimmed));
+  if (existing) return existing.id;
+
+  const id = randomUUID();
+  await db.insert(donorsTable).values({ id, name: trimmed });
+  return id;
 }
 
 async function getItemById(id: string) {
@@ -138,6 +155,7 @@ router.post("/items", async (req, res): Promise<void> => {
   const itemId = generateItemId();
   const lotNumber = parsed.data.lotNumber ?? generateLotNumber();
   const powerConnectionReading = parsed.data.powerConnectionReading ?? computeNumerology(now);
+  const donorId = await resolveDonorId(parsed.data.donor);
 
   const [item] = await db
     .insert(donationItemsTable)
@@ -149,6 +167,7 @@ router.post("/items", async (req, res): Promise<void> => {
       tier: parsed.data.tier,
       condition: parsed.data.condition,
       donor: parsed.data.donor,
+      donorId,
       recipient: parsed.data.recipient ?? null,
       location: parsed.data.location ?? null,
       expiryDate: toDateString(parsed.data.expiryDate),
