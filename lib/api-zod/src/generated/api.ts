@@ -69,7 +69,9 @@ export const CreateItemBody = zod.object({
   "weight": zod.number().optional(),
   "origin": zod.string().optional(),
   "lotNumber": zod.string(),
-  "powerConnectionReading": zod.string().optional()
+  "powerConnectionReading": zod.string().optional(),
+  "receivedBy": zod.string().optional(),
+  "notes": zod.string().optional()
 })
 
 export const CreateItemResponse = zod.object({
@@ -199,6 +201,113 @@ export const AdvanceItemStageBody = zod.object({
 })
 
 export const AdvanceItemStageResponse = zod.object({
+  "id": zod.string(),
+  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "name": zod.string(),
+  "category": zod.string(),
+  "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
+  "condition": zod.enum(['good', 'fair', 'poor']),
+  "donor": zod.string(),
+  "recipient": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "expiryDate": zod.coerce.date().nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().nullish(),
+  "origin": zod.string().nullish(),
+  "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
+  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Record a quality control inspection and advance to QC stage
+ */
+export const QcItemParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const QcItemBody = zod.object({
+  "passed": zod.boolean(),
+  "by": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "maintenance": zod.string().optional()
+})
+
+export const QcItemResponse = zod.object({
+  "id": zod.string(),
+  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "name": zod.string(),
+  "category": zod.string(),
+  "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
+  "condition": zod.enum(['good', 'fair', 'poor']),
+  "donor": zod.string(),
+  "recipient": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "expiryDate": zod.coerce.date().nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().nullish(),
+  "origin": zod.string().nullish(),
+  "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
+  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Record storage placement and advance to Storage stage
+ */
+export const StoreItemParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const StoreItemBody = zod.object({
+  "location": zod.string().optional(),
+  "by": zod.string().optional(),
+  "notes": zod.string().optional()
+})
+
+export const StoreItemResponse = zod.object({
+  "id": zod.string(),
+  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "name": zod.string(),
+  "category": zod.string(),
+  "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
+  "condition": zod.enum(['good', 'fair', 'poor']),
+  "donor": zod.string(),
+  "recipient": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "expiryDate": zod.coerce.date().nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().nullish(),
+  "origin": zod.string().nullish(),
+  "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
+  "powerConnectionReading": zod.string().describe('Numerology reading on intake date'),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Record distribution and advance to Distributed stage
+ */
+export const DistributeItemParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DistributeItemBody = zod.object({
+  "recipient": zod.string().optional(),
+  "by": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "substitution": zod.string().optional()
+})
+
+export const DistributeItemResponse = zod.object({
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),

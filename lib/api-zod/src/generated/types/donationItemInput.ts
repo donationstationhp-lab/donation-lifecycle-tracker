@@ -23,4 +23,6 @@ export interface DonationItemInput {
   origin?: string;
   lotNumber: string;
   powerConnectionReading?: string;
+  receivedBy?: string;
+  notes?: string;
 }

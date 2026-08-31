@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 
@@ -86,6 +86,15 @@ export function Shell({ children }: { children: ReactNode }) {
           >
             <span>↗</span> Donor form
           </a>
+          {/* Quick link to the printable paper backup form */}
+          <a
+            href="/donation-station/intake-form.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors py-1"
+          >
+            <span>↗</span> Printable form
+          </a>
         </div>
       </aside>
 
@@ -141,6 +150,18 @@ export function Shell({ children }: { children: ReactNode }) {
             </div>
           </Link>
         ))}
+        {/* Quick link to the printable paper backup form */}
+        <a
+          href="/donation-station/intake-form.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1"
+        >
+          <div className="flex flex-col items-center p-2 rounded-lg text-muted-foreground hover:text-foreground">
+            <Printer className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">Print</span>
+          </div>
+        </a>
       </nav>
     </div>
   );

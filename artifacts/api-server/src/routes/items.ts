@@ -11,6 +11,12 @@ import {
   DeleteItemParams,
   AdvanceItemStageParams,
   AdvanceItemStageBody,
+  QcItemParams,
+  QcItemBody,
+  StoreItemParams,
+  StoreItemBody,
+  DistributeItemParams,
+  DistributeItemBody,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -159,8 +165,8 @@ router.post("/items", async (req, res): Promise<void> => {
 
   const historyParts = [
     "Item received at intake",
-    req.body.notes ? `Notes: ${req.body.notes}` : null,
-    req.body.by ? `By: ${req.body.by}` : null,
+    parsed.data.notes ? `Notes: ${parsed.data.notes}` : null,
+    parsed.data.receivedBy ? `Received by: ${parsed.data.receivedBy}` : null,
   ].filter(Boolean);
 
   await db.insert(stageHistoryTable).values({
@@ -254,66 +260,81 @@ router.post("/items/:id/approve", async (req, res): Promise<void> => {
 });
 
 // ── POST /items/:id/qc ───────────────────────────────────────────────────────
-// Body: { passed: bool, by?: string, notes?: string, maintenance?: string }
 router.post("/items/:id/qc", async (req, res): Promise<void> => {
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const item = await getItemById(id);
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = QcItemParams.safeParse({ id: raw });
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const parsed = QcItemBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const item = await getItemById(params.data.id);
   if (!item) { res.status(404).json({ error: "Item not found" }); return; }
 
-  const { passed, by, notes, maintenance } = req.body ?? {};
+  const { passed, by, notes, maintenance } = parsed.data;
   const extra = [
-    passed === true || passed === "true" ? "QC passed" : passed === false || passed === "false" ? "QC failed" : null,
+    passed ? "QC passed" : "QC failed",
     maintenance ? `Maintenance: ${maintenance}` : null,
   ].filter(Boolean).join(" | ") || undefined;
 
-  await advanceStage(id, "qc", { by, notes, extra });
+  await advanceStage(params.data.id, "qc", { by, notes, extra });
 
-  const updated = await getItemById(id);
+  const updated = await getItemById(params.data.id);
   res.json(updated);
 });
 
 // ── POST /items/:id/store ────────────────────────────────────────────────────
-// Body: { location: string, by?: string, notes?: string }
 router.post("/items/:id/store", async (req, res): Promise<void> => {
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const item = await getItemById(id);
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = StoreItemParams.safeParse({ id: raw });
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const parsed = StoreItemBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const item = await getItemById(params.data.id);
   if (!item) { res.status(404).json({ error: "Item not found" }); return; }
 
-  const { location, by, notes } = req.body ?? {};
+  const { location, by, notes } = parsed.data;
 
   if (location) {
     await db
       .update(donationItemsTable)
-      .set({ location: String(location) })
-      .where(eq(donationItemsTable.id, id));
+      .set({ location })
+      .where(eq(donationItemsTable.id, params.data.id));
   }
 
-  await advanceStage(id, "storage", { by, notes });
+  await advanceStage(params.data.id, "storage", { by, notes });
 
-  const updated = await getItemById(id);
+  const updated = await getItemById(params.data.id);
   res.json(updated);
 });
 
 // ── POST /items/:id/distribute ───────────────────────────────────────────────
-// Body: { recipient: string, by?: string, notes?: string, substitution?: string }
 router.post("/items/:id/distribute", async (req, res): Promise<void> => {
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const item = await getItemById(id);
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = DistributeItemParams.safeParse({ id: raw });
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const parsed = DistributeItemBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const item = await getItemById(params.data.id);
   if (!item) { res.status(404).json({ error: "Item not found" }); return; }
 
-  const { recipient, by, notes, substitution } = req.body ?? {};
+  const { recipient, by, notes, substitution } = parsed.data;
 
   if (recipient) {
     await db
       .update(donationItemsTable)
-      .set({ recipient: String(recipient) })
-      .where(eq(donationItemsTable.id, id));
+      .set({ recipient })
+      .where(eq(donationItemsTable.id, params.data.id));
   }
 
   const extra = substitution ? `Substitution: ${substitution}` : undefined;
-  await advanceStage(id, "distributed", { by, notes, extra });
+  await advanceStage(params.data.id, "distributed", { by, notes, extra });
 
-  const updated = await getItemById(id);
+  const updated = await getItemById(params.data.id);
   res.json(updated);
 });
 

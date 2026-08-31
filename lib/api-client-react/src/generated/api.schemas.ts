@@ -140,6 +140,8 @@ export interface DonationItemInput {
   origin?: string;
   lotNumber: string;
   powerConnectionReading?: string;
+  receivedBy?: string;
+  notes?: string;
 }
 
 export type DonationItemUpdateTier = typeof DonationItemUpdateTier[keyof typeof DonationItemUpdateTier];
@@ -199,6 +201,26 @@ export const StageAdvanceStage = {
 export interface StageAdvance {
   stage: StageAdvanceStage;
   notes?: string;
+}
+
+export interface QcInput {
+  passed: boolean;
+  by?: string;
+  notes?: string;
+  maintenance?: string;
+}
+
+export interface StoreInput {
+  location?: string;
+  by?: string;
+  notes?: string;
+}
+
+export interface DistributeInput {
+  recipient?: string;
+  by?: string;
+  notes?: string;
+  substitution?: string;
 }
 
 export type ExpiringItemUrgency = typeof ExpiringItemUrgency[keyof typeof ExpiringItemUrgency];
