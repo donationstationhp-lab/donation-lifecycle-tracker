@@ -131,11 +131,11 @@ router.patch("/routes/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const { stops, ...routeFields } = parsed.data;
+  const { stops, date, ...routeFields } = parsed.data;
 
   const [route] = await db
     .update(deliveryRoutesTable)
-    .set(routeFields)
+    .set({ ...routeFields, date: date ? date.toISOString().split("T")[0] : date })
     .where(eq(deliveryRoutesTable.id, params.data.id))
     .returning();
 

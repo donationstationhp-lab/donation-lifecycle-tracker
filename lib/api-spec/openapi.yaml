@@ -539,6 +539,9 @@ components:
         - donor
         - lotNumber
       properties:
+        itemId:
+          type: string
+          description: Optional human-readable ID override (CLI callers may supply their own; otherwise auto-generated in format DS-XXXX)
         name:
           type: string
         category:

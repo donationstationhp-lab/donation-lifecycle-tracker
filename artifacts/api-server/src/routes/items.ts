@@ -31,6 +31,15 @@ function generateLotNumber(): string {
   return `LOT-${num}`;
 }
 
+// The zod body schemas coerce `format: date` fields to real Date instances,
+// but the DB column is a string-mode `date` column, so it needs converting
+// back to a plain YYYY-MM-DD string before being handed to drizzle.
+function toDateString<T extends Date | null | undefined>(
+  date: T
+): T extends Date ? string : T {
+  return (date ? date.toISOString().split("T")[0] : date) as T extends Date ? string : T;
+}
+
 function computeNumerology(date: Date): string {
   const dateStr = date.toISOString().split("T")[0].replace(/-/g, "");
   let sum = dateStr.split("").reduce((acc, d) => acc + parseInt(d, 10), 0);
@@ -153,7 +162,7 @@ router.post("/items", async (req, res): Promise<void> => {
       donor: parsed.data.donor,
       recipient: parsed.data.recipient ?? null,
       location: parsed.data.location ?? null,
-      expiryDate: parsed.data.expiryDate ?? null,
+      expiryDate: toDateString(parsed.data.expiryDate) ?? null,
       temperatureZone: parsed.data.temperatureZone ?? "ambient",
       weight: parsed.data.weight ?? null,
       origin: parsed.data.origin ?? null,
@@ -369,9 +378,11 @@ router.patch("/items/:id", async (req, res): Promise<void> => {
   const parsed = UpdateItemBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
+  const { expiryDate, ...rest } = parsed.data;
+
   const [item] = await db
     .update(donationItemsTable)
-    .set({ ...parsed.data, updatedAt: new Date() })
+    .set({ ...rest, expiryDate: toDateString(expiryDate), updatedAt: new Date() })
     .where(eq(donationItemsTable.id, params.data.id))
     .returning();
 

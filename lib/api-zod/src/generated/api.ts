@@ -57,6 +57,7 @@ export const ListItemsResponse = zod.array(ListItemsResponseItem)
 export const createItemBodyTemperatureZoneDefault = `ambient`;
 
 export const CreateItemBody = zod.object({
+  "itemId": zod.string().optional().describe('Optional human-readable ID override (CLI callers may supply their own; otherwise auto-generated in format DS-XXXX)'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']),
