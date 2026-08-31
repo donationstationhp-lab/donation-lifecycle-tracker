@@ -334,6 +334,49 @@ export type DonationItemDetail = DonationItem & {
   transfers?: ItemTransferSummary[];
 };
 
+/**
+ * Derived from gift recency and history — not stored
+ */
+export type DonorStage = typeof DonorStage[keyof typeof DonorStage];
+
+
+export const DonorStage = {
+  prospect: 'prospect',
+  'first-gift': 'first-gift',
+  active: 'active',
+  lapsing: 'lapsing',
+  lapsed: 'lapsed',
+  reactivated: 'reactivated',
+} as const;
+
+export interface Donor {
+  id: string;
+  name: string;
+  /** @nullable */
+  contact?: string | null;
+  /** @nullable */
+  organization?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** Derived from gift recency and history — not stored */
+  stage: DonorStage;
+  giftCount: number;
+  /** @nullable */
+  lastGiftAt: string | null;
+  createdAt: string;
+}
+
+export interface DonorInput {
+  name: string;
+  contact?: string;
+  organization?: string;
+  notes?: string;
+}
+
+export type DonorDetail = Donor & {
+  items: DonationItem[];
+};
+
 export type DonationItemInputTier = typeof DonationItemInputTier[keyof typeof DonationItemInputTier];
 
 
@@ -824,6 +867,23 @@ export const ListItemsTemperatureZone = {
   ambient: 'ambient',
   refrigerated: 'refrigerated',
   frozen: 'frozen',
+} as const;
+
+export type ListDonorsParams = {
+stage?: ListDonorsStage;
+search?: string;
+};
+
+export type ListDonorsStage = typeof ListDonorsStage[keyof typeof ListDonorsStage];
+
+
+export const ListDonorsStage = {
+  prospect: 'prospect',
+  'first-gift': 'first-gift',
+  active: 'active',
+  lapsing: 'lapsing',
+  lapsed: 'lapsed',
+  reactivated: 'reactivated',
 } as const;
 
 export type ListPickupsParams = {

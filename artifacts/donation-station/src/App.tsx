@@ -20,6 +20,8 @@ import Donate from '@/pages/Donate';
 import ItemsList from '@/pages/ItemsList';
 import IntakeForm from '@/pages/IntakeForm';
 import ItemDetail from '@/pages/ItemDetail';
+import Donors from '@/pages/Donors';
+import DonorDetail from '@/pages/DonorDetail';
 import ExpiringItems from '@/pages/ExpiringItems';
 import RoutesList from '@/pages/RoutesList';
 import RouteDetail from '@/pages/RouteDetail';
@@ -141,6 +143,8 @@ function StaffApp() {
           <Route path="/items" component={ItemsList} />
           <Route path="/items/new" component={IntakeForm} />
           <Route path="/items/:id" component={ItemDetail} />
+          <Route path="/donors" component={Donors} />
+          <Route path="/donors/:id" component={DonorDetail} />
           <Route path="/pickups" component={Pickups} />
           <Route path="/pickup-flags" component={PickupFlags} />
           <Route path="/expiring" component={ExpiringItems} />
