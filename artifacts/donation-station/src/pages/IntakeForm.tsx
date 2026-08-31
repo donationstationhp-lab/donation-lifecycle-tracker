@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { useCreateItem, DonationItemInputTier, DonationItemInputCondition, DonationItemInputTemperatureZone } from '@workspace/api-client-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -19,6 +20,8 @@ const formSchema = z.object({
   tier: z.enum(['T', 'I', 'E', 'R'] as const),
   condition: z.enum(['good', 'fair', 'poor'] as const),
   donor: z.string().min(2, "Donor is required"),
+  receivedBy: z.string().optional(),
+  notes: z.string().optional(),
   recipient: z.string().optional(),
   location: z.string().optional(),
   expiryDate: z.string().optional(),
@@ -42,6 +45,8 @@ export default function IntakeForm() {
       tier: 'T',
       condition: 'good',
       donor: '',
+      receivedBy: '',
+      notes: '',
       recipient: '',
       location: '',
       expiryDate: '',
@@ -189,6 +194,14 @@ export default function IntakeForm() {
                 </FormItem>
               )} />
 
+              <FormField control={form.control} name="receivedBy" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Received By (Optional)</FormLabel>
+                  <FormControl><Input placeholder="Staff member who received this item" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
               <FormField control={form.control} name="origin" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Origin (Optional)</FormLabel>
@@ -236,6 +249,16 @@ export default function IntakeForm() {
                 <FormItem>
                   <FormLabel>Current Location (Optional)</FormLabel>
                   <FormControl><Input placeholder="Warehouse A, Shelf 3..." {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="notes" render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Intake Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Any observations from receiving..." rows={3} {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
