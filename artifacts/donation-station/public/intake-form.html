@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donation Station — Intake &amp; Tracking Form</title>
+<style>
+/* ── TOKENS ──────────────────────────────────────────────────────────── */
+:root {
+  --bg:           #FFFDF9;
+  --bg-section:   #F5F1EB;
+  --bg-form:      #FDFAF5;
+  --text:         #1C1917;
+  --text-mid:     #5C5650;
+  --text-light:   #9C9590;
+  --rule:         #DDD8D0;
+  --rule-form:    #C8C2BA;
+  --T:            #C4700E;
+  --I:            #3B5AA0;
+  --E:            #1E7A4E;
+  --R:            #A3442A;
+  --stage-bg:     #2C4B6E;
+  --stage-light:  #EDF1F7;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:          #1A1714;
+    --bg-section:  #221F1B;
+    --bg-form:     #1E1B17;
+    --text:        #F0EBE3;
+    --text-mid:    #B0A9A0;
+    --text-light:  #756F69;
+    --rule:        #38332E;
+    --rule-form:   #484038;
+    --stage-light: #1B2838;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#1A1714;--bg-section:#221F1B;--bg-form:#1E1B17;
+  --text:#F0EBE3;--text-mid:#B0A9A0;--text-light:#756F69;
+  --rule:#38332E;--rule-form:#484038;--stage-light:#1B2838;
+}
+:root[data-theme="light"] {
+  --bg:#FFFDF9;--bg-section:#F5F1EB;--bg-form:#FDFAF5;
+  --text:#1C1917;--text-mid:#5C5650;--text-light:#9C9590;
+  --rule:#DDD8D0;--rule-form:#C8C2BA;--stage-light:#EDF1F7;
+}
+
+/* ── BASE ────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 28px 20px 40px;
+}
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* ── TOOLBAR ─────────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.toolbar-note {
+  font-size: 11px;
+  color: var(--text-light);
+  letter-spacing: 0.04em;
+}
+.btn-print {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--stage-bg);
+  color: #fff;
+  border: none;
+  padding: 7px 18px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.btn-print:hover { opacity: 0.88; }
+
+/* ── SHEET ───────────────────────────────────────────────────────────── */
+.sheet {
+  border: 1.5px solid var(--rule);
+  background: var(--bg-form);
+}
+
+/* ── HEADER ──────────────────────────────────────────────────────────── */
+.hd {
+  padding: 18px 26px 16px;
+  border-bottom: 2px solid var(--text);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hd-left {}
+.hd-wordmark {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  line-height: 1;
+  text-transform: uppercase;
+}
+.hd-sub {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-light);
+  margin-top: 5px;
+}
+.hd-right {
+  text-align: right;
+}
+.id-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-light);
+  margin-bottom: 3px;
+}
+.id-val {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  line-height: 1;
+}
+.id-line {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 22px;
+  font-weight: bold;
+  letter-spacing: 0.14em;
+  color: var(--text-light);
+  border-bottom: 1.5px solid var(--rule-form);
+  min-width: 130px;
+  display: inline-block;
+  line-height: 1.3;
+}
+.hd-dates {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+.mini-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-end;
+}
+.mini-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-light);
+}
+.mini-line {
+  border-bottom: 1px solid var(--rule-form);
+  width: 100px;
+  height: 16px;
+}
+
+/* ── TIER STRIP ──────────────────────────────────────────────────────── */
+.tier-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--rule);
+}
+.tier-box {
+  padding: 14px 14px 12px;
+  border-right: 1px solid var(--rule);
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: background 0.12s;
+  position: relative;
+}
+.tier-box:last-child { border-right: none; }
+.tier-box:hover { background: var(--bg-section); }
+.tier-check {
+  width: 18px; height: 18px;
+  border: 1.5px solid var(--rule-form);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; margin-top: 1px;
+}
+.tier-box[data-tier="T"].sel { background: color-mix(in srgb, var(--T) 9%, var(--bg-form)); }
+.tier-box[data-tier="I"].sel { background: color-mix(in srgb, var(--I) 9%, var(--bg-form)); }
+.tier-box[data-tier="E"].sel { background: color-mix(in srgb, var(--E) 9%, var(--bg-form)); }
+.tier-box[data-tier="R"].sel { background: color-mix(in srgb, var(--R) 9%, var(--bg-form)); }
+.tier-box[data-tier="T"].sel .tier-check { border-color: var(--T); color: var(--T); }
+.tier-box[data-tier="I"].sel .tier-check { border-color: var(--I); color: var(--I); }
+.tier-box[data-tier="E"].sel .tier-check { border-color: var(--E); color: var(--E); }
+.tier-box[data-tier="R"].sel .tier-check { border-color: var(--R); color: var(--R); }
+.tier-body {}
+.tier-letter {
+  font-family: Georgia, serif;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: bold;
+}
+.tier-box[data-tier="T"] .tier-letter { color: var(--T); }
+.tier-box[data-tier="I"] .tier-letter { color: var(--I); }
+.tier-box[data-tier="E"] .tier-letter { color: var(--E); }
+.tier-box[data-tier="R"] .tier-letter { color: var(--R); }
+.tier-name {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-mid);
+  margin-top: 2px;
+}
+.tier-desc {
+  font-size: 9px;
+  color: var(--text-light);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+/* ── STAGES ──────────────────────────────────────────────────────────── */
+.stage { border-bottom: 1px solid var(--rule); }
+.stage:last-of-type { border-bottom: none; }
+.stage-hd {
+  padding: 9px 26px;
+  background: var(--bg-section);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.stage-num {
+  width: 22px; height: 22px;
+  background: var(--stage-bg);
+  color: #fff;
+  font-family: Georgia, serif;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.stage-title {
+  font-family: Georgia, serif;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+.stage-tag {
+  margin-left: auto;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-light);
+}
+.stage-body {
+  padding: 14px 26px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── FIELDS ──────────────────────────────────────────────────────────── */
+.row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.f {
+  display: flex; flex-direction: column; gap: 3px;
+  flex: 1; min-width: 100px;
+}
+.f.sm  { flex: 0 0 90px; }
+.f.med { flex: 0 0 140px; }
+.f.lg  { flex: 0 0 200px; }
+.f.grow { flex: 2; }
+.fl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-light);
+}
+.fv {
+  border-bottom: 1px solid var(--rule-form);
+  height: 20px;
+}
+
+/* ── CHECKBOXES ──────────────────────────────────────────────────────── */
+.check-row {
+  display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
+}
+.check-group {
+  display: flex; gap: 14px; align-items: center;
+}
+.chk {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+}
+.chk-box {
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--rule-form);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; line-height: 1;
+}
+.chk-box.pass { border-color: var(--E); color: var(--E); }
+.chk-box.fail { border-color: var(--R); color: var(--R); }
+.chk-txt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-mid);
+}
+
+/* ── NOTES ───────────────────────────────────────────────────────────── */
+.notes { display: flex; flex-direction: column; gap: 3px; }
+.notes-lines { display: flex; flex-direction: column; gap: 6px; margin-top: 1px; }
+.note-line {
+  border-bottom: 1px solid var(--rule-form);
+  height: 20px;
+}
+
+/* ── REQUIRED FIELDS (mirrors validation in the Donation Station app) ──── */
+.required-mark { color: var(--R); margin-left: 3px; }
+.fl.flagged { color: var(--R); font-weight: bold; }
+.fv.flagged { border-bottom-color: var(--R); border-bottom-width: 2px; }
+
+/* ── LIFECYCLE CLOSE ─────────────────────────────────────────────────── */
+.lc-bar {
+  padding: 13px 26px;
+  background: var(--bg-section);
+  border-top: 2px solid var(--text);
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+}
+.lc-title {
+  font-family: Georgia, serif;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text);
+  flex-shrink: 0;
+  width: 130px;
+  padding-bottom: 2px;
+}
+.lc-sigs {
+  flex: 1;
+  display: flex;
+  gap: 0;
+}
+.lc-sig {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-left: 1px solid var(--rule);
+  padding: 0 14px;
+}
+.lc-sig:first-child { border-left: none; }
+.lc-sig-label {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-light);
+}
+.lc-sig-line {
+  border-bottom: 1px solid var(--rule-form);
+  height: 18px;
+}
+
+/* ── REFERENCE FOOTER ────────────────────────────────────────────────── */
+.ref {
+  margin-top: 14px;
+  border: 1px solid var(--rule);
+  padding: 11px 18px 13px;
+}
+.ref-title {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-light);
+  margin-bottom: 9px;
+}
+.ref-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.ref-item {}
+.ref-head {
+  font-size: 9.5px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  margin-bottom: 4px;
+}
+.ref-head-T { color: var(--T); }
+.ref-head-I { color: var(--I); }
+.ref-head-E { color: var(--E); }
+.ref-head-R { color: var(--R); }
+.ref-cats {
+  font-size: 9px;
+  color: var(--text-mid);
+  line-height: 1.7;
+}
+
+/* ── PRINT ───────────────────────────────────────────────────────────── */
+@media print {
+  @page { size: letter portrait; margin: 0.6in 0.65in; }
+  body { background: white; color: black; padding: 0; font-size: 11px; }
+  .toolbar { display: none; }
+  .sheet { border-color: #bbb; background: white; }
+  .tier-strip { border-bottom-color: #bbb; }
+  .tier-box { cursor: default; border-right-color: #bbb; }
+  .tier-box:hover { background: none; }
+  .tier-box.sel { background: white !important; }
+  .tier-box.sel .tier-check { border-color: #888 !important; color: #888 !important; }
+  .stage-hd { background: #f4f4f4; border-bottom-color: #bbb; }
+  .stage-num { background: #2C4B6E; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .lc-bar { background: #f4f4f4; border-top-color: black; }
+  .ref { border-color: #bbb; }
+  .fv, .mini-line, .lc-sig-line, .note-line { border-bottom-color: #999; }
+  .chk-box { border-color: #999 !important; color: #999 !important; }
+  .stage, .tier-strip, .lc-bar, .ref { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Toolbar (screen only) -->
+  <div class="toolbar no-print">
+    <span class="toolbar-note">Click T.I.E.R. boxes and condition checkboxes to mark. Use Print to generate a blank form. Fields marked <span class="required-mark">*</span> are required in the Donation Station app.</span>
+    <button class="btn-print" onclick="window.print()">Print Form</button>
+  </div>
+
+  <!-- Sheet -->
+  <div class="sheet">
+
+    <!-- Header -->
+    <div class="hd">
+      <div class="hd-left">
+        <div class="hd-wordmark">Donation Station</div>
+        <div class="hd-sub">Intake &amp; Lifecycle Tracking</div>
+      </div>
+      <div class="hd-right">
+        <div class="id-label">Item ID</div>
+        <div class="id-line">&nbsp;</div>
+        <div class="hd-dates">
+          <div class="mini-field">
+            <div class="mini-label">Date Received</div>
+            <div class="mini-line"></div>
+          </div>
+          <div class="mini-field">
+            <div class="mini-label">Time</div>
+            <div class="mini-line" style="width:70px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- T.I.E.R. Classification -->
+    <div class="tier-strip" id="tierStrip">
+
+      <div class="tier-box" data-tier="T" onclick="selectTier('T')">
+        <div class="tier-check" id="chk-T"></div>
+        <div class="tier-body">
+          <div class="tier-letter">T</div>
+          <div class="tier-name">Time</div>
+          <div class="tier-desc">Volunteer hours,<br>service &amp; presence</div>
+        </div>
+      </div>
+
+      <div class="tier-box" data-tier="I" onclick="selectTier('I')">
+        <div class="tier-check" id="chk-I"></div>
+        <div class="tier-body">
+          <div class="tier-letter">I</div>
+          <div class="tier-name">Intelligence</div>
+          <div class="tier-desc">Knowledge, skills,<br>training &amp; strategy</div>
+        </div>
+      </div>
+
+      <div class="tier-box" data-tier="E" onclick="selectTier('E')">
+        <div class="tier-check" id="chk-E"></div>
+        <div class="tier-body">
+          <div class="tier-letter">E</div>
+          <div class="tier-name">Energy</div>
+          <div class="tier-desc">Financial, currency,<br>funding &amp; grants</div>
+        </div>
+      </div>
+
+      <div class="tier-box" data-tier="R" onclick="selectTier('R')">
+        <div class="tier-check" id="chk-R"></div>
+        <div class="tier-body">
+          <div class="tier-letter">R</div>
+          <div class="tier-name">Resources</div>
+          <div class="tier-desc">Physical goods that<br>meet tangible needs</div>
+        </div>
+      </div>
+
+    </div><!-- /tier-strip -->
+
+    <!-- Stage 1 — Intake -->
+    <div class="stage">
+      <div class="stage-hd">
+        <div class="stage-num">1</div>
+        <div class="stage-title">Intake</div>
+        <div class="stage-tag">Receiving</div>
+      </div>
+      <div class="stage-body">
+        <div class="row">
+          <div class="f grow">
+            <div class="fl">Item Name<span class="required-mark">*</span></div>
+            <div class="fv"></div>
+          </div>
+          <div class="f med">
+            <div class="fl">Category<span class="required-mark">*</span></div>
+            <div class="fv"></div>
+          </div>
+        </div>
+        <div class="row" style="align-items:flex-end">
+          <div class="f">
+            <div class="fl">Condition</div>
+            <div class="check-row">
+              <div class="check-group">
+                <div class="chk" onclick="toggleChk(this)"><div class="chk-box"></div><span class="chk-txt">Good</span></div>
+                <div class="chk" onclick="toggleChk(this)"><div class="chk-box"></div><span class="chk-txt">Fair</span></div>
+                <div class="chk" onclick="toggleChk(this)"><div class="chk-box"></div><span class="chk-txt">Poor</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="f grow">
+            <div class="fl">Donor Name<span class="required-mark">*</span></div>
+            <div class="fv"></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="f med">
+            <div class="fl">Received By (Optional)</div>
+            <div class="fv"></div>
+          </div>
+          <div class="f med">
+            <div class="fl">Date</div>
+            <div class="fv"></div>
+          </div>
+          <div class="f sm">
+            <div class="fl">Time</div>
+            <div class="fv"></div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="fl">Notes (Optional)</div>
+          <div class="notes-lines">
+            <div class="note-line"></div>
+            <div class="note-line"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 2 — Quality Control -->
+    <div class="stage">
+      <div class="stage-hd">
+        <div class="stage-num">2</div>
+        <div class="stage-title">Quality Control</div>
+        <div class="stage-tag">Inspection</div>
+      </div>
+      <div class="stage-body">
+        <div class="row" style="align-items:flex-end">
+          <div class="f grow">
+            <div class="fl">Inspector</div>
+            <div class="fv"></div>
+          </div>
+          <div class="f med">
+            <div class="fl">Date</div>
+            <div class="fv"></div>
+          </div>
+          <div class="f sm">
+            <div class="fl">Time</div>
+            <div class="fv"></div>
+          </div>
+        </div>
+        <div class="row" style="align-items:flex-end">
+          <div class="f" style="flex:0 0 auto">
+            <div class="fl">Result<span class="required-mark">*</span></div>
+            <div class="check-row">
+              <div class="check-group">
+                <div class="chk" onclick="toggleExclusive(this,'qcResult')"><div class="chk-box pass" data-group="qcResult"></div><span class="chk-txt" style="color:var(--E)">Pass</span></div>
+                <div class="chk" onclick="toggleExclusive(this,'qcResult')"><div class="chk-box fail" data-group="qcResult"></div><span class="chk-txt" style="color:var(--R)">Fail</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="f grow">
+            <div class="fl" id="maintenanceLabel">Maintenance Required (if failed)</div>
+            <div class="fv" id="maintenanceLine"></div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="fl">Notes</div>
+          <div class="notes-lines">
+            <div class="note-line"></div>
+            <div class="note-line"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 3 — Storage -->
+    <div class="stage">
+      <div class="stage-hd">
+        <div class="stage-num">3</div>
+        <div class="stage-title">Storage</div>
+        <div class="stage-tag">Inventory</div>
+      </div>
+      <div class="stage-body">
+        <div class="row">
+          <div class="f med">
+            <div class="fl">Storage Location<span class="required-mark">*</span></div>
+            <div class="fv"></div>
+          </div>
+          <div class="f grow">
+            <div class="fl">Assigned By</div>
+            <div class="fv"></div>
+          </div>
+          <div class="f med">
+            <div class="fl">Date</div>
+            <div class="fv"></div>
+          </div>
+          <div class="f sm">
+            <div class="fl">Time</div>
+            <div class="fv"></div>
+          </div>
+        </div>
+        <div class="notes">
+          <div class="fl">Notes</div>
+          <div class="notes-lines">
+            <div class="note-line"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 4 — Distribution -->
+    <div class="stage">
+      <div class="stage-hd">
+        <div class="stage-num">4</div>
+        <div class="stage-title">Distribution</div>
+        <div class="stage-tag">Outbound</div>
+      </div>
+      <div class="stage-body">
+        <div class="row">
+          <div class="f grow">
+            <div class="fl">Recipient / Organization<span class="required-mark">*</span></div>
+            <div class="fv"></div>
+          </div>
+          <div class="f med">
+            <div class="fl">Distributed By</div>
+            <div class="fv"></div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="f med">
+            <div class="fl">Date</div>
+            <div class="fv"></div>
+          </div>
+          <div class="f sm">
+            <div class="fl">Time</div>
+            <div class="fv"></div>
+          </div>
+          <div class="f grow">
+            <div class="fl">Notes</div>
+            <div class="fv"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lifecycle Complete -->
+    <div class="lc-bar">
+      <div class="lc-title">Lifecycle<br>Complete</div>
+      <div class="lc-sigs">
+        <div class="lc-sig">
+          <div class="lc-sig-label">Intake</div>
+          <div class="lc-sig-line"></div>
+        </div>
+        <div class="lc-sig">
+          <div class="lc-sig-label">QC</div>
+          <div class="lc-sig-line"></div>
+        </div>
+        <div class="lc-sig">
+          <div class="lc-sig-label">Storage</div>
+          <div class="lc-sig-line"></div>
+        </div>
+        <div class="lc-sig">
+          <div class="lc-sig-label">Distribution</div>
+          <div class="lc-sig-line"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sheet -->
+
+  <!-- T.I.E.R. Category Reference -->
+  <div class="ref no-print-hide">
+    <div class="ref-title">T.I.E.R. — Category Reference</div>
+    <div class="ref-grid">
+      <div class="ref-item">
+        <div class="ref-head ref-head-T">T — Time</div>
+        <div class="ref-cats">volunteer<br>service<br>time</div>
+      </div>
+      <div class="ref-item">
+        <div class="ref-head ref-head-I">I — Intelligence</div>
+        <div class="ref-cats">knowledge · education<br>training · skills · data<br>strategy · workshop<br>mentorship · coaching<br>planning · study session</div>
+      </div>
+      <div class="ref-item">
+        <div class="ref-head ref-head-E">E — Energy</div>
+        <div class="ref-cats">financial<br>money · currency<br>funding · grant</div>
+      </div>
+      <div class="ref-item">
+        <div class="ref-head ref-head-R">R — Resources</div>
+        <div class="ref-cats">food · clothing · shelter<br>technology · hygiene<br>household · electronics<br>tools · equipment<br>general</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+<script>
+// Tier selection
+var activeTier = null;
+function selectTier(t) {
+  document.querySelectorAll('.tier-box').forEach(function(b) {
+    b.classList.remove('sel');
+    var c = b.querySelector('.tier-check');
+    c.textContent = '';
+  });
+  if (activeTier === t) { activeTier = null; return; }
+  activeTier = t;
+  var box = document.querySelector('.tier-box[data-tier="' + t + '"]');
+  box.classList.add('sel');
+  box.querySelector('.tier-check').textContent = '✓';
+}
+
+// Generic checkbox toggle
+function toggleChk(el) {
+  var box = el.querySelector('.chk-box');
+  if (box.textContent === '✓') {
+    box.textContent = '';
+  } else {
+    box.textContent = '✓';
+  }
+}
+
+// Exclusive checkbox (QC pass/fail)
+function toggleExclusive(el, group) {
+  var box = el.querySelector('.chk-box');
+  var isChecked = box.textContent === '✓';
+  // clear group
+  document.querySelectorAll('[data-group="' + group + '"]').forEach(function(b) {
+    b.textContent = '';
+  });
+  var nowChecked = !isChecked;
+  if (nowChecked) {
+    box.textContent = '✓';
+  }
+  if (group === 'qcResult') {
+    setMaintenanceFlagged(nowChecked && box.classList.contains('fail'));
+  }
+}
+
+// Mirrors the app: Maintenance Required is only meaningful when QC fails.
+function setMaintenanceFlagged(flagged) {
+  var label = document.getElementById('maintenanceLabel');
+  var line = document.getElementById('maintenanceLine');
+  if (!label || !line) return;
+  label.classList.toggle('flagged', flagged);
+  line.classList.toggle('flagged', flagged);
+}
+</script>
+</body>
+</html>
