@@ -86,6 +86,15 @@ export function Shell({ children }: { children: ReactNode }) {
           >
             <span>↗</span> Donor form
           </a>
+          {/* Quick link to the printable paper backup form */}
+          <a
+            href="/donation-station/intake-form.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors py-1"
+          >
+            <span>↗</span> Printable form
+          </a>
         </div>
       </aside>
 
