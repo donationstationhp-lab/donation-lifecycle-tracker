@@ -10,6 +10,8 @@ import type { DonationItemInputTemperatureZone } from './donationItemInputTemper
 import type { DonationItemInputTier } from './donationItemInputTier';
 
 export interface DonationItemInput {
+  /** Optional human-readable ID override (CLI callers may supply their own; otherwise auto-generated in format DS-XXXX) */
+  itemId?: string;
   name: string;
   category: string;
   tier: DonationItemInputTier;
