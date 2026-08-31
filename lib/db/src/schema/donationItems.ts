@@ -1,6 +1,7 @@
 import { pgTable, text, real, timestamp, date, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { donorsTable } from "./donors";
 
 export const donationItemsTable = pgTable("donation_items", {
   id: text("id").primaryKey(),
@@ -10,6 +11,7 @@ export const donationItemsTable = pgTable("donation_items", {
   tier: text("tier").notNull(), // T | I | E | R
   condition: text("condition").notNull(), // good | fair | poor | excellent
   donor: text("donor").notNull(),
+  donorId: text("donor_id").references(() => donorsTable.id),
   recipient: text("recipient"),
   location: text("location"),
   expiryDate: date("expiry_date", { mode: "string" }),

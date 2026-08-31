@@ -3,6 +3,7 @@ import { apiKeyAuth } from "../middlewares/apiKeyAuth";
 import healthRouter from "./health";
 import publicRoutes from "./publicRoutes";
 import itemsRouter from "./items";
+import donorsRouter from "./donors";
 import dashboardRouter from "./dashboard";
 import deliveryRoutesRouter from "./deliveryRoutes";
 import locationsRouter from "./locations";
@@ -20,6 +21,7 @@ router.use(apiKeyAuth);
 
 // ── Protected endpoints ──────────────────────────────────────────────────────
 router.use(itemsRouter);
+router.use(donorsRouter);
 router.use(dashboardRouter);
 router.use(deliveryRoutesRouter);
 router.use(locationsRouter);

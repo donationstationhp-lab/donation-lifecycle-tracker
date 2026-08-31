@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: items
     description: Donation item operations
+  - name: donors
+    description: Donor operations
   - name: dashboard
     description: Dashboard and summary operations
   - name: routes
@@ -296,6 +298,73 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ExpiringItemsResponse"
+
+  /donors:
+    get:
+      operationId: listDonors
+      tags: [donors]
+      summary: List donors with computed lifecycle stage
+      parameters:
+        - name: stage
+          in: query
+          schema:
+            type: string
+            enum: [prospect, first-gift, active, lapsing, lapsed, reactivated]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of donors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Donor"
+    post:
+      operationId: createDonor
+      tags: [donors]
+      summary: Create a donor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonorInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donor"
+
+  /donors/{id}:
+    get:
+      operationId: getDonor
+      tags: [donors]
+      summary: Get a donor by ID, including the items they've given
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Donor found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonorDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /dashboard:
     get:
@@ -747,6 +816,65 @@ components:
             $ref: "#/components/schemas/DonationItem"
         expiringCount:
           type: number
+
+    Donor:
+      type: object
+      required:
+        - id
+        - name
+        - stage
+        - giftCount
+        - lastGiftAt
+        - createdAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        contact:
+          type: ["string", "null"]
+        organization:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        stage:
+          type: string
+          enum: [prospect, first-gift, active, lapsing, lapsed, reactivated]
+          description: Derived from gift recency and history — not stored
+        giftCount:
+          type: number
+        lastGiftAt:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    DonorInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        contact:
+          type: string
+        organization:
+          type: string
+        notes:
+          type: string
+
+    DonorDetail:
+      allOf:
+        - $ref: "#/components/schemas/Donor"
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/DonationItem"
 
     RouteStop:
       type: object
