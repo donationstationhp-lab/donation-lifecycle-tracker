@@ -4,3 +4,4 @@
 - [Google Sheets append serialization](google-sheets-append-serialization.md) — use a database-backed single writer because concurrent table-boundary discovery can overwrite rows.
 - [Outbox retry lease fencing](outbox-retry-lease-fencing.md) — retry claims and external delivery must share a lock and use claim tokens to prevent stale workers from duplicating sends.
 - [PostgreSQL error unwrapping](postgres-error-unwrapping.md) — Drizzle query failures may wrap PostgreSQL codes; inspect nested causes before mapping expected conflicts.
+- [API artifact uptime checks](api-artifact-uptime-checks.md) — keep the mounted API root public and data-free because generic monitors may probe it instead of the configured startup path.
