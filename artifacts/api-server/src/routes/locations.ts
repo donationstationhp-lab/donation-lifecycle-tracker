@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db, locationsTable } from "@workspace/db";
+import { isUniqueViolation } from "../lib/dbErrors";
 
 const router: IRouter = Router();
 
@@ -37,8 +38,8 @@ router.post("/locations", async (req, res): Promise<void> => {
       })
       .returning();
     res.status(201).json(location);
-  } catch (err: any) {
-    if (err?.code === "23505") {
+  } catch (err) {
+    if (isUniqueViolation(err)) {
       res.status(409).json({ error: `Location code '${code}' already exists` });
     } else {
       throw err;
