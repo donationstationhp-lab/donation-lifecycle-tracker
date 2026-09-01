@@ -160,7 +160,11 @@ router.post("/transfers", async (req, res): Promise<void> => {
       return created;
     });
   } catch (error) {
-    if (isUniqueViolation(error) || (error instanceof Error && error.message === "TRANSFER_PRECONDITION")) {
+    if (
+      isUniqueViolation(error, "transfers_active_claim_idx")
+      || isUniqueViolation(error, "transfers_active_item_idx")
+      || (error instanceof Error && error.message === "TRANSFER_PRECONDITION")
+    ) {
       res.status(409).json({ error: "Transfer requires an approved claim with matching account and item, with no active transfer" }); return;
     }
     throw error;

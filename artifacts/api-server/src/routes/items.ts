@@ -12,6 +12,7 @@ import {
   AdvanceItemStageParams,
   AdvanceItemStageBody,
 } from "@workspace/api-zod";
+import { isUniqueViolation } from "../lib/dbErrors";
 
 const router: IRouter = Router();
 
@@ -157,28 +158,37 @@ router.post("/items", async (req, res): Promise<void> => {
   const powerConnectionReading = parsed.data.powerConnectionReading ?? computeNumerology(now);
   const donorId = await resolveDonorId(parsed.data.donor);
 
-  const [item] = await db
-    .insert(donationItemsTable)
-    .values({
-      id,
-      itemId,
-      name: parsed.data.name,
-      category: parsed.data.category,
-      tier: parsed.data.tier,
-      condition: parsed.data.condition,
-      donor: parsed.data.donor,
-      donorId,
-      recipient: parsed.data.recipient ?? null,
-      location: parsed.data.location ?? null,
-      expiryDate: toDateString(parsed.data.expiryDate),
-      temperatureZone: parsed.data.temperatureZone ?? "ambient",
-      weight: parsed.data.weight ?? null,
-      origin: parsed.data.origin ?? null,
-      lotNumber,
-      powerConnectionReading,
-      stage: "intake",
-    })
-    .returning();
+  let item: typeof donationItemsTable.$inferSelect;
+  try {
+    [item] = await db
+      .insert(donationItemsTable)
+      .values({
+        id,
+        itemId,
+        name: parsed.data.name,
+        category: parsed.data.category,
+        tier: parsed.data.tier,
+        condition: parsed.data.condition,
+        donor: parsed.data.donor,
+        donorId,
+        recipient: parsed.data.recipient ?? null,
+        location: parsed.data.location ?? null,
+        expiryDate: toDateString(parsed.data.expiryDate),
+        temperatureZone: parsed.data.temperatureZone ?? "ambient",
+        weight: parsed.data.weight ?? null,
+        origin: parsed.data.origin ?? null,
+        lotNumber,
+        powerConnectionReading,
+        stage: "intake",
+      })
+      .returning();
+  } catch (error) {
+    if (isUniqueViolation(error, "donation_items_item_id_unique")) {
+      res.status(409).json({ error: "Generated item identifier already exists; please retry" });
+      return;
+    }
+    throw error;
+  }
 
   const historyParts = [
     "Item received at intake",
