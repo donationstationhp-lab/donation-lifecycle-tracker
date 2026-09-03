@@ -20,7 +20,6 @@ createRoot(document.getElementById('root')!, {
 }).render(
   <ClerkProvider
     publishableKey={publishableKey}
-    proxyUrl={undefined}
     appearance={{
       variables: {
         colorPrimary: '#2c4d70',
