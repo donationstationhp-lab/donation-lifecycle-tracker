@@ -4,6 +4,8 @@ import { timingSafeEqual } from "node:crypto";
 
 export type StaffRole = "staff" | "supervisor";
 const roleCache = new Map<string, { role: StaffRole; expiresAt: number }>();
+// Temporary stopgap until Managed Auth Production role assignment is resolved via Pro dashboard access or Replit support.
+const STAFF_EMAIL_ALLOWLIST = ["dewaynelogan79@gmail.com"];
 
 type ApiAuthRequest = Request;
 type RoleResolver = (req: ApiAuthRequest) => Promise<StaffRole | null>;
@@ -28,10 +30,16 @@ async function getClerkRole(req: Request): Promise<StaffRole | null> {
   if (cached && cached.expiresAt > Date.now()) return cached.role;
   const user = await clerkClient.users.getUser(userId);
   const metadataRole = user.publicMetadata.role;
+  const email = user.primaryEmailAddress?.emailAddress?.toLowerCase();
+  const isAllowlisted = email
+    ? STAFF_EMAIL_ALLOWLIST.includes(email)
+    : false;
   const role: StaffRole | null =
     metadataRole === "staff" || metadataRole === "supervisor"
       ? metadataRole
-      : null;
+      : isAllowlisted
+        ? "staff"
+        : null;
   if (!role) return null;
   roleCache.set(userId, { role, expiresAt: Date.now() + 60_000 });
   return role;
