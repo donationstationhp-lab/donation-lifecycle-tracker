@@ -18,14 +18,13 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 const API_BASE = '/api';
-const API_KEY = import.meta.env.VITE_DONATION_STATION_API_KEY ?? '';
 
 function apiFetch(path: string, init?: RequestInit) {
   return fetch(`${API_BASE}${path}`, {
     ...init,
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': API_KEY,
       ...(init?.headers ?? {}),
     },
   });

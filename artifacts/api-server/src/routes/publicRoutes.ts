@@ -1,6 +1,6 @@
 /**
- * Public (unauthenticated) routes — no X-API-Key required.
- * Mounted BEFORE the apiKeyAuth middleware in routes/index.ts.
+ * Public (unauthenticated) routes — no sign-in or X-API-Key required.
+ * Mounted BEFORE the staffAuth middleware in routes/index.ts.
  */
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";

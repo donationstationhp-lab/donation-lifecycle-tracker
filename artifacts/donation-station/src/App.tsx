@@ -1,9 +1,5 @@
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { setApiKey } from '@workspace/api-client-react';
-
-// Inject the API key into every request made by the generated hooks
-setApiKey(import.meta.env.VITE_DONATION_STATION_API_KEY ?? null);
 
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -16,9 +12,11 @@ import {
   Router as WouterRouter,
 } from 'wouter';
 
+import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { Shell } from '@/components/layout/Shell';
 import Dashboard from '@/pages/Dashboard';
 import Donate from '@/pages/Donate';
+import Login from '@/pages/Login';
 import ItemsList from '@/pages/ItemsList';
 import IntakeForm from '@/pages/IntakeForm';
 import ItemDetail from '@/pages/ItemDetail';
@@ -31,31 +29,50 @@ import PendingReview from '@/pages/PendingReview';
 
 const queryClient = new QueryClient();
 
+// Redirects to /login when no staff session is present; renders nothing
+// while the initial /api/auth/me check is in flight.
+function AuthGate({ children }: { children: ReactNode }) {
+  const { user, isLoading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/login');
+    }
+  }, [isLoading, user, navigate]);
+
+  if (isLoading || !user) return null;
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <Switch>
       {/* /donate is fully public — no Shell, no nav, no auth */}
       <Route path="/donate" component={Donate} />
+      <Route path="/login" component={Login} />
 
-      {/* All staff routes are wrapped in the Shell */}
+      {/* All staff routes require a signed-in session and are wrapped in the Shell */}
       <Route>
-        <Shell>
-          <RoutedErrorBoundary>
-            <Switch>
-              <Route path="/" component={Dashboard} />
-              <Route path="/items" component={ItemsList} />
-              <Route path="/items/new" component={IntakeForm} />
-              <Route path="/items/:id" component={ItemDetail} />
-              <Route path="/donors" component={Donors} />
-              <Route path="/donors/:id" component={DonorDetail} />
-              <Route path="/expiring" component={ExpiringItems} />
-              <Route path="/routes" component={RoutesList} />
-              <Route path="/routes/:id" component={RouteDetail} />
-              <Route path="/pending" component={PendingReview} />
-              <Route component={NotFound} />
-            </Switch>
-          </RoutedErrorBoundary>
-        </Shell>
+        <AuthGate>
+          <Shell>
+            <RoutedErrorBoundary>
+              <Switch>
+                <Route path="/" component={Dashboard} />
+                <Route path="/items" component={ItemsList} />
+                <Route path="/items/new" component={IntakeForm} />
+                <Route path="/items/:id" component={ItemDetail} />
+                <Route path="/donors" component={Donors} />
+                <Route path="/donors/:id" component={DonorDetail} />
+                <Route path="/expiring" component={ExpiringItems} />
+                <Route path="/routes" component={RoutesList} />
+                <Route path="/routes/:id" component={RouteDetail} />
+                <Route path="/pending" component={PendingReview} />
+                <Route component={NotFound} />
+              </Switch>
+            </RoutedErrorBoundary>
+          </Shell>
+        </AuthGate>
       </Route>
     </Switch>
   );
@@ -69,12 +86,14 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -4,3 +4,5 @@ export * from "./stageHistory";
 export * from "./deliveryRoutes";
 export * from "./routeStops";
 export * from "./locations";
+export * from "./staffUsers";
+export * from "./sessions";
