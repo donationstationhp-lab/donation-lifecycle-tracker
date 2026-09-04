@@ -8,15 +8,13 @@ import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
-const API_KEY = import.meta.env.VITE_DONATION_STATION_API_KEY ?? '';
-
 function usePendingCount() {
   const { data } = useQuery<unknown[]>({
     queryKey: ['pending-count'],
     queryFn: () =>
-      fetch('/api/items?pendingReview=true', {
-        headers: { 'X-API-Key': API_KEY },
-      }).then((r) => (r.ok ? r.json() : [])),
+      fetch('/api/items?pendingReview=true', { credentials: 'same-origin' }).then((r) =>
+        r.ok ? r.json() : [],
+      ),
     refetchInterval: 30000,
     staleTime: 15000,
   });

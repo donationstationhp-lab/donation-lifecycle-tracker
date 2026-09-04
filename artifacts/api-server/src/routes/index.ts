@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { apiKeyAuth } from "../middlewares/apiKeyAuth";
+import { staffAuth } from "../middlewares/staffAuth";
 import healthRouter from "./health";
 import publicRoutes from "./publicRoutes";
+import authRouter from "./auth";
 import itemsRouter from "./items";
 import donorsRouter from "./donors";
 import dashboardRouter from "./dashboard";
@@ -15,9 +16,11 @@ const router: IRouter = Router();
 // These are registered BEFORE the auth middleware.
 router.use(healthRouter);   // /healthz  /health
 router.use(publicRoutes);   // /public/donate
+router.use(authRouter);     // /auth/login  /auth/logout  /auth/me (self-checking)
 
 // ── Auth gate ────────────────────────────────────────────────────────────────
-router.use(apiKeyAuth);
+// Accepts either a valid X-API-Key (CLI/automation) or a signed-in staff session.
+router.use(staffAuth);
 
 // ── Protected endpoints ──────────────────────────────────────────────────────
 router.use(itemsRouter);

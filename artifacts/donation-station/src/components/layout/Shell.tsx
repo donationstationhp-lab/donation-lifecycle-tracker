@@ -1,18 +1,17 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, Users, Printer } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, Users, Printer, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
-
-const API_KEY = import.meta.env.VITE_DONATION_STATION_API_KEY ?? '';
+import { useAuth } from '@/hooks/use-auth';
 
 function usePendingCount() {
   const { data } = useQuery<unknown[]>({
     queryKey: ['pending-count'],
     queryFn: () =>
-      fetch('/api/items?pendingReview=true', {
-        headers: { 'X-API-Key': API_KEY },
-      }).then((r) => (r.ok ? r.json() : [])),
+      fetch('/api/items?pendingReview=true', { credentials: 'same-origin' }).then((r) =>
+        r.ok ? r.json() : [],
+      ),
     refetchInterval: 30000,
     staleTime: 15000,
   });
@@ -20,8 +19,14 @@ function usePendingCount() {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const pendingCount = usePendingCount();
+  const { user, logout } = useAuth();
+
+  async function handleLogout() {
+    await logout();
+    navigate('/login');
+  }
 
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -73,6 +78,22 @@ export function Shell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="p-4 space-y-2">
+          {user && (
+            <div className="flex items-center justify-between gap-2 px-1 pb-1 text-xs text-white/60">
+              <span className="truncate" title={user.email}>
+                Signed in as <span className="text-white/90">{user.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex items-center gap-1 shrink-0 text-white/60 hover:text-white transition-colors"
+                title="Sign out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sign out
+              </button>
+            </div>
+          )}
           <Link href="/items/new">
             <Button className="w-full bg-tier-e hover:bg-tier-e/90 text-white">
               <Plus className="mr-2 w-4 h-4" /> Intake Item
