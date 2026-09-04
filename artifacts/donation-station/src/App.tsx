@@ -35,6 +35,8 @@ import TransfersList from '@/pages/TransfersList';
 import TransferDetail from '@/pages/TransferDetail';
 
 const queryClient = new QueryClient();
+// Temporary stopgap until Managed Auth Production role assignment is resolved via Pro dashboard access or Replit support.
+const STAFF_EMAIL_ALLOWLIST = ['dewaynelogan79@gmail.com'];
 
 function AuthCard({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   return (
@@ -121,7 +123,11 @@ function StaffApp() {
     );
   }
   const role = user?.publicMetadata.role;
-  if (role !== 'staff' && role !== 'supervisor') {
+  const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+  const isAllowlisted = email
+    ? STAFF_EMAIL_ALLOWLIST.includes(email)
+    : false;
+  if (role !== 'staff' && role !== 'supervisor' && !isAllowlisted) {
     return (
       <div className="min-h-screen bg-background grid place-items-center p-4">
         <div className="max-w-md rounded-xl border bg-card p-8 text-center shadow-sm">

@@ -4,6 +4,11 @@ import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import {
+  CLERK_PROXY_PATH,
+  clerkProxyMiddleware,
+  getClerkProxyHost,
+} from "./middlewares/clerkProxyMiddleware";
 
 const app: Express = express();
 
@@ -26,10 +31,17 @@ app.use(
     },
   }),
 );
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(
-  clerkMiddleware({
-    publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
-    secretKey: process.env.CLERK_SECRET_KEY,
+  clerkMiddleware((req) => {
+    if (process.env.NODE_ENV !== "production") return {};
+    const host = getClerkProxyHost(req);
+    return host
+      ? {
+          publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+          proxyUrl: `https://${host}${CLERK_PROXY_PATH}`,
+        }
+      : {};
   }),
 );
 app.use(cors());
