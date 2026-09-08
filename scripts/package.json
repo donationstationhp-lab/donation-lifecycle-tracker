@@ -6,7 +6,13 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "preview:smoke": "tsx ./src/preview-smoke.ts",
+    "migrate-attend-claims": "tsx ./src/migrate-attend-claims.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
