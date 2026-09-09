@@ -34,6 +34,16 @@ export interface AttendOutboxEntry {
   createdAt: string;
 }
 
+export interface AttendDeliveryAlert {
+  id: string;
+  outboxId: string;
+  eventType: string;
+  aggregateType: string;
+  aggregateId: string;
+  lastError: string;
+  createdAt: string;
+}
+
 export interface RecipientAccount {
   id: string;
   name: string;

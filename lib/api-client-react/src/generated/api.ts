@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AttendDeliveryAlert,
   AttendOutboxEntry,
   Claim,
   ClaimDetail,
@@ -3245,6 +3246,83 @@ export function useListAttendOutbox<TData = Awaited<ReturnType<typeof listAttend
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListAttendOutboxQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAttendDeliveryAlertsUrl = () => {
+
+
+
+
+  return `/api/attend/alerts`
+}
+
+/**
+ * @summary List supervisor alerts for exhausted ATTEND deliveries
+ */
+export const listAttendDeliveryAlerts = async ( options?: Parameters<typeof customFetch>[1]): Promise<AttendDeliveryAlert[]> => {
+
+  return customFetch<AttendDeliveryAlert[]>(getListAttendDeliveryAlertsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAttendDeliveryAlertsQueryKey = () => {
+    return [
+    `/api/attend/alerts`
+    ] as const;
+    }
+
+
+export const getListAttendDeliveryAlertsQueryOptions = <TData = Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAttendDeliveryAlertsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>> = ({ signal }) => listAttendDeliveryAlerts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAttendDeliveryAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>>
+export type ListAttendDeliveryAlertsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List supervisor alerts for exhausted ATTEND deliveries
+ */
+
+export function useListAttendDeliveryAlerts<TData = Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAttendDeliveryAlertsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

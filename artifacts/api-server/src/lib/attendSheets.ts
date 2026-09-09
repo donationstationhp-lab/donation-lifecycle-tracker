@@ -1,6 +1,6 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
 import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
-import { db, notificationOutboxTable } from "@workspace/db";
+import { attendDeliveryAlertsTable, db, notificationOutboxTable } from "@workspace/db";
 import { randomUUID } from "node:crypto";
 import { logger } from "./logger";
 
@@ -148,6 +148,46 @@ function eligibleOutboxCondition(now: Date, maxAttempts: number) {
   );
 }
 
+export function sanitizeAttendDeliveryError(error: unknown): string {
+  const description = error instanceof Error ? error.message : String(error ?? "Unknown ATTEND delivery error");
+  const sanitized = description
+    .replace(/\b(?:bearer|basic)\s+\S+/gi, "[redacted credential]")
+    .replace(
+      /\b(?:access[_-]?token|api[_-]?key|auth(?:entication)?|credential|password|secret|token|payload|spreadsheet(?:id)?|range|connector(?:details)?)\s*[:=]\s*(?:"[^"]*"|'[^']*'|\S+)/gi,
+      "[redacted detail]",
+    )
+    .replace(/\bconnector(?:\s+(?:response|details?))?\b/gi, "delivery service")
+    .replace(/https?:\/\/\S+/gi, "[redacted URL]")
+    .replace(/\{[\s\S]*\}/g, "[redacted details]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 300);
+  return sanitized || "Unknown ATTEND delivery error";
+}
+
+type AttendDbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function insertAttendDeliveryAlert(
+  tx: AttendDbTransaction,
+  message: {
+    id: string;
+    eventType: string;
+    aggregateType: string;
+    aggregateId: string;
+  },
+  lastError: unknown,
+): Promise<void> {
+  await tx.insert(attendDeliveryAlertsTable).values({
+    id: randomUUID(),
+    outboxId: message.id,
+    eventType: message.eventType,
+    aggregateType: message.aggregateType,
+    aggregateId: message.aggregateId,
+    lastError: sanitizeAttendDeliveryError(lastError),
+    dedupeKey: `attend-delivery-failed:${message.id}`,
+  }).onConflictDoNothing();
+}
+
 async function claimAttendOutbox(
   id: string,
   options: DeliverAttendOutboxOptions,
@@ -157,7 +197,7 @@ async function claimAttendOutbox(
   const leaseToken = randomUUID();
   return db.transaction(async (tx) => {
     await acquireAttendSheetAppendLock(tx);
-    await tx
+    const [exhausted] = await tx
       .update(notificationOutboxTable)
       .set({
         status: "failed",
@@ -176,7 +216,17 @@ async function claimAttendOutbox(
             lte(notificationOutboxTable.processingLeaseUntil, now),
           ),
         ),
-      );
+      )
+      .returning({
+        id: notificationOutboxTable.id,
+        eventType: notificationOutboxTable.eventType,
+        aggregateType: notificationOutboxTable.aggregateType,
+        aggregateId: notificationOutboxTable.aggregateId,
+        lastError: notificationOutboxTable.lastError,
+      });
+    if (exhausted) {
+      await insertAttendDeliveryAlert(tx, exhausted, exhausted.lastError);
+    }
     const [message] = await tx
       .update(notificationOutboxTable)
       .set({
@@ -202,7 +252,7 @@ async function exhaustExpiredAttendOutboxLeases(
 ): Promise<void> {
   await db.transaction(async (tx) => {
     await acquireAttendSheetAppendLock(tx);
-    await tx
+    const exhausted = await tx
       .update(notificationOutboxTable)
       .set({
         status: "failed",
@@ -220,7 +270,17 @@ async function exhaustExpiredAttendOutboxLeases(
             lte(notificationOutboxTable.processingLeaseUntil, now),
           ),
         ),
-      );
+      )
+      .returning({
+        id: notificationOutboxTable.id,
+        eventType: notificationOutboxTable.eventType,
+        aggregateType: notificationOutboxTable.aggregateType,
+        aggregateId: notificationOutboxTable.aggregateId,
+        lastError: notificationOutboxTable.lastError,
+      });
+    for (const message of exhausted) {
+      await insertAttendDeliveryAlert(tx, message, message.lastError);
+    }
   });
 }
 
@@ -292,22 +352,35 @@ export async function deliverAttendOutbox(
                 options.retryMaxDelayMs,
               ),
           );
-    await db
-      .update(notificationOutboxTable)
-      .set({
-        status: "failed",
-        nextRetryAt,
-        processingLeaseUntil: null,
-        processingLeaseToken: null,
-        lastError: description,
-      })
-      .where(
-        and(
-          eq(notificationOutboxTable.id, id),
-          eq(notificationOutboxTable.status, "processing"),
-          eq(notificationOutboxTable.processingLeaseToken, leaseToken),
-        ),
-      );
+    await db.transaction(async (tx) => {
+      await acquireAttendSheetAppendLock(tx);
+      const [failed] = await tx
+        .update(notificationOutboxTable)
+        .set({
+          status: "failed",
+          nextRetryAt,
+          processingLeaseUntil: null,
+          processingLeaseToken: null,
+          lastError: description,
+        })
+        .where(
+          and(
+            eq(notificationOutboxTable.id, id),
+            eq(notificationOutboxTable.status, "processing"),
+            eq(notificationOutboxTable.processingLeaseToken, leaseToken),
+          ),
+        )
+        .returning({
+          id: notificationOutboxTable.id,
+          eventType: notificationOutboxTable.eventType,
+          aggregateType: notificationOutboxTable.aggregateType,
+          aggregateId: notificationOutboxTable.aggregateId,
+          attempts: notificationOutboxTable.attempts,
+        });
+      if (failed && failed.attempts >= options.maxAttempts) {
+        await insertAttendDeliveryAlert(tx, failed, description);
+      }
+    });
     logger.warn({ outboxId: id, error: description }, "ATTEND Sheets delivery failed");
   }
 }

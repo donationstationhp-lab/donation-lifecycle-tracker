@@ -3,13 +3,14 @@ import test, { after } from "node:test";
 import { randomUUID } from "node:crypto";
 import express from "express";
 import { eq } from "drizzle-orm";
-import { db, notificationOutboxTable, pool } from "@workspace/db";
+import { attendDeliveryAlertsTable, db, notificationOutboxTable, pool } from "@workspace/db";
 import attendRouter from "../routes/attend";
 import {
   canClaimOutboxLease,
   deliverAttendOutbox,
   queueAttendSheetAppend,
   retryAttendOutboxBatch,
+  sanitizeAttendDeliveryError,
   withAttendSheetAppendLock,
 } from "./attendSheets";
 
@@ -55,7 +56,7 @@ test("successful delivery records the send and clears retry metadata", async () 
 
 test("transient delivery failure schedules bounded exponential retry", async () => {
   const id = randomUUID();
-  let current = new Date("2026-08-30T12:00:00.000Z");
+  let current = new Date("2036-08-30T12:00:00.000Z");
   let appendCount = 0;
   await db.insert(notificationOutboxTable).values({
     id,
@@ -85,12 +86,12 @@ test("transient delivery failure schedules bounded exponential retry", async () 
     assert.equal(message.status, "failed");
     assert.equal(message.attempts, 1);
     assert.equal(message.lastError, "temporary Sheets outage");
-    assert.equal(message.nextRetryAt?.toISOString(), "2026-08-30T12:00:00.100Z");
+    assert.equal(message.nextRetryAt?.toISOString(), "2036-08-30T12:00:00.100Z");
 
     await deliverAttendOutbox(id, adapter, options);
     assert.equal(appendCount, 1);
 
-    current = new Date("2026-08-30T12:00:00.100Z");
+    current = new Date("2036-08-30T12:00:00.100Z");
     await deliverAttendOutbox(id, adapter, options);
     [message] = await db.select().from(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
     assert.equal(appendCount, 2);
@@ -131,6 +132,11 @@ test("exhausted delivery failure is not retried again", async () => {
     assert.equal(message.attempts, 1);
     assert.equal(message.nextRetryAt, null);
     assert.equal(message.lastError, "permanent Sheets outage");
+    const alerts = await db.select().from(attendDeliveryAlertsTable).where(eq(attendDeliveryAlertsTable.outboxId, id));
+    assert.equal(alerts.length, 1);
+    assert.equal(alerts[0].eventType, "claim.submitted");
+    assert.equal(alerts[0].aggregateId, id);
+    assert.equal(alerts[0].lastError, "permanent Sheets outage");
 
     await deliverAttendOutbox(id, {
       async append(): Promise<void> {
@@ -138,9 +144,59 @@ test("exhausted delivery failure is not retried again", async () => {
       },
     }, { maxAttempts: 1, leaseDurationMs: 1_000 });
     assert.equal(appendCount, 1);
+    assert.equal((await db.select().from(attendDeliveryAlertsTable).where(eq(attendDeliveryAlertsTable.outboxId, id))).length, 1);
   } finally {
     await db.delete(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
   }
+});
+
+test("final delivery alert sanitizes sensitive error details and is deduplicated across scans", async () => {
+  const id = randomUUID();
+  const now = new Date("2036-08-30T12:00:00.000Z");
+  await db.insert(notificationOutboxTable).values({
+    id,
+    eventType: "transfer.released",
+    aggregateType: "transfer",
+    aggregateId: "transfer-123",
+    dedupeKey: `attend-test:${id}`,
+    payload: JSON.stringify({ donorPhone: "555-0100" }),
+  });
+
+  try {
+    await deliverAttendOutbox(id, {
+      async append(): Promise<void> {
+        throw new Error(
+          "connector response payload={donorPhone:555-0100} spreadsheetId=sheet-secret access_token=token-secret",
+        );
+      },
+    }, { now: () => now, maxAttempts: 1, leaseDurationMs: 1_000 });
+
+    const [alert] = await db.select().from(attendDeliveryAlertsTable).where(eq(attendDeliveryAlertsTable.outboxId, id));
+    assert.ok(alert);
+    assert.equal(alert.eventType, "transfer.released");
+    assert.equal(alert.aggregateType, "transfer");
+    assert.equal(alert.aggregateId, "transfer-123");
+    assert.match(alert.lastError, /delivery service/);
+    assert.doesNotMatch(alert.lastError, /connector|donorPhone|555-0100|sheet-secret|token-secret|payload=|spreadsheetId=|access_token=/);
+
+    await retryAttendOutboxBatch({
+      now: () => now,
+      maxAttempts: 1,
+      batchSize: 10,
+      adapter: { append: async () => undefined },
+    });
+    assert.equal((await db.select().from(attendDeliveryAlertsTable).where(eq(attendDeliveryAlertsTable.outboxId, id))).length, 1);
+  } finally {
+    await db.delete(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
+  }
+});
+
+test("error sanitizer has a safe fallback for non-Error values", () => {
+  assert.equal(sanitizeAttendDeliveryError(null), "Unknown ATTEND delivery error");
+  assert.equal(
+    sanitizeAttendDeliveryError("request failed token=secret https://example.test/private"),
+    "request failed [redacted detail] [redacted URL]",
+  );
 });
 
 test("expired processing lease can be recovered by another worker", async () => {
@@ -247,6 +303,51 @@ test("expired final-attempt lease becomes exhausted instead of exceeding the ret
     assert.equal(message.processingLeaseUntil, null);
     assert.equal(message.processingLeaseToken, null);
     assert.equal(message.lastError, "Delivery lease expired after final attempt");
+    assert.equal(
+      (await db.select().from(attendDeliveryAlertsTable).where(eq(attendDeliveryAlertsTable.outboxId, id))).length,
+      1,
+    );
+  } finally {
+    await db.delete(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
+  }
+});
+
+test("direct delivery alerts an expired final-attempt lease exactly once", async () => {
+  const id = randomUUID();
+  const now = new Date("2026-08-30T12:00:00.000Z");
+  let appendCount = 0;
+  await db.insert(notificationOutboxTable).values({
+    id,
+    eventType: "transfer.released",
+    aggregateType: "transfer",
+    aggregateId: "transfer-expired",
+    dedupeKey: `attend-test:${id}`,
+    payload: JSON.stringify({ id }),
+    status: "processing",
+    attempts: 1,
+    processingLeaseUntil: new Date("2026-08-30T11:59:00.000Z"),
+    processingLeaseToken: randomUUID(),
+  });
+
+  const adapter = {
+    async append(): Promise<void> {
+      appendCount += 1;
+    },
+  };
+  const options = { now: () => now, maxAttempts: 1, leaseDurationMs: 1_000 };
+
+  try {
+    await deliverAttendOutbox(id, adapter, options);
+    await deliverAttendOutbox(id, adapter, options);
+
+    assert.equal(appendCount, 0);
+    const [message] = await db.select().from(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
+    assert.equal(message.status, "failed");
+    assert.equal(message.lastError, "Delivery lease expired after final attempt");
+    const alerts = await db.select().from(attendDeliveryAlertsTable).where(eq(attendDeliveryAlertsTable.outboxId, id));
+    assert.equal(alerts.length, 1);
+    assert.equal(alerts[0].eventType, "transfer.released");
+    assert.equal(alerts[0].aggregateId, "transfer-expired");
   } finally {
     await db.delete(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
   }
@@ -339,6 +440,47 @@ test("operator status exposes retry details without exposing event payload", asy
     assert.equal(message.nextRetryAt, "2026-08-30T12:00:30.000Z");
     assert.equal("payload" in message, false);
     assert.equal("spreadsheetId" in message, false);
+  } finally {
+    await db.delete(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => error ? reject(error) : resolve());
+    });
+  }
+});
+
+test("ATTEND delivery alerts are visible only to supervisors", async () => {
+  const id = randomUUID();
+  const app = express();
+  app.use((_req, res, next) => {
+    res.locals.staffRole = "staff";
+    next();
+  });
+  app.use(attendRouter);
+  const server = app.listen(0);
+  await new Promise<void>((resolve) => server.once("listening", resolve));
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("Test server did not expose a TCP address");
+  await db.insert(notificationOutboxTable).values({
+    id,
+    eventType: "claim.submitted",
+    aggregateType: "claim",
+    aggregateId: id,
+    dedupeKey: `attend-test:${id}`,
+    payload: JSON.stringify({ privateEventDetail: "not-for-alert-response" }),
+  });
+  await db.insert(attendDeliveryAlertsTable).values({
+    id: randomUUID(),
+    outboxId: id,
+    eventType: "claim.submitted",
+    aggregateType: "claim",
+    aggregateId: id,
+    lastError: "Delivery failed",
+    dedupeKey: `attend-delivery-failed:${id}`,
+  });
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/attend/alerts`);
+    assert.equal(response.status, 403);
   } finally {
     await db.delete(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
     await new Promise<void>((resolve, reject) => {

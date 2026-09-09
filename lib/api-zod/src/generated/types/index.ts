@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './attendDeliveryAlert';
 export * from './attendOutboxEntry';
 export * from './attendOutboxEntryStatus';
 export * from './claim';

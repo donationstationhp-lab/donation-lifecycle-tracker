@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, desc, eq, inArray, like } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
-  allocateClaimTrackingCode, ensureClaimTrackingCodes, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
+  allocateClaimTrackingCode, ensureClaimTrackingCodes, attendDeliveryAlertsTable, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
   notificationOutboxTable, recipientAccountsTable, stageHistoryTable, transferHistoryTable, transfersTable,
 } from "@workspace/db";
 import {
@@ -12,7 +12,7 @@ import {
   ListTransfersQueryParams, ListTransfersResponse, TransitionClaimBody, TransitionClaimParams,
   TransitionClaimResponse, TransitionTransferBody, TransitionTransferParams, TransitionTransferResponse,
   GetClaimParams, GetClaimResponse, GetTransferParams, GetTransferResponse,
-  ListAttendOutboxResponse,
+  ListAttendDeliveryAlertsResponse, ListAttendOutboxResponse,
 } from "@workspace/api-zod";
 import { requireSupervisor } from "../middlewares/apiKeyAuth";
 import { canCollectEvidence, validateClaimTransition, validateTransferTransition, type ClaimStatus, type TransferStatus } from "../lib/attendTransitions";
@@ -47,6 +47,23 @@ router.get("/attend/outbox", async (_req, res): Promise<void> => {
     .orderBy(desc(notificationOutboxTable.createdAt))
     .limit(100);
   res.json(ListAttendOutboxResponse.parse(rows));
+});
+
+router.get("/attend/alerts", requireSupervisor, async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: attendDeliveryAlertsTable.id,
+      outboxId: attendDeliveryAlertsTable.outboxId,
+      eventType: attendDeliveryAlertsTable.eventType,
+      aggregateType: attendDeliveryAlertsTable.aggregateType,
+      aggregateId: attendDeliveryAlertsTable.aggregateId,
+      lastError: attendDeliveryAlertsTable.lastError,
+      createdAt: attendDeliveryAlertsTable.createdAt,
+    })
+    .from(attendDeliveryAlertsTable)
+    .orderBy(desc(attendDeliveryAlertsTable.createdAt))
+    .limit(100);
+  res.json(ListAttendDeliveryAlertsResponse.parse(rows));
 });
 
 router.get("/accounts", async (req, res): Promise<void> => {

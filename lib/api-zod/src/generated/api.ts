@@ -1641,6 +1641,21 @@ export const ListAttendOutboxResponse = zod.array(ListAttendOutboxResponseItem)
 
 
 /**
+ * @summary List supervisor alerts for exhausted ATTEND deliveries
+ */
+export const ListAttendDeliveryAlertsResponseItem = zod.object({
+  "id": zod.string(),
+  "outboxId": zod.string(),
+  "eventType": zod.string(),
+  "aggregateType": zod.string(),
+  "aggregateId": zod.string(),
+  "lastError": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAttendDeliveryAlertsResponse = zod.array(ListAttendDeliveryAlertsResponseItem)
+
+
+/**
  * @summary Get PII-safe public claim tracking
  */
 export const getPublicTrackingPathTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');

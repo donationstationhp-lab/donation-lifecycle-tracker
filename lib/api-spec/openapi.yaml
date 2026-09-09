@@ -821,6 +821,20 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AttendOutboxEntry"
+  /attend/alerts:
+    get:
+      operationId: listAttendDeliveryAlerts
+      tags: [attend]
+      summary: List supervisor alerts for exhausted ATTEND deliveries
+      responses:
+        "200":
+          description: Recent ATTEND delivery alerts without event payloads or connector details
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendDeliveryAlert"
   /public/track/{trackingCode}:
     get:
       operationId: getPublicTracking
@@ -875,6 +889,17 @@ components:
         nextRetryAt: { type: ["string", "null"], format: date-time }
         processingLeaseUntil: { type: ["string", "null"], format: date-time }
         sentAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    AttendDeliveryAlert:
+      type: object
+      required: [id, outboxId, eventType, aggregateType, aggregateId, lastError, createdAt]
+      properties:
+        id: { type: string }
+        outboxId: { type: string }
+        eventType: { type: string }
+        aggregateType: { type: string }
+        aggregateId: { type: string }
+        lastError: { type: string }
         createdAt: { type: string, format: date-time }
     RecipientAccount:
       type: object

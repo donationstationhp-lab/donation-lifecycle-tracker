@@ -171,6 +171,24 @@ export const notificationOutboxTable = pgTable(
   }),
 );
 
+export const attendDeliveryAlertsTable = pgTable(
+  "attend_delivery_alerts",
+  {
+    id: text("id").primaryKey(),
+    outboxId: text("outbox_id").notNull().references(() => notificationOutboxTable.id, { onDelete: "cascade" }),
+    eventType: text("event_type").notNull(),
+    aggregateType: text("aggregate_type").notNull(),
+    aggregateId: text("aggregate_id").notNull(),
+    lastError: text("last_error").notNull(),
+    dedupeKey: text("dedupe_key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    outbox: uniqueIndex("attend_delivery_alerts_outbox_idx").on(table.outboxId),
+    dedupe: uniqueIndex("attend_delivery_alerts_dedupe_idx").on(table.dedupeKey),
+    createdIndex: index("attend_delivery_alerts_created_idx").on(table.createdAt),
+  }),
+);
 export const insertRecipientAccountSchema = createInsertSchema(recipientAccountsTable).omit({ createdAt: true, updatedAt: true });
 export const insertClaimSchema = createInsertSchema(claimsTable).omit({ createdAt: true, updatedAt: true });
 export const insertTrackingCounterSchema = createInsertSchema(trackingCountersTable);
@@ -181,6 +199,7 @@ export const insertTransferSchema = createInsertSchema(transfersTable).omit({ cr
 export const insertTransferHistorySchema = createInsertSchema(transferHistoryTable).omit({ timestamp: true });
 export const insertNotificationOutboxSchema = createInsertSchema(notificationOutboxTable).omit({ createdAt: true, sentAt: true });
 
+export const insertAttendDeliveryAlertSchema = createInsertSchema(attendDeliveryAlertsTable).omit({ createdAt: true });
 export type RecipientAccount = typeof recipientAccountsTable.$inferSelect;
 export type Claim = typeof claimsTable.$inferSelect;
 export type TrackingCounter = typeof trackingCountersTable.$inferSelect;
@@ -190,6 +209,8 @@ export type ClaimHistory = typeof claimHistoryTable.$inferSelect;
 export type Transfer = typeof transfersTable.$inferSelect;
 export type TransferHistory = typeof transferHistoryTable.$inferSelect;
 export type NotificationOutbox = typeof notificationOutboxTable.$inferSelect;
+
+export type AttendDeliveryAlert = typeof attendDeliveryAlertsTable.$inferSelect;
 export type InsertRecipientAccount = z.infer<typeof insertRecipientAccountSchema>;
 export type InsertClaim = z.infer<typeof insertClaimSchema>;
 export type InsertTrackingCounter = z.infer<typeof insertTrackingCounterSchema>;
@@ -199,3 +220,5 @@ export type InsertClaimHistory = z.infer<typeof insertClaimHistorySchema>;
 export type InsertTransfer = z.infer<typeof insertTransferSchema>;
 export type InsertTransferHistory = z.infer<typeof insertTransferHistorySchema>;
 export type InsertNotificationOutbox = z.infer<typeof insertNotificationOutboxSchema>;
+
+export type InsertAttendDeliveryAlert = z.infer<typeof insertAttendDeliveryAlertSchema>;
