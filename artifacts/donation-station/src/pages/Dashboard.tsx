@@ -13,12 +13,16 @@ import { Button } from '@/components/ui/button';
 
 type WowMetrics = {
   resourcesReceived: number;
+  requestsReceived: number;
+  claimsVerified: number;
   resourcesVerified: number;
   resourcesReserved: number;
+  appointmentsScheduled: number;
   resourcesDistributed: number;
   wasteDiverted: number;
   appointmentsCompleted: number;
   noShows: number;
+  acknowledgmentsReceived: number;
   acknowledgmentsPending: number;
   acknowledgmentsSent: number;
   receiveToGiveHours: number | null;
@@ -77,13 +81,13 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
             <Globe className="w-8 h-8 text-primary" />
-            W.O.W. Universal Servicing System
+            W.O.W. Universal Servicing OS
           </h1>
           <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mt-2">
             War On Waste / We All Stop Trashing Earth
           </p>
           <p className="text-sm text-muted-foreground font-medium mt-2">
-            Receive what is. Gain what it means. Give what completes.
+            Acknowledgement received. Appreciation gained. Gratitude given.
           </p>
         </div>
         <div className="text-left md:text-right">
@@ -111,7 +115,7 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground font-medium mt-1">Receive what is.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
           <Card className="shadow-sm border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
@@ -148,6 +152,20 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2">Resources Received</div>
               <div className="text-3xl font-bold text-foreground">{wowMetrics?.resourcesReceived ?? '—'}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-border bg-card">
+            <CardContent className="p-4">
+              <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2">Requests Received</div>
+              <div className="text-3xl font-bold text-foreground">{wowMetrics?.requestsReceived ?? '—'}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-border bg-card">
+            <CardContent className="p-4">
+              <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2">Acknowledgements Received</div>
+              <div className="text-3xl font-bold text-foreground">{wowMetrics?.acknowledgmentsReceived ?? '—'}</div>
             </CardContent>
           </Card>
         </div>
@@ -240,7 +258,7 @@ export default function Dashboard() {
           </h2>
           <p className="text-sm text-muted-foreground font-medium mt-1">Gain what it means.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className={`shadow-sm transition-all hover-elevate cursor-pointer ${pendingCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-card border-border'}`}>
             <Link href="/pending" className="block">
               <CardHeader className="pb-2">
@@ -268,6 +286,17 @@ export default function Dashboard() {
               </div>
               <div className="text-4xl font-bold text-foreground">{wowMetrics?.resourcesVerified ?? '—'}</div>
               <p className="text-xs text-muted-foreground mt-1 font-medium leading-tight">Successfully verified</p>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-border bg-card">
+            <CardContent className="p-4 flex flex-col h-full justify-center">
+              <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary/70" />
+                Claims Verified
+              </div>
+              <div className="text-4xl font-bold text-foreground">{wowMetrics?.claimsVerified ?? '—'}</div>
+              <p className="text-xs text-muted-foreground mt-1 font-medium leading-tight">Due diligence completed</p>
             </CardContent>
           </Card>
         </div>
@@ -329,7 +358,17 @@ export default function Dashboard() {
           </h2>
           <p className="text-sm text-muted-foreground font-medium mt-1">Bridging time and movement.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="shadow-sm border-border bg-card">
+            <CardContent className="p-4">
+              <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+                <CalendarCheck className="w-4 h-4 text-primary/70" />
+                Appointments Scheduled
+              </div>
+              <div className="text-3xl font-bold text-foreground">{wowMetrics?.appointmentsScheduled ?? '—'}</div>
+            </CardContent>
+          </Card>
+
           <Card className="shadow-sm border-border bg-card">
             <CardContent className="p-4">
               <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
@@ -386,7 +425,7 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
                 <Heart className="w-4 h-4 text-primary/70" />
-                Acknowledgments Sent
+                Gratitude Given / Acknowledgements Sent
               </div>
               <div className="text-3xl font-bold text-foreground">{wowMetrics?.acknowledgmentsSent ?? '—'}</div>
             </CardContent>

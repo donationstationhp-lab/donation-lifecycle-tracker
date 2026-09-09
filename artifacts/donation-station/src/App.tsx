@@ -181,6 +181,7 @@ function StaffApp() {
       <RoutedErrorBoundary>
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/dashboard" component={Dashboard} />
           <Route path="/items" component={ItemsList} />
           <Route path="/items/new" component={IntakeForm} />
           <Route path="/items/:id" component={ItemDetail} />

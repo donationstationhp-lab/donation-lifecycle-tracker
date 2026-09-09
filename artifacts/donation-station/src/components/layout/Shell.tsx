@@ -57,7 +57,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = item.href === '/'
-              ? location === '/'
+              ? location === '/' || location === '/dashboard'
               : location.startsWith(item.href);
 
             return (

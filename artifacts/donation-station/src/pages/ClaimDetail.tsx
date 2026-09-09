@@ -373,7 +373,7 @@ export default function ClaimDetail() {
                 Public Tracking
               </CardTitle>
               <CardDescription>
-                Share this link without exposing recipient or donor details.
+                Public-safe tracking that lets staff give with proof without exposing recipient or donor details.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -405,6 +405,9 @@ export default function ClaimDetail() {
                 <QrCode className="w-4 h-4 mr-2" />
                 Show tracking QR code
               </Button>
+              <p className="text-xs text-muted-foreground text-center font-medium">
+                Acknowledgement → Appreciation → Gratitude
+              </p>
             </CardContent>
           </Card>
 

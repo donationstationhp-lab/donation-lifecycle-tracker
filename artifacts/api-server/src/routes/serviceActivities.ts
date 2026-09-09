@@ -107,8 +107,8 @@ router.post("/service-activities/acknowledgments/refresh-overdue", async (_req, 
 
 router.post("/service-activities/:id/acknowledgment", async (req, res): Promise<void> => {
   const status = String(req.body?.status ?? "");
-  if (!["sent", "acknowledged"].includes(status)) {
-    res.status(400).json({ error: "Status must be sent or acknowledged" });
+  if (!["sent", "acknowledged", "completed"].includes(status)) {
+    res.status(400).json({ error: "Status must be sent, acknowledged, or completed" });
     return;
   }
   const [source] = await db.select().from(serviceActivitiesTable).where(and(
@@ -128,7 +128,7 @@ router.post("/service-activities/:id/acknowledgment", async (req, res): Promise<
     if (current?.status === status) return current;
     const id = await recordServiceActivity(tx, {
       activityType: "acknowledgment",
-      loopStage: status === "acknowledged" ? "acknowledged" : "verified",
+      loopStage: ["acknowledged", "completed"].includes(status) ? "acknowledged" : "verified",
       relatedItemId: current?.relatedItemId ?? source.relatedItemId,
       relatedClaimId: current?.relatedClaimId ?? source.relatedClaimId,
       relatedAppointmentId: current?.relatedAppointmentId ?? source.relatedAppointmentId,
@@ -139,7 +139,9 @@ router.post("/service-activities/:id/acknowledgment", async (req, res): Promise<
       status,
       staffOwner: res.locals.authMethod === "api-key" ? "api-key" : (res.locals.staffUserId ?? "staff"),
       completedAt: new Date(),
-      publicSafeSummary: status === "sent" ? "Acknowledgment sent" : "Acknowledgment recorded",
+      publicSafeSummary: status === "sent" ? "Acknowledgment sent"
+        : status === "completed" ? "Acknowledgment completed"
+        : "Acknowledgment recorded",
       idempotencyKey: `acknowledgment:${source.parentActivityId ?? source.id}:${status}`,
     });
     const [row] = await tx.select().from(serviceActivitiesTable).where(eq(serviceActivitiesTable.id, id));

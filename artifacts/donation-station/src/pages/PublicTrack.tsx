@@ -45,7 +45,11 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
           <p className="mt-3 text-sm text-muted-foreground font-medium max-w-md mx-auto">
             Receive the resource. Gain the truth. Give with proof.
             <br/>
-            <span className="font-normal opacity-80 mt-1 inline-block">This tracking page shows public-safe service progress; Exact times remain locked to protect identities; Donation Station receives, verifies, schedules, and gives with proof.</span>
+            <span className="font-normal opacity-80 mt-1 inline-block">
+              This page shows public-safe service progress. Exact times remain locked to protect identities.
+              Donation Station receives, verifies, schedules, and gives with proof.
+              Acknowledgement received. Appreciation gained. Gratitude given.
+            </span>
           </p>
         </header>
 

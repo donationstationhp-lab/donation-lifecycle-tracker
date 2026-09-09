@@ -13,7 +13,7 @@ import {
   AdvanceItemStageBody,
 } from "@workspace/api-zod";
 import { isUniqueViolation } from "../lib/dbErrors";
-import { recordServiceActivity } from "../lib/serviceActivities";
+import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
 import { validateItemStageTransition } from "../lib/itemLifecycle";
 
 const router: IRouter = Router();
@@ -104,7 +104,7 @@ async function advanceStage(
       toStage,
       notes: parts.length > 0 ? parts.join(" | ") : null,
     });
-    await recordServiceActivity(tx, {
+    const activityId = await recordServiceActivity(tx, {
       activityType: "item_processing",
       loopStage: toStage === "qc" ? "recognized"
         : toStage === "storage" ? "classified"
@@ -117,6 +117,13 @@ async function advanceStage(
       internalNotes: options.notes ?? null,
       idempotencyKey: `item:${itemId}:stage:${toStage}:${updated.id}`,
     });
+    if (toStage === "distributed") {
+      await recordAcknowledgment(tx, {
+        parentActivityId: activityId,
+        relatedItemId: itemId,
+        staffOwner: options.by ?? null,
+      });
+    }
     return { ok: true };
   });
 }
@@ -222,13 +229,18 @@ router.post("/items", async (req, res): Promise<void> => {
         toStage: "intake",
         notes: historyParts.join(" | "),
       });
-      await recordServiceActivity(tx, {
+      const activityId = await recordServiceActivity(tx, {
         activityType: "donation_intake", loopStage: "received",
         relatedItemId: id, status: "received",
         staffOwner: res.locals.authMethod === "api-key" ? "api-key" : (res.locals.staffUserId ?? "staff"),
         publicSafeSummary: "Donation received",
         internalNotes: historyParts.join(" | "),
         idempotencyKey: `item:${id}:received`,
+      });
+      await recordAcknowledgment(tx, {
+        parentActivityId: activityId,
+        relatedItemId: id,
+        staffOwner: res.locals.authMethod === "api-key" ? "api-key" : (res.locals.staffUserId ?? "staff"),
       });
       return created;
     });
@@ -512,7 +524,7 @@ router.patch("/items/:id/stage", async (req, res): Promise<void> => {
       toStage: parsed.data.stage,
       notes,
     });
-    await recordServiceActivity(tx, {
+    const activityId = await recordServiceActivity(tx, {
       activityType: "item_processing",
       loopStage: parsed.data.stage === "qc" ? "recognized"
         : parsed.data.stage === "storage" ? "classified"
@@ -525,6 +537,13 @@ router.patch("/items/:id/stage", async (req, res): Promise<void> => {
       internalNotes: notes,
       idempotencyKey: `item:${item.id}:stage:${parsed.data.stage}:${item.updatedAt.toISOString()}`,
     });
+    if (parsed.data.stage === "distributed") {
+      await recordAcknowledgment(tx, {
+        parentActivityId: activityId,
+        relatedItemId: item.id,
+        staffOwner: actor,
+      });
+    }
 
     return { item };
   });

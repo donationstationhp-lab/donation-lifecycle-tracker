@@ -95,7 +95,7 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
     const key = activity.parentActivityId ?? activity.id;
     const state = acknowledgmentAggregates.get(key) ?? { latest: activity };
     if (activity.status === "pending" && (!state.firstPending || activity.createdAt < state.firstPending)) state.firstPending = activity.createdAt;
-    if (["sent", "acknowledged"].includes(activity.status) && activity.completedAt &&
+    if (["sent", "acknowledged", "completed"].includes(activity.status) && activity.completedAt &&
         (!state.firstSuccess || activity.completedAt < state.firstSuccess)) state.firstSuccess = activity.completedAt;
     if (activity.createdAt > state.latest.createdAt) state.latest = activity;
     acknowledgmentAggregates.set(key, state);
@@ -111,7 +111,21 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
   const noShows = terminalAppointments.filter((a) => a.status === "no_show").length;
   const appointmentsCompleted = terminalAppointments.filter((a) => a.status === "completed").length;
   const acknowledgmentsPending = acknowledgments.filter((a) => ["pending", "overdue"].includes(a.latest.status)).length;
-  const acknowledgmentsSent = acknowledgments.filter((a) => ["sent", "acknowledged"].includes(a.latest.status)).length;
+  const acknowledgmentsSent = acknowledgments.filter((a) => ["sent", "acknowledged", "completed"].includes(a.latest.status)).length;
+  const acknowledgmentsReceived = acknowledgments.length;
+  const requestsReceived = new Set(activities
+    .filter((a) => a.activityType === "claim_request" && a.status === "submitted")
+    .map((a) => a.relatedClaimId)
+    .filter(Boolean)).size;
+  const claimsVerified = new Set(activities
+    .filter((a) => a.activityType === "claim_request" && ["verified", "approved"].includes(a.status))
+    .map((a) => a.relatedClaimId)
+    .filter(Boolean)).size;
+  const appointmentsScheduled = new Set(activities
+    .filter((a) =>
+      ["appointment", "item_reservation", "volunteer_shift", "pickup", "dropoff", "barter_handoff"].includes(a.activityType) &&
+      a.status === "confirmed")
+    .map((a) => a.relatedAppointmentId ?? a.relatedPickupId ?? a.id)).size;
   const resourcesVerified = allItems.filter((item) =>
     !item.pendingReview && ["storage", "matched", "scheduled", "distributed", "closed"].includes(item.stage)
   ).length;
@@ -150,12 +164,16 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
       scheduledToCompletedHours: averageHours("scheduled", "served"),
       wowMetrics: {
         resourcesReceived: allItems.length,
+        requestsReceived,
+        claimsVerified,
         resourcesVerified,
         resourcesReserved: reservedItems,
+        appointmentsScheduled,
         resourcesDistributed: completedDistributions,
         wasteDiverted: completedDistributions,
         appointmentsCompleted,
         noShows,
+        acknowledgmentsReceived,
         acknowledgmentsPending,
         acknowledgmentsSent,
         receiveToGiveHours: averageHours("received", "served"),

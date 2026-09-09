@@ -117,7 +117,7 @@ test("public service activity timeline whitelists labels and excludes private fi
   } as Parameters<typeof buildPublicActivityTimeline>[0][number]]);
 
   assert.deepEqual(timeline, [{
-    label: "Reserved",
+    label: "Item Reserved",
     timestamp: new Date("2026-09-09T15:00:00Z"),
   }]);
   assert.equal(JSON.stringify(timeline).includes("Jane Doe"), false);
