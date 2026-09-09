@@ -5,6 +5,7 @@ import {
   claimsTable,
   db,
   donationItemsTable,
+  ensureClaimTrackingCodes,
 } from "@workspace/db";
 import { GetPublicTrackingResponse } from "@workspace/api-zod";
 
@@ -86,6 +87,8 @@ router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Tracking record not found" });
     return;
   }
+
+  await ensureClaimTrackingCodes();
 
   const [result] = await db
     .select({

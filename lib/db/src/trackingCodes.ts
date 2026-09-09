@@ -1,5 +1,6 @@
-import { sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { db } from "./index";
+import { claimsTable } from "./schema/attendLifecycle";
 
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -43,4 +44,36 @@ export async function allocateClaimTrackingCode(
   const allocatedNumber = Number(result.rows[0]?.allocated_number);
 
   return formatClaimTrackingCode(allocatedNumber);
+}
+
+export async function backfillClaimTrackingCodes(
+  tx: DbTransaction,
+): Promise<Array<{ id: string; trackingCode: string }>> {
+  const claims = await tx
+    .select({ id: claimsTable.id })
+    .from(claimsTable)
+    .where(sql`
+      ${claimsTable.trackingCode} IS NULL
+      OR ${claimsTable.trackingCode} !~ '^DSC-[0-9]{6}$'
+    `)
+    .orderBy(asc(claimsTable.createdAt), asc(claimsTable.id))
+    .for("update");
+
+  const assigned: Array<{ id: string; trackingCode: string }> = [];
+  for (const claim of claims) {
+    const trackingCode = await allocateClaimTrackingCode(tx);
+    await tx
+      .update(claimsTable)
+      .set({ trackingCode })
+      .where(eq(claimsTable.id, claim.id));
+    assigned.push({ id: claim.id, trackingCode });
+  }
+
+  return assigned;
+}
+
+export async function ensureClaimTrackingCodes(): Promise<
+  Array<{ id: string; trackingCode: string }>
+> {
+  return db.transaction(backfillClaimTrackingCodes);
 }

@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, desc, eq, like } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
-  allocateClaimTrackingCode, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
+  allocateClaimTrackingCode, ensureClaimTrackingCodes, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
   notificationOutboxTable, recipientAccountsTable, stageHistoryTable, transferHistoryTable, transfersTable,
 } from "@workspace/db";
 import {
@@ -65,6 +65,7 @@ router.post("/accounts", async (req, res): Promise<void> => {
 router.get("/claims", async (req, res): Promise<void> => {
   const parsed = ListClaimsQueryParams.safeParse(req.query);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  await ensureClaimTrackingCodes();
   const c = parsed.data;
   const conditions = [c.status ? eq(claimsTable.status, c.status) : undefined, c.accountId ? eq(claimsTable.accountId, c.accountId) : undefined, c.itemId ? eq(claimsTable.itemId, c.itemId) : undefined].filter(Boolean);
   const rows = await db.select().from(claimsTable).innerJoin(donationItemsTable, eq(claimsTable.itemId, donationItemsTable.id)).where(conditions.length ? and(...conditions) : undefined);
@@ -108,6 +109,7 @@ router.post("/claims/:id/evidence", async (req, res): Promise<void> => {
 router.get("/claims/:id", async (req, res): Promise<void> => {
   const params = GetClaimParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  await ensureClaimTrackingCodes();
   const [claim] = await db.select().from(claimsTable).where(eq(claimsTable.id, params.data.id));
   if (!claim) { res.status(404).json({ error: "Claim not found" }); return; }
   const [[account], [item], evidence, history] = await Promise.all([

@@ -7,3 +7,4 @@
 - [API artifact uptime checks](api-artifact-uptime-checks.md) — keep the mounted API root public and data-free because generic monitors may probe it instead of the configured startup path.
 - [Clerk environment bindings](clerk-environment-bindings.md) — workspace Clerk calls may target Development while published Production uses a separate Managed Auth tenant.
 - [Public tracking verification rollout](public-tracking-verification-rollout.md) — keep SMS/OTP disabled until Twilio Trust Hub approval; public tracking stays approximate and PII-free.
+- [Claim tracking code migration](claim-tracking-code-migration.md) — repair null and legacy random codes before strict DSC response validation.
