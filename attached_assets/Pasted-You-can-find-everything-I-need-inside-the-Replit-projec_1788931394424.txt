@@ -1,0 +1,107 @@
+You can find everything I need inside the Replit project’s file tree—no guessing, just a quick “open these files / search these terms” sweep.
+
+Where to look in Replit (step-by-step)
+
+1) Find the database relationships (Drizzle schema)
+
+In the left sidebar Files, open:
+
+lib/db/src/schema/
+
+Look for files like:
+
+attendLifecycle.ts (you already have this)
+
+donationItems.ts (you already have this)
+
+also find anything named like:
+
+recipientAccounts.ts (or recipient_accounts.ts)
+
+transfers.ts / transferHistory.ts
+
+claims.ts / claimHistory.ts
+
+What to copy/paste to me: the table definitions (the pgTable(...) blocks) for:
+
+claims
+
+transfers
+
+recipient_accounts
+
+any join tables that link them (if they exist)
+
+That will tell us if you already have claims.recipientAccountId and transfers.claimId (the two most important links for tracking + OTP).
+
+2) Find how SMS is currently being sent
+
+Use Replit’s search:
+
+Press Ctrl+Shift+F (or the search icon)
+
+Search for:
+
+ooma
+
+7736430406 or 773 643 0406
+
+sms
+
+text message
+
+notification_outbox
+
+sendSms / sendSMS
+
+outbox
+
+What to paste to me: the file paths where those appear, plus the relevant function that actually triggers the text.
+
+3) Find environment variables (where provider credentials live)
+
+Open:
+
+.env (if present) or .env.example
+
+Replit Secrets (lock icon) — just list the names of secrets, don’t paste secret values.
+
+Search env var names like:
+
+OOMA_*
+
+SMS_*
+
+WEBHOOK_*
+
+API_KEY
+
+About Ooma specifically (important note)
+
+Ooma SMS can be set up a few different ways (API vs app integrations). To wire OTP reliably, we need to know which method your current system uses.
+
+So once you find the SMS send code, tell me:
+
+Is the app making an HTTP request to Ooma (API), or
+
+Is it triggering via email-to-SMS, webhook, or another relay?
+
+Quick checklist of what to send back (minimal)
+
+1) The pgTable(...) definition for claims  
+
+2) The pgTable(...) definition for transfers  
+
+3) The pgTable(...) definition for recipient_accounts  
+
+4) The file path + snippet where SMS is sent (or where notification_outbox is processed)
+
+If you paste those (even partial), I’ll tell you exactly:
+
+where to store the phone number (private)
+
+where to store trackingCode (public)
+
+the exact join path from trackingCode → claim → recipient phone → send OTP
+
+and the safest way to integrate Ooma for OTP sending.
