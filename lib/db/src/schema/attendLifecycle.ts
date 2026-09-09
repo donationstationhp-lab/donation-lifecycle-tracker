@@ -37,6 +37,7 @@ export const claimsTable = pgTable(
   "claims",
   {
     id: text("id").primaryKey(),
+    trackingCode: text("tracking_code"),
     accountId: text("account_id").notNull().references(() => recipientAccountsTable.id),
     itemId: text("item_id").notNull().references(() => donationItemsTable.id),
     status: text("status").notNull().default("submitted"),
@@ -47,9 +48,27 @@ export const claimsTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },
   (table) => ({
+    trackingCodeUnique: uniqueIndex("claims_tracking_code_unique_idx").on(table.trackingCode),
     accountIndex: index("claims_account_idx").on(table.accountId),
     itemIndex: index("claims_item_idx").on(table.itemId),
     statusIndex: index("claims_status_idx").on(table.status),
+  }),
+);
+
+export const trackingOtpsTable = pgTable(
+  "tracking_otps",
+  {
+    id: text("id").primaryKey(),
+    claimId: text("claim_id").notNull().references(() => claimsTable.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    claimIndex: index("tracking_otps_claim_idx").on(table.claimId),
+    expiryIndex: index("tracking_otps_expiry_idx").on(table.expiresAt),
   }),
 );
 
@@ -146,6 +165,7 @@ export const notificationOutboxTable = pgTable(
 
 export const insertRecipientAccountSchema = createInsertSchema(recipientAccountsTable).omit({ createdAt: true, updatedAt: true });
 export const insertClaimSchema = createInsertSchema(claimsTable).omit({ createdAt: true, updatedAt: true });
+export const insertTrackingOtpSchema = createInsertSchema(trackingOtpsTable).omit({ createdAt: true, usedAt: true });
 export const insertClaimEvidenceSchema = createInsertSchema(claimEvidenceTable).omit({ createdAt: true });
 export const insertClaimHistorySchema = createInsertSchema(claimHistoryTable).omit({ timestamp: true });
 export const insertTransferSchema = createInsertSchema(transfersTable).omit({ createdAt: true, updatedAt: true });
@@ -154,6 +174,7 @@ export const insertNotificationOutboxSchema = createInsertSchema(notificationOut
 
 export type RecipientAccount = typeof recipientAccountsTable.$inferSelect;
 export type Claim = typeof claimsTable.$inferSelect;
+export type TrackingOtp = typeof trackingOtpsTable.$inferSelect;
 export type ClaimEvidence = typeof claimEvidenceTable.$inferSelect;
 export type ClaimHistory = typeof claimHistoryTable.$inferSelect;
 export type Transfer = typeof transfersTable.$inferSelect;
@@ -161,6 +182,7 @@ export type TransferHistory = typeof transferHistoryTable.$inferSelect;
 export type NotificationOutbox = typeof notificationOutboxTable.$inferSelect;
 export type InsertRecipientAccount = z.infer<typeof insertRecipientAccountSchema>;
 export type InsertClaim = z.infer<typeof insertClaimSchema>;
+export type InsertTrackingOtp = z.infer<typeof insertTrackingOtpSchema>;
 export type InsertClaimEvidence = z.infer<typeof insertClaimEvidenceSchema>;
 export type InsertClaimHistory = z.infer<typeof insertClaimHistorySchema>;
 export type InsertTransfer = z.infer<typeof insertTransferSchema>;

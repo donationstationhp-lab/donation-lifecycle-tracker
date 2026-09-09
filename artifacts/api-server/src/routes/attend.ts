@@ -18,6 +18,7 @@ import { requireSupervisor } from "../middlewares/apiKeyAuth";
 import { canCollectEvidence, validateClaimTransition, validateTransferTransition, type ClaimStatus, type TransferStatus } from "../lib/attendTransitions";
 import { deliverAttendOutboxByDedupeKey } from "../lib/attendSheets";
 import { isUniqueViolation } from "../lib/dbErrors";
+import { generateTrackingCode } from "../lib/trackingCodes";
 
 const router: IRouter = Router();
 const actor = (res: import("express").Response) => res.locals.authMethod === "api-key" ? "api-key" : (res.locals.staffUserId ?? "staff");
@@ -80,7 +81,12 @@ router.post("/claims", async (req, res): Promise<void> => {
   if (!account || !item) { res.status(404).json({ error: "Recipient account or item not found" }); return; }
   const by = actor(res); const id = randomUUID();
   const claim = await db.transaction(async (tx) => {
-    const [created] = await tx.insert(claimsTable).values({ id, ...parsed.data, submittedBy: by }).returning();
+    const [created] = await tx.insert(claimsTable).values({
+      id,
+      trackingCode: generateTrackingCode(),
+      ...parsed.data,
+      submittedBy: by,
+    }).returning();
     await tx.insert(claimHistoryTable).values({ id: randomUUID(), claimId: id, fromStatus: null, toStatus: "submitted", by });
     await tx.insert(notificationOutboxTable).values(event("claim", id, "submitted")).onConflictDoNothing();
     return created;

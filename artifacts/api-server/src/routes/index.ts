@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { apiKeyAuth } from "../middlewares/apiKeyAuth";
 import healthRouter, { protectedHealthRouter } from "./health";
 import publicRoutes from "./publicRoutes";
+import publicTrackRouter from "./publicTrack";
 import itemsRouter from "./items";
 import donorsRouter from "./donors";
 import dashboardRouter from "./dashboard";
@@ -18,6 +19,7 @@ const router: IRouter = Router();
 // These are registered BEFORE the auth middleware.
 router.use(healthRouter);   // /healthz  /health
 router.use(publicRoutes);   // /public/donate
+router.use(publicTrackRouter); // /public/track/:trackingCode
 router.use(notionHealthRouter); // /notion/health
 
 // ── Auth gate ────────────────────────────────────────────────────────────────
