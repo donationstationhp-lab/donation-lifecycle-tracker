@@ -36,7 +36,7 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
             <Search className="h-6 w-6" />
           </div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
-            Donation Station
+            Donation Station — Public Tracking
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
             Track your claim
@@ -72,40 +72,57 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Tracking code
+                      Tracking Code
                     </p>
                     <CardTitle className="mt-1 font-mono text-2xl tracking-wide">
                       {data.trackingCode}
                     </CardTitle>
                   </div>
-                  <Badge className="px-3 py-1 text-sm">{data.status}</Badge>
+                  <div className="flex flex-col items-start sm:items-end">
+                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Status
+                    </p>
+                    <Badge className="px-3 py-1 text-sm">{data.status}</Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6 py-6">
-                <div className="flex gap-4 rounded-xl border bg-slate-50 p-4">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-primary shadow-sm">
-                    <Package className="h-5 w-5" />
+                <div className="grid grid-cols-1 gap-4 rounded-xl border bg-slate-50 p-4 sm:grid-cols-2">
+                  <div className="flex items-start gap-3">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-primary shadow-sm">
+                      <Package className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Item Category
+                      </p>
+                      <p className="mt-1 font-semibold text-slate-950">
+                        {data.item.categoryLabel}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      {data.item.categoryLabel}
-                    </p>
-                    <p className="mt-1 font-semibold text-slate-950">
-                      {data.item.name}
-                    </p>
+                  <div className="flex items-start gap-3 sm:pl-4">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Sanitized Item Name
+                      </p>
+                      <p className="mt-1 font-semibold text-slate-950">
+                        {data.item.name}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
                 <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Current stage
+                      Stage
                     </dt>
                     <dd className="mt-1 font-semibold text-slate-900">{data.stage}</dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Last updated
+                      Last Updated Approx
                     </dt>
                     <dd className="mt-1 font-semibold text-slate-900">
                       {data.lastUpdatedApprox}
@@ -116,10 +133,8 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
                 <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
                   <LockKeyhole className="h-5 w-5 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium">Exact time: Locked</p>
-                    <p className="text-xs text-amber-800">
-                      Verification access is coming soon.
-                    </p>
+                    <p className="text-sm font-medium">Exact Time</p>
+                    <p className="text-xs text-amber-800">Locked — verify to view</p>
                   </div>
                 </div>
               </CardContent>
@@ -152,7 +167,7 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
 
             <Button disabled className="w-full">
               <LockKeyhole className="mr-2 h-4 w-4" />
-              SMS verification coming soon
+              Verify to view exact times — Coming soon
             </Button>
           </>
         )}
