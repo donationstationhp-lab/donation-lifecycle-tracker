@@ -3,33 +3,58 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'wouter';
 import {
-  AlertTriangle, ArrowRight, Package, TrendingUp, Clock, Heart, ExternalLink,
-  ClipboardCheck, CalendarCheck, ShieldAlert,
+  AlertTriangle, ArrowRight, TrendingUp, Clock, Heart, ExternalLink,
+  ClipboardCheck, CalendarCheck, ShieldAlert, Globe, Zap, Recycle, Leaf,
+  CheckCircle2, Package
 } from 'lucide-react';
 import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
+type WowMetrics = {
+  resourcesReceived: number;
+  resourcesVerified: number;
+  resourcesReserved: number;
+  resourcesDistributed: number;
+  wasteDiverted: number;
+  appointmentsCompleted: number;
+  noShows: number;
+  acknowledgmentsPending: number;
+  acknowledgmentsSent: number;
+  receiveToGiveHours: number | null;
+};
+
+type ServiceMetrics = {
+  receivedToday: number;
+  receivedThisWeek: number;
+  scheduledToday: number;
+  overdue: number;
+  pendingVerification: number;
+  reservedItems: number;
+  wowMetrics: WowMetrics;
+};
+
 export default function Dashboard() {
   const { data: summary, isLoading, isError } = useGetDashboard();
-  const serviceMetrics = (summary as typeof summary & { serviceMetrics?: {
-    receivedToday: number; receivedThisWeek: number; scheduledToday: number; overdue: number;
-    pendingVerification: number; reservedItems: number; completedDistributions: number;
-    acknowledgmentOnTimeRate: number | null; noShowRate: number | null;
-    receivedToServedHours: number | null; requestToMatchedHours: number | null; scheduledToCompletedHours: number | null;
-  } })?.serviceMetrics;
-  const pendingCount = summary?.pendingReviewCount ?? 0;
 
-  // Build the public donate URL — same origin, /donation-station/donate
+  // Extract extended metrics safely
+  const dashboardData = summary as typeof summary & { serviceMetrics?: ServiceMetrics };
+  const serviceMetrics = dashboardData?.serviceMetrics;
+  const wowMetrics = serviceMetrics?.wowMetrics;
+
+  const pendingCount = summary?.pendingReviewCount ?? 0;
   const donateUrl = `${window.location.origin}/donation-station/donate`;
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Skeleton className="h-32 rounded-xl" />
-          <Skeleton className="h-32 rounded-xl" />
-          <Skeleton className="h-32 rounded-xl" />
+        <Skeleton className="h-32 rounded-xl w-full" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
         </div>
         <Skeleton className="h-64 rounded-xl" />
       </div>
@@ -38,8 +63,8 @@ export default function Dashboard() {
 
   if (isError || !summary) {
     return (
-      <div className="p-8 text-center bg-red-50 text-red-600 rounded-xl border border-red-200">
-        Failed to load dashboard. Please try again.
+      <div className="p-8 text-center bg-destructive/10 text-destructive rounded-xl border border-destructive/20 font-medium">
+        Failed to load operations dashboard. Please try again.
       </div>
     );
   }
@@ -47,275 +72,290 @@ export default function Dashboard() {
   const maxTierCount = Math.max(...summary.byTier.map(t => t.count), 1);
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h1 className="text-2xl font-bold tracking-tight">Operations Overview</h1>
+    <div className="space-y-8 animate-fade-in pb-12">
+      {/* Brand Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-border/50">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+            <Globe className="w-8 h-8 text-primary" />
+            W.O.W. Operating System
+          </h1>
+          <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mt-2">
+            War On Waste / We All Stop Trashing Earth
+          </p>
+        </div>
+        <div className="text-left md:text-right">
+          <p className="text-xs font-mono font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full inline-flex items-center gap-2 border border-primary/20 shadow-sm">
+            <Zap className="w-3.5 h-3.5" />
+            Receive. Gain. Give.
+          </p>
+        </div>
+      </div>
 
-      {/* Top Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-sidebar-border/10 bg-gradient-to-br from-white to-gray-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
-              Total Active Items
-              <Package className="w-4 h-4 text-primary/40" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{summary.totalActiveItems}</div>
-            <p className="text-xs text-muted-foreground mt-1 tracking-tight">In system currently</p>
-          </CardContent>
-        </Card>
+      {/* W.O.W. Impact Metrics */}
+      <section>
+        <div className="mb-4">
+          <h2 className="text-xl font-bold tracking-tight">W.O.W. Impact</h2>
+          <p className="text-sm text-muted-foreground font-medium mt-1">Receive the resource. Gain the truth. Give with proof.</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[
+            { label: 'Resources Received', value: wowMetrics?.resourcesReceived ?? '—', icon: Package },
+            { label: 'Verified Resources', value: wowMetrics?.resourcesVerified ?? '—', icon: ShieldAlert },
+            { label: 'Reserved Items', value: wowMetrics?.resourcesReserved ?? '—', icon: Clock },
+            { label: 'Resources Distributed', value: wowMetrics?.resourcesDistributed ?? '—', icon: Recycle },
+            { label: 'Waste Diverted', value: wowMetrics?.wasteDiverted ?? '—', icon: Leaf },
+            { label: 'Appointments Completed', value: wowMetrics?.appointmentsCompleted ?? '—', icon: CheckCircle2 },
+            { label: 'No-Shows', value: wowMetrics?.noShows ?? '—', icon: AlertTriangle },
+            { label: 'Acknowledgments Pending', value: wowMetrics?.acknowledgmentsPending ?? '—', icon: Clock },
+            { label: 'Acknowledgments Sent', value: wowMetrics?.acknowledgmentsSent ?? '—', icon: Heart },
+            { label: 'Receive → Give (Hours)', value: wowMetrics?.receiveToGiveHours ?? '—', icon: Zap },
+          ].map((metric, i) => (
+            <Card key={i} className="shadow-sm border-border bg-card hover-elevate transition-all">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <metric.icon className="w-4 h-4 text-primary/70" />
+                </div>
+                <div className="text-2xl font-bold text-foreground">{metric.value}</div>
+                <p className="text-xs text-muted-foreground mt-1 font-medium leading-tight">{metric.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
 
-        <Card className="shadow-sm border-sidebar-border/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
-              Items Distributed
-              <TrendingUp className="w-4 h-4 text-green-500/50" />
-            </CardTitle>
+      {/* Operations Overview */}
+      <section>
+        <div className="mb-4">
+          <h2 className="text-xl font-bold tracking-tight">Operations Overview</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="shadow-sm border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
+                Total Active Items
+                <Package className="w-4 h-4 text-primary/50" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-foreground">{summary.totalActiveItems}</div>
+              <p className="text-xs font-medium text-muted-foreground mt-1">In system currently</p>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm border-emerald-500/20 bg-emerald-500/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
+                Items Distributed
+                <TrendingUp className="w-4 h-4 text-emerald-500/50" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold text-emerald-700">
+                {summary.byStage.find(s => s.stage === 'distributed')?.count || 0}
+              </div>
+              <p className="text-xs font-medium text-muted-foreground mt-1">Successfully delivered</p>
+            </CardContent>
+          </Card>
+
+          <Card className={`shadow-sm transition-all hover-elevate cursor-pointer ${summary.expiringCount > 0 ? 'bg-orange-50 border-orange-200' : 'bg-card border-border'}`}>
+            <Link href="/expiring" className="block">
+              <CardHeader className="pb-2">
+                <CardTitle className={`text-sm font-semibold uppercase tracking-wider flex justify-between items-center ${summary.expiringCount > 0 ? 'text-orange-800' : 'text-muted-foreground'}`}>
+                  Expiring Soon
+                  <AlertTriangle className={`w-4 h-4 ${summary.expiringCount > 0 ? 'text-orange-500 animate-pulse' : 'text-primary/30'}`} />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-4xl font-bold ${summary.expiringCount > 0 ? 'text-orange-600' : 'text-foreground'}`}>
+                  {summary.expiringCount}
+                </div>
+                <p className={`text-xs font-medium mt-1 ${summary.expiringCount > 0 ? 'text-orange-700' : 'text-muted-foreground'}`}>
+                  Within 14 days
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+
+          {/* Pending Review card */}
+          <Card className={`shadow-sm transition-all hover-elevate cursor-pointer ${pendingCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-card border-border'}`}>
+            <Link href="/pending" className="block">
+              <CardHeader className="pb-2">
+                <CardTitle className={`text-sm font-semibold uppercase tracking-wider flex justify-between items-center ${pendingCount > 0 ? 'text-amber-800' : 'text-muted-foreground'}`}>
+                  Pending Review
+                  <Clock className={`w-4 h-4 ${pendingCount > 0 ? 'text-amber-500 animate-pulse' : 'text-primary/30'}`} />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-4xl font-bold ${pendingCount > 0 ? 'text-amber-600' : 'text-foreground'}`}>
+                  {pendingCount}
+                </div>
+                <p className={`text-xs font-medium mt-1 ${pendingCount > 0 ? 'text-amber-700' : 'text-muted-foreground'}`}>
+                  {pendingCount === 1 ? 'Donor submission' : 'Donor submissions'}
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+        </div>
+      </section>
+
+      {/* Universal Service Loop */}
+      <section>
+        <Card className="shadow-sm border-border overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
+            <CardTitle className="text-lg">Universal Service Loop</CardTitle>
+            <CardDescription className="font-mono text-xs mt-2 text-primary/80">
+              Receive → Recognize → Classify → Match → Schedule → Serve → Verify → Acknowledge → Learn
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-700">
-              {summary.byStage.find(s => s.stage === 'distributed')?.count || 0}
+          <CardContent className="p-0">
+            <div className="grid grid-cols-2 md:grid-cols-6 divide-x divide-y divide-border/50">
+              {[
+                ['Received Today', serviceMetrics?.receivedToday ?? '—'],
+                ['Received This Week', serviceMetrics?.receivedThisWeek ?? '—'],
+                ['Scheduled Today', serviceMetrics?.scheduledToday ?? '—'],
+                ['Overdue Actions', serviceMetrics?.overdue ?? '—'],
+                ['Pending Verification', serviceMetrics?.pendingVerification ?? '—'],
+                ['Reserved Items', serviceMetrics?.reservedItems ?? '—'],
+              ].map(([label, value]) => (
+                <div key={label} className="p-4 bg-card transition-colors hover:bg-muted/20">
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">{label}</p>
+                  <p className="text-xl font-bold text-foreground">{value}</p>
+                </div>
+              ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1 tracking-tight">Successfully delivered</p>
           </CardContent>
         </Card>
-
-        <Card className={`shadow-sm transition-all hover-elevate cursor-pointer ${summary.expiringCount > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white'}`}>
-          <Link href="/expiring" className="block">
-            <CardHeader className="pb-2">
-              <CardTitle className={`text-sm font-medium flex justify-between items-center ${summary.expiringCount > 0 ? 'text-orange-800' : 'text-muted-foreground'}`}>
-                Expiring Soon
-                <AlertTriangle className={`w-4 h-4 ${summary.expiringCount > 0 ? 'text-orange-500 animate-pulse' : 'text-primary/40'}`} />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-3xl font-bold ${summary.expiringCount > 0 ? 'text-orange-600' : 'text-foreground'}`}>
-                {summary.expiringCount}
-              </div>
-              <p className={`text-xs mt-1 tracking-tight ${summary.expiringCount > 0 ? 'text-orange-700' : 'text-muted-foreground'}`}>
-                Within 14 days
-              </p>
-            </CardContent>
-          </Link>
-        </Card>
-
-        {/* Pending Review card */}
-        <Card className={`shadow-sm transition-all hover-elevate cursor-pointer ${pendingCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-sidebar-border/10'}`}>
-          <Link href="/pending" className="block">
-            <CardHeader className="pb-2">
-              <CardTitle className={`text-sm font-medium flex justify-between items-center ${pendingCount > 0 ? 'text-amber-800' : 'text-muted-foreground'}`}>
-                Pending Review
-                <Clock className={`w-4 h-4 ${pendingCount > 0 ? 'text-amber-500 animate-pulse' : 'text-primary/40'}`} />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-3xl font-bold ${pendingCount > 0 ? 'text-amber-600' : 'text-foreground'}`}>
-                {pendingCount}
-              </div>
-              <p className={`text-xs mt-1 tracking-tight ${pendingCount > 0 ? 'text-amber-700' : 'text-muted-foreground'}`}>
-                {pendingCount === 1 ? 'Donor submission' : 'Donor submissions'}
-              </p>
-            </CardContent>
-          </Link>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/pickups" className="block">
-          <Card className={`shadow-sm transition-all hover-elevate h-full ${summary.pickupsPendingVerification > 0 ? 'border-amber-200 bg-amber-50/60' : ''}`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
-                Pickup Verification
-                <ClipboardCheck className="w-4 h-4 text-primary/60" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{summary.pickupsPendingVerification}</div>
-              <p className="text-xs text-muted-foreground mt-1">Awaiting verification</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/pickups" className="block">
-          <Card className="shadow-sm transition-all hover-elevate h-full">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
-                Confirmed This Week
-                <CalendarCheck className="w-4 h-4 text-green-600/60" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-700">{summary.pickupsConfirmedThisWeek}</div>
-              <p className="text-xs text-muted-foreground mt-1">Ready or in progress</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/pickup-flags" className="block">
-          <Card className={`shadow-sm transition-all hover-elevate h-full ${summary.flaggedPickupValues > 0 ? 'border-red-200 bg-red-50/60' : ''}`}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between items-center">
-                Pickup Flags
-                <ShieldAlert className="w-4 h-4 text-red-600/60" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-red-700">{summary.flaggedPickupValues}</div>
-              <p className="text-xs text-muted-foreground mt-1">Phone or address values</p>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {serviceMetrics && (
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle>Universal Service Loop</CardTitle>
-            <CardDescription>Receive → Recognize → Classify → Match → Schedule → Serve → Verify → Acknowledge → Learn</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              ['Received today', serviceMetrics.receivedToday],
-              ['Received this week', serviceMetrics.receivedThisWeek],
-              ['Scheduled today', serviceMetrics.scheduledToday],
-              ['Overdue', serviceMetrics.overdue],
-              ['Pending verification', serviceMetrics.pendingVerification],
-              ['Reserved items', serviceMetrics.reservedItems],
-              ['Completed distributions', serviceMetrics.completedDistributions],
-              ['Acknowledgment on time', serviceMetrics.acknowledgmentOnTimeRate == null ? '—' : `${serviceMetrics.acknowledgmentOnTimeRate}%`],
-              ['No-show rate', serviceMetrics.noShowRate == null ? '—' : `${serviceMetrics.noShowRate}%`],
-              ['Received → served', serviceMetrics.receivedToServedHours == null ? '—' : `${serviceMetrics.receivedToServedHours}h`],
-              ['Request → matched', serviceMetrics.requestToMatchedHours == null ? '—' : `${serviceMetrics.requestToMatchedHours}h`],
-              ['Scheduled → completed', serviceMetrics.scheduledToCompletedHours == null ? '—' : `${serviceMetrics.scheduledToCompletedHours}h`],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-lg border bg-muted/20 p-3">
-                <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="mt-1 text-2xl font-bold">{value}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      </section>
 
       {/* Share Donate Link banner */}
-      <div className="rounded-xl bg-gradient-to-r from-[#1E7A4E]/10 to-[#2C4B6E]/10 border border-[#1E7A4E]/20 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="bg-[#1E7A4E]/10 rounded-full p-2 shrink-0">
-            <Heart className="w-5 h-5 text-[#1E7A4E]" />
+      <div className="rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center gap-5 shadow-sm">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="bg-primary/10 rounded-full p-2.5 shrink-0">
+            <Heart className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="font-semibold text-sm text-foreground">Donor Intake Form</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="font-bold text-sm text-foreground">Donor Intake Form</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
               Share this link with donors so they can submit items directly — no login needed.
             </p>
-            <p className="text-xs font-mono text-[#2C4B6E] mt-1 break-all">{donateUrl}</p>
+            <p className="text-xs font-mono font-medium text-primary mt-1.5 break-all bg-background px-2 py-1 rounded-md border border-primary/10 inline-block">{donateUrl}</p>
           </div>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
           <Button
             size="sm"
             variant="outline"
-            className="border-[#1E7A4E]/30 text-[#1E7A4E] hover:bg-[#1E7A4E]/10 text-xs"
+            className="border-primary/30 text-primary hover:bg-primary/10 w-full sm:w-auto font-semibold"
             onClick={() => navigator.clipboard?.writeText(donateUrl)}
           >
-            Copy link
+            Copy Link
           </Button>
-          <a href={donateUrl} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="outline" className="text-xs gap-1">
-              Open <ExternalLink className="w-3 h-3" />
+          <a href={donateUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+            <Button size="sm" className="w-full sm:w-auto gap-1.5 font-semibold shadow-sm">
+              Open <ExternalLink className="w-3.5 h-3.5" />
             </Button>
           </a>
         </div>
       </div>
 
-      {/* Tier Breakdown */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg">T.I.E.R. Breakdown</CardTitle>
-          <CardDescription>Distribution of items by classification tier</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {summary.byTier.map((tier) => {
-              const tierColors: Record<string, string> = {
-                T: 'bg-[#C4700E]',
-                I: 'bg-[#3B5AA0]',
-                E: 'bg-[#1E7A4E]',
-                R: 'bg-[#A3442A]',
-              };
-              const tierNames: Record<string, string> = {
-                T: 'Tactical',
-                I: 'Immediate',
-                E: 'Essential',
-                R: 'Reserve',
-              };
-              return (
-                <div key={tier.tier} className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-muted-foreground w-4">{tier.tier}</span>
-                  <div className="flex-1 bg-secondary rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${tierColors[tier.tier] ?? 'bg-primary'} transition-all`}
-                      style={{ width: `${(tier.count / maxTierCount) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-semibold w-8 text-right">{tier.count}</span>
-                  <span className="text-xs text-muted-foreground w-20 hidden sm:block">
-                    {tierNames[tier.tier]}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Items */}
-      <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Recent Intakes</CardTitle>
-            <CardDescription>Latest items logged into the system</CardDescription>
-          </div>
-          <Link href="/items">
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
-              View All <ArrowRight className="w-3 h-3" />
-            </Button>
-          </Link>
-        </CardHeader>
-        <CardContent>
-          <div className="divide-y divide-border/50 -mx-6 px-6">
-            {summary.recentItems.map((item) => (
-              <Link key={item.id} href={`/items/${item.id}`} className="block py-4 hover:bg-secondary/50 transition-colors -mx-2 px-2 rounded-md">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <TierBadge tier={item.tier} />
-                    <div>
-                      <div className="font-medium text-foreground flex items-center gap-2">
-                        {item.name}
-                        <span className="text-xs font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-                          {item.itemId}
-                        </span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Tier Breakdown */}
+        <Card className="shadow-sm border-border">
+          <CardHeader>
+            <CardTitle className="text-lg">T.I.E.R. Breakdown</CardTitle>
+            <CardDescription>Distribution of active items by classification tier</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {summary.byTier.map((tier) => {
+                const tierColors: Record<string, string> = {
+                  T: 'bg-[#C4700E]',
+                  I: 'bg-[#3B5AA0]',
+                  E: 'bg-[#1E7A4E]',
+                  R: 'bg-[#A3442A]',
+                };
+                const tierNames: Record<string, string> = {
+                  T: 'Tactical',
+                  I: 'Immediate',
+                  E: 'Essential',
+                  R: 'Reserve',
+                };
+                return (
+                  <div key={tier.tier} className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-8 h-8 rounded bg-muted font-bold text-foreground border border-border/50">
+                      {tier.tier}
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex justify-between text-xs font-semibold">
+                        <span className="text-muted-foreground">{tierNames[tier.tier]}</span>
+                        <span className="text-foreground">{tier.count} items</span>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1 flex gap-2 items-center">
-                        <span>{item.category}</span>
-                        <span>•</span>
-                        <span>{format(new Date(item.createdAt), 'MMM d, h:mm a')}</span>
+                      <div className="bg-secondary rounded-full h-2 overflow-hidden shadow-inner">
+                        <div
+                          className={`h-full rounded-full ${tierColors[tier.tier] ?? 'bg-primary'} transition-all duration-1000 ease-out`}
+                          style={{ width: `${(tier.count / maxTierCount) * 100}%` }}
+                        />
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <StageChip stage={item.stage} />
-                    <ConditionChip condition={item.condition} />
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Items */}
+        <Card className="shadow-sm border-border flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-lg">Recent Intakes</CardTitle>
+              <CardDescription>Latest items logged into the system</CardDescription>
+            </div>
+            <Link href="/items">
+              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-primary hover:text-primary/80 hover:bg-primary/10">
+                View All <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-hidden">
+            <div className="divide-y divide-border/50 -mx-6 px-6 max-h-[300px] overflow-y-auto">
+              {summary.recentItems.map((item) => (
+                <Link key={item.id} href={`/items/${item.id}`} className="block py-4 hover:bg-muted/30 transition-colors -mx-2 px-2 rounded-lg group">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <TierBadge tier={item.tier} />
+                      <div>
+                        <div className="font-semibold text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
+                          {item.name}
+                          <span className="text-[10px] font-mono font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border/50">
+                            {item.itemId}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 flex gap-2 items-center font-medium">
+                          <span>{item.category}</span>
+                          <span className="text-border">•</span>
+                          <span>{format(new Date(item.createdAt), 'MMM d, h:mm a')}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <StageChip stage={item.stage} />
+                      <ConditionChip condition={item.condition} />
+                    </div>
                   </div>
+                </Link>
+              ))}
+              {summary.recentItems.length === 0 && (
+                <div className="text-center py-10 text-muted-foreground flex flex-col items-center gap-2">
+                  <Package className="w-8 h-8 opacity-20" />
+                  <span className="font-medium text-sm">No recent items found.</span>
                 </div>
-              </Link>
-            ))}
-            {summary.recentItems.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No recent items found.
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

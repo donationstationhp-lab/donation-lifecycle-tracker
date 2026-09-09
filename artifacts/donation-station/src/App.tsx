@@ -46,16 +46,27 @@ function AuthCard({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   return (
     <div className="min-h-screen bg-background grid place-items-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">Donation Station</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Staff access is required to view donor and operations records.
+        <div className="text-center mb-8">
+          <div className="mx-auto w-12 h-12 bg-primary text-primary-foreground rounded-xl shadow-sm flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-globe"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">W.O.W. Operating System</h1>
+          <p className="text-xs text-muted-foreground mt-2 uppercase tracking-widest font-semibold">
+            War On Waste / We All Stop Trashing Earth
           </p>
         </div>
         {mode === 'sign-in' ? (
-          <SignIn routing="hash" signUpUrl="/sign-up" />
+          <SignIn
+            routing="hash"
+            signUpUrl="/sign-up"
+            appearance={{ elements: { headerTitle: 'hidden', headerSubtitle: 'hidden' } }}
+          />
         ) : (
-          <SignUp routing="hash" signInUrl="/sign-in" />
+          <SignUp
+            routing="hash"
+            signInUrl="/sign-in"
+            appearance={{ elements: { headerTitle: 'hidden', headerSubtitle: 'hidden' } }}
+          />
         )}
       </div>
     </div>
@@ -139,7 +150,10 @@ function StaffApp() {
   if (!isLoaded || !authTransportReady) {
     return (
       <div className="min-h-screen grid place-items-center text-muted-foreground">
-        Validating staff access...
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+          <span className="text-sm font-medium">Authenticating...</span>
+        </div>
       </div>
     );
   }
@@ -155,7 +169,7 @@ function StaffApp() {
           <h1 className="text-xl font-bold">Staff access not assigned</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Your account is signed in, but an administrator must assign the
-            staff or supervisor role before you can view donor records.
+            staff or supervisor role before you can view W.O.W. operations records.
           </p>
           <div className="mt-6 flex justify-center"><UserButton /></div>
         </div>

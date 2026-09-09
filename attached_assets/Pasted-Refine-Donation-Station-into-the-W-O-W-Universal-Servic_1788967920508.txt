@@ -1,0 +1,91 @@
+Refine Donation Station into the W.O.W. Universal Servicing system.
+
+Core language:
+W.O.W. = War On Waste / We All Stop Trashing Earth.
+
+Doctrine:
+Receive what is.
+Gain what it means.
+Give what completes.
+
+Expanded sequence:
+Receive → Gain → Give → Build → Focus → Create → Master Build → Construct Bridging → Form Relationships → Universally Service
+
+Interpretation:
+Receiving = intake of donations, requests, offers, claims, appointments, volunteers, and partner opportunities.
+Gaining = classification, verification, quality control, matching, reservations, scheduling, and due diligence.
+Giving = distribution, completed appointments, fulfilled claims, acknowledgments, public tracking, and impact reporting.
+Bridging = staff calendar, public schedule, routes, reservations, barter handoffs, partner coordination.
+Relationships = donor, receiver, volunteer, partner, staff, station, community.
+Universal servicing = the completed operating system that protects dignity and proves service happened.
+
+Do not work on Twilio/SMS/OTP yet.
+
+Refinements:
+1. Add W.O.W. language to dashboard:
+   - W.O.W. Operating System
+   - Receive. Gain. Give.
+   - War On Waste / We All Stop Trashing Earth
+   - Receive the resource. Gain the truth. Give with proof.
+
+2. Organize dashboard sections by:
+   - Receiving
+   - Gaining
+   - Giving
+   - Bridging
+   - Relationships
+   - Universal Service
+
+3. Keep existing navigation, but add meaning:
+   - Items = Received Resources
+   - Claims = Service Requests / Gaining Verification
+   - Calendar = Bridging Time
+   - Routes = Bridging Movement
+   - Transfers = Giving / Distribution
+   - Review = Due Diligence
+   - Tracking = Public Proof
+
+4. Public tracking page:
+   Keep it privacy-safe.
+   Add gentle language:
+   - This tracking page shows public-safe service progress.
+   - Exact times remain locked to protect identities.
+   - Donation Station receives, verifies, schedules, and gives with proof.
+
+5. Staff calendar:
+   Frame as the Bridging Calendar:
+   - pickup/drop-off
+   - receiver pickup
+   - volunteer shift
+   - market window
+   - reserved item pickup
+   - barter handoff later
+
+6. Service activity timeline:
+   Use public-safe labels:
+   - Request Received
+   - Resource Recognized
+   - Classified
+   - Verified
+   - Matched
+   - Scheduled
+   - Ready for Pickup
+   - Distributed
+   - Acknowledged
+   - Completed
+
+7. Privacy:
+   Public pages must never expose:
+   - names
+   - phone numbers
+   - emails
+   - addresses
+   - donor identity
+   - receiver identity
+   - private notes
+   - internal staff notes
+
+8. Outcome:
+   The app should feel like one living system:
+   Receive → Gain → Give
+   with scheduling, tracking, barter, claims, and appointments all serving one W.O.W. operating body.

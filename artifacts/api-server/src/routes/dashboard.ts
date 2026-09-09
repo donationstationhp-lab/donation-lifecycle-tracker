@@ -109,6 +109,12 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
     ["appointment", "item_reservation", "volunteer_shift", "pickup", "dropoff", "barter_handoff"].includes(a.activityType) &&
     ["completed", "no_show"].includes(a.status));
   const noShows = terminalAppointments.filter((a) => a.status === "no_show").length;
+  const appointmentsCompleted = terminalAppointments.filter((a) => a.status === "completed").length;
+  const acknowledgmentsPending = acknowledgments.filter((a) => ["pending", "overdue"].includes(a.latest.status)).length;
+  const acknowledgmentsSent = acknowledgments.filter((a) => ["sent", "acknowledged"].includes(a.latest.status)).length;
+  const resourcesVerified = allItems.filter((item) =>
+    !item.pendingReview && ["storage", "matched", "scheduled", "distributed", "closed"].includes(item.stage)
+  ).length;
 
   function averageHours(fromStage: string, toStage: string): number | null {
     const byTracking = new Map<string, { from?: Date; to?: Date }>();
@@ -142,6 +148,18 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
       receivedToServedHours: averageHours("received", "served"),
       requestToMatchedHours: averageHours("received", "matched"),
       scheduledToCompletedHours: averageHours("scheduled", "served"),
+      wowMetrics: {
+        resourcesReceived: allItems.length,
+        resourcesVerified,
+        resourcesReserved: reservedItems,
+        resourcesDistributed: completedDistributions,
+        wasteDiverted: completedDistributions,
+        appointmentsCompleted,
+        noShows,
+        acknowledgmentsPending,
+        acknowledgmentsSent,
+        receiveToGiveHours: averageHours("received", "served"),
+      },
     },
   });
 });
