@@ -13,6 +13,7 @@ import {
   transferHistoryTable,
   transfersTable,
 } from "@workspace/db";
+import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
 
 export const APPOINTMENT_TYPES = [
   "donation_dropoff",
@@ -36,6 +37,14 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
   canceled: [],
   no_show: [],
 };
+function activityTypeForAppointment(type: string) {
+  if (type === "reserve_item_pickup") return "item_reservation";
+  if (type === "volunteer_shift") return "volunteer_shift";
+  if (type === "barter_handoff") return "barter_handoff";
+  if (type === "donation_dropoff" || type === "escrow_dropoff") return "dropoff";
+  if (type === "donation_pickup" || type === "receiver_pickup" || type === "escrow_pickup") return "pickup";
+  return "appointment";
+}
 
 function isType(value: unknown): value is typeof APPOINTMENT_TYPES[number] {
   return typeof value === "string" && APPOINTMENT_TYPES.includes(value as never);
@@ -58,7 +67,7 @@ function publicAppointment(row: typeof appointmentsTable.$inferSelect, location:
 export const publicAppointmentsRouter: IRouter = Router();
 export const appointmentsRouter: IRouter = Router();
 
-async function expireStaleReservations(): Promise<number> {
+export async function expireStaleReservations(): Promise<number> {
   const stale = await db.select({ id: appointmentsTable.id }).from(appointmentsTable)
     .where(and(
       eq(appointmentsTable.appointmentType, "reserve_item_pickup"),
@@ -83,6 +92,19 @@ async function expireStaleReservations(): Promise<number> {
           id: randomUUID(), transferId: transfer.id, fromStatus: "planned",
           toStatus: "cancelled", by: "reservation-expiry", notes: "Reservation expired",
         });
+        await recordServiceActivity(tx, {
+          activityType: "distribution",
+          loopStage: "learned",
+          relatedItemId: transfer.itemId,
+          relatedClaimId: transfer.claimId,
+          relatedAccountId: transfer.accountId,
+          publicTrackingCode: appointment.publicTrackingCode,
+          status: "cancelled",
+          completedAt: new Date(),
+          publicSafeSummary: "Distribution canceled",
+          internalNotes: "Reservation expired",
+          idempotencyKey: `transfer:${transfer.id}:cancelled`,
+        });
         const [restored] = await tx.update(donationItemsTable).set({ stage: "matched", updatedAt: new Date() })
           .where(and(eq(donationItemsTable.id, transfer.itemId), eq(donationItemsTable.stage, "scheduled"))).returning();
         if (!restored) throw new Error("Expired reservation item stage changed");
@@ -97,6 +119,22 @@ async function expireStaleReservations(): Promise<number> {
       await tx.insert(appointmentHistoryTable).values({
         id: randomUUID(), appointmentId: appointment.id, fromStatus: appointment.status,
         toStatus: "canceled", by: "reservation-expiry", notes: "Reservation expired",
+      });
+      await recordServiceActivity(tx, {
+        activityType: "item_reservation",
+        loopStage: "learned",
+        relatedItemId: appointment.relatedItemId,
+        relatedClaimId: appointment.relatedClaimId,
+        relatedAppointmentId: appointment.id,
+        relatedAccountId: appointment.accountId,
+        publicTrackingCode: appointment.publicTrackingCode,
+        status: "expired",
+        scheduledStart: appointment.scheduledStart,
+        scheduledEnd: appointment.scheduledEnd,
+        completedAt: new Date(),
+        publicSafeSummary: "Reservation expired",
+        internalNotes: "Expired automatically by reservation policy.",
+        idempotencyKey: `appointment:${appointment.id}:expired`,
       });
       return true;
     });
@@ -184,6 +222,17 @@ publicAppointmentsRouter.post("/public/appointments", async (req, res): Promise<
         id: randomUUID(), appointmentId: id, fromStatus: null,
         toStatus: "requested", by: "public-booking", notes: "Public booking request",
       });
+      await recordServiceActivity(tx, {
+        activityType: activityTypeForAppointment(appointmentType),
+        loopStage: "received",
+        relatedAppointmentId: id,
+        status: "requested",
+        scheduledStart: slot.scheduledStart,
+        scheduledEnd: slot.scheduledEnd,
+        publicSafeSummary: "Appointment request received",
+        internalNotes: "Created through public scheduling.",
+        idempotencyKey: `appointment:${id}:requested`,
+      });
       return created;
     });
     const [location] = await db.select().from(locationsTable).where(eq(locationsTable.id, appointment.locationId));
@@ -268,6 +317,15 @@ appointmentsRouter.patch("/appointments/:id/status", async (req, res): Promise<v
         id: randomUUID(), itemId: item.id, fromStage: "matched",
         toStage: "scheduled", notes: `Reserve pickup appointment ${current.id} confirmed`,
       });
+      await recordServiceActivity(tx, {
+        activityType: "distribution", loopStage: "scheduled",
+        relatedItemId: item.id, relatedClaimId: claim.id, relatedAccountId: current.accountId,
+        publicTrackingCode: claim.trackingCode, status: "planned",
+        scheduledStart: current.scheduledStart, scheduledEnd: current.scheduledEnd,
+        publicSafeSummary: "Distribution scheduled",
+        internalNotes: `Created from appointment ${current.id}`,
+        idempotencyKey: `transfer:${relatedTransferId}:planned`,
+      });
     }
     if (
       (status === "canceled" || status === "no_show") &&
@@ -289,6 +347,14 @@ appointmentsRouter.patch("/appointments/:id/status", async (req, res): Promise<v
         await tx.insert(stageHistoryTable).values({
           id: randomUUID(), itemId: transfer.itemId, fromStage: "scheduled",
           toStage: "matched", notes: `Reserve pickup appointment ${current.id} canceled`,
+        });
+        await recordServiceActivity(tx, {
+          activityType: "distribution", loopStage: "learned",
+          relatedItemId: transfer.itemId, relatedClaimId: transfer.claimId,
+          relatedAccountId: transfer.accountId, publicTrackingCode: current.publicTrackingCode,
+          status: "cancelled", completedAt: new Date(),
+          publicSafeSummary: "Distribution canceled", internalNotes: reason.trim(),
+          idempotencyKey: `transfer:${transfer.id}:cancelled`,
         });
       } else if (transfer) {
         throw new Error(`Cannot ${status} an appointment with a ${transfer.status} transfer`);
@@ -320,6 +386,44 @@ appointmentsRouter.patch("/appointments/:id/status", async (req, res): Promise<v
       id: randomUUID(), appointmentId: current.id, fromStatus: current.status,
       toStatus: status, by, notes: reason?.trim() || null,
     });
+    const loopStage = status === "confirmed" ? "scheduled"
+      : status === "completed" ? "served"
+      : status === "in_progress" ? "scheduled"
+      : "learned";
+    const activityType = activityTypeForAppointment(current.appointmentType);
+    const activityKey = `appointment:${current.id}:${status}`;
+    const activityId = await recordServiceActivity(tx, {
+      activityType,
+      loopStage,
+      relatedItemId: current.relatedItemId,
+      relatedClaimId: current.relatedClaimId,
+      relatedAppointmentId: current.id,
+      relatedAccountId: current.accountId,
+      publicTrackingCode: current.publicTrackingCode,
+      status,
+      staffOwner: staffAssigned ?? current.staffAssigned ?? by,
+      scheduledStart: current.scheduledStart,
+      scheduledEnd: current.scheduledEnd,
+      completedAt: status === "completed" ? new Date() : null,
+      publicSafeSummary: status === "confirmed" ? "Appointment scheduled"
+        : status === "completed" ? "Service completed"
+        : status === "no_show" ? "Appointment marked no-show"
+        : status === "canceled" ? "Appointment canceled"
+        : "Service in progress",
+      internalNotes: reason?.trim() || internalNotes || null,
+      idempotencyKey: activityKey,
+    });
+    if (status === "completed") {
+      await recordAcknowledgment(tx, {
+        parentActivityId: activityId,
+        relatedItemId: current.relatedItemId,
+        relatedClaimId: current.relatedClaimId,
+        relatedAppointmentId: current.id,
+        relatedAccountId: current.accountId,
+        publicTrackingCode: current.publicTrackingCode,
+        staffOwner: staffAssigned ?? current.staffAssigned ?? by,
+      });
+    }
     return row;
   });
   if (!updated) { res.status(404).json({ error: "Appointment not found" }); return; }
@@ -356,6 +460,21 @@ appointmentsRouter.patch("/appointments/:id/link-claim", async (req, res): Promi
       reservationExpiresAt: appointment.scheduledEnd,
       updatedAt: new Date(),
     }).where(eq(appointmentsTable.id, appointment.id)).returning();
+    await recordServiceActivity(tx, {
+      activityType: "item_reservation",
+      loopStage: "matched",
+      relatedItemId: claim.itemId,
+      relatedClaimId: claim.id,
+      relatedAppointmentId: appointment.id,
+      relatedAccountId: claim.accountId,
+      publicTrackingCode: claim.trackingCode,
+      status: "reserved",
+      scheduledStart: appointment.scheduledStart,
+      scheduledEnd: appointment.scheduledEnd,
+      publicSafeSummary: "Item reserved",
+      internalNotes: "Claim linkage verified by staff.",
+      idempotencyKey: `appointment:${appointment.id}:claim-linked`,
+    });
     return updated;
   });
   if (!linked) { res.status(404).json({ error: "Eligible appointment not found" }); return; }

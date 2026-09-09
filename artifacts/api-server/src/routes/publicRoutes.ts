@@ -5,6 +5,7 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { db, donationItemsTable, stageHistoryTable } from "@workspace/db";
+import { recordServiceActivity } from "../lib/serviceActivities";
 
 const router: IRouter = Router();
 
@@ -107,6 +108,13 @@ router.post("/public/donate", async (req, res): Promise<void> => {
       fromStage: null,
       toStage: "intake",
       notes: historyNotes,
+    });
+    await recordServiceActivity(tx, {
+      activityType: "donation_intake", loopStage: "received",
+      relatedItemId: id, status: "received",
+      publicSafeSummary: "Donation received",
+      internalNotes: historyNotes,
+      idempotencyKey: `item:${id}:received`,
     });
     return created;
   });

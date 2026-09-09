@@ -13,6 +13,7 @@ import {
   AdvanceItemStageBody,
 } from "@workspace/api-zod";
 import { isUniqueViolation } from "../lib/dbErrors";
+import { recordServiceActivity } from "../lib/serviceActivities";
 import { validateItemStageTransition } from "../lib/itemLifecycle";
 
 const router: IRouter = Router();
@@ -102,6 +103,19 @@ async function advanceStage(
       fromStage: item.stage,
       toStage,
       notes: parts.length > 0 ? parts.join(" | ") : null,
+    });
+    await recordServiceActivity(tx, {
+      activityType: "item_processing",
+      loopStage: toStage === "qc" ? "recognized"
+        : toStage === "storage" ? "classified"
+        : toStage === "matched" ? "matched"
+        : toStage === "scheduled" ? "scheduled"
+        : toStage === "distributed" ? "served"
+        : toStage === "closed" ? "learned" : "received",
+      relatedItemId: itemId, status: toStage, staffOwner: options.by ?? null,
+      publicSafeSummary: `Item moved to ${toStage}`,
+      internalNotes: options.notes ?? null,
+      idempotencyKey: `item:${itemId}:stage:${toStage}:${updated.id}`,
     });
     return { ok: true };
   });
@@ -207,6 +221,14 @@ router.post("/items", async (req, res): Promise<void> => {
         fromStage: null,
         toStage: "intake",
         notes: historyParts.join(" | "),
+      });
+      await recordServiceActivity(tx, {
+        activityType: "donation_intake", loopStage: "received",
+        relatedItemId: id, status: "received",
+        staffOwner: res.locals.authMethod === "api-key" ? "api-key" : (res.locals.staffUserId ?? "staff"),
+        publicSafeSummary: "Donation received",
+        internalNotes: historyParts.join(" | "),
+        idempotencyKey: `item:${id}:received`,
       });
       return created;
     });
@@ -489,6 +511,19 @@ router.patch("/items/:id/stage", async (req, res): Promise<void> => {
       fromStage: existing.stage,
       toStage: parsed.data.stage,
       notes,
+    });
+    await recordServiceActivity(tx, {
+      activityType: "item_processing",
+      loopStage: parsed.data.stage === "qc" ? "recognized"
+        : parsed.data.stage === "storage" ? "classified"
+        : parsed.data.stage === "matched" ? "matched"
+        : parsed.data.stage === "scheduled" ? "scheduled"
+        : parsed.data.stage === "distributed" ? "served"
+        : parsed.data.stage === "closed" ? "learned" : "received",
+      relatedItemId: item.id, status: parsed.data.stage, staffOwner: actor,
+      publicSafeSummary: `Item moved to ${parsed.data.stage}`,
+      internalNotes: notes,
+      idempotencyKey: `item:${item.id}:stage:${parsed.data.stage}:${item.updatedAt.toISOString()}`,
     });
 
     return { item };

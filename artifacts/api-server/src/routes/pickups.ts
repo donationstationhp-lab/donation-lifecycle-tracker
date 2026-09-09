@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { requireSupervisor } from "../middlewares/apiKeyAuth";
+import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
 import {
   AssignPickupRouteBody,
   AssignPickupRouteParams,
@@ -280,9 +281,8 @@ router.post("/pickups", async (req, res): Promise<void> => {
   }
 
   const id = await generatePickupId();
-  const [created] = await db
-    .insert(pickupRequestsTable)
-    .values({
+  const created = await db.transaction(async (tx) => {
+    const [row] = await tx.insert(pickupRequestsTable).values({
       id,
       status: "unverified",
       phone: parsed.data.phone.trim(),
@@ -299,16 +299,37 @@ router.post("/pickups", async (req, res): Promise<void> => {
       assignedDriver: parsed.data.assignedDriver ?? null,
     })
     .returning();
+    await recordServiceActivity(tx, {
+      activityType: "pickup", loopStage: "received", relatedPickupId: id,
+      status: "unverified", staffOwner: parsed.data.assignedDriver ?? null,
+      scheduledStart: parsed.data.confirmedDatetime ?? null,
+      scheduledEnd: parsed.data.confirmedDatetime ? new Date(parsed.data.confirmedDatetime.getTime() + 60 * 60 * 1000) : null,
+      publicSafeSummary: "Pickup request received",
+      internalNotes: parsed.data.itemsDescribed ?? null,
+      idempotencyKey: `pickup:${id}:received`,
+    });
+    return row;
+  });
 
   const flagged = await syncExistingFlagState(created);
   const status = derivedStatus(flagged);
   const [updated] =
     status !== flagged.status
-      ? await db
-          .update(pickupRequestsTable)
-          .set({ status, updatedAt: new Date() })
-          .where(eq(pickupRequestsTable.id, flagged.id))
-          .returning()
+      ? [await db.transaction(async (tx) => {
+          const [row] = await tx.update(pickupRequestsTable)
+            .set({ status, updatedAt: new Date() })
+            .where(eq(pickupRequestsTable.id, flagged.id))
+            .returning();
+          await recordServiceActivity(tx, {
+            activityType: "pickup", loopStage: status === "confirmed" ? "verified" : "recognized",
+            relatedPickupId: flagged.id, status, staffOwner: row.assignedDriver,
+            scheduledStart: row.confirmedDatetime,
+            scheduledEnd: row.confirmedDatetime ? new Date(row.confirmedDatetime.getTime() + 60 * 60 * 1000) : null,
+            publicSafeSummary: status === "confirmed" ? "Pickup verified" : "Pickup requires review",
+            idempotencyKey: `pickup:${flagged.id}:${status}`,
+          });
+          return row;
+        })]
       : [flagged];
 
   res.status(201).json(await pickupDetail(updated));
@@ -356,22 +377,56 @@ router.patch("/pickups/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [updated] = await db
-    .update(pickupRequestsTable)
-    .set({ ...body.data, updatedAt: new Date() })
-    .where(eq(pickupRequestsTable.id, pickup.id))
-    .returning();
+  const updated = await db.transaction(async (tx) => {
+    const [locked] = await tx.select().from(pickupRequestsTable)
+      .where(eq(pickupRequestsTable.id, pickup.id)).for("update");
+    if (!locked) throw new Error("Pickup request not found");
+    if (!["unverified", "contact_made", "confirmed"].includes(locked.status)) return locked;
+    const changed = Object.entries(body.data).some(([key, value]) => {
+      const current = locked[key as keyof typeof locked];
+      if (value instanceof Date && current instanceof Date) return value.getTime() !== current.getTime();
+      return value !== current;
+    });
+    if (!changed) return locked;
+    const [row] = await tx.update(pickupRequestsTable)
+      .set({ ...body.data, updatedAt: new Date() })
+      .where(and(eq(pickupRequestsTable.id, pickup.id), eq(pickupRequestsTable.updatedAt, locked.updatedAt)))
+      .returning();
+    if (!row) throw new Error("Pickup changed during update");
+    await recordServiceActivity(tx, {
+      activityType: "pickup",
+      loopStage: row.confirmedDatetime ? "scheduled" : "recognized",
+      relatedPickupId: pickup.id, status: row.status, staffOwner: row.assignedDriver,
+      scheduledStart: row.confirmedDatetime,
+      scheduledEnd: row.confirmedDatetime ? new Date(row.confirmedDatetime.getTime() + 60 * 60 * 1000) : null,
+      publicSafeSummary: row.confirmedDatetime ? "Pickup scheduled" : "Pickup request updated",
+      idempotencyKey: `pickup:${pickup.id}:edit:${locked.updatedAt.toISOString()}`,
+    });
+    return row;
+  });
 
   const withFlags = await syncExistingFlagState(updated);
-  const status = derivedStatus(withFlags);
-  const [withStatus] =
-    status !== withFlags.status
-      ? await db
-          .update(pickupRequestsTable)
-          .set({ status, updatedAt: new Date() })
-          .where(eq(pickupRequestsTable.id, withFlags.id))
-          .returning()
-      : [withFlags];
+  const withStatus = await db.transaction(async (tx) => {
+          const [locked] = await tx.select().from(pickupRequestsTable)
+            .where(eq(pickupRequestsTable.id, withFlags.id)).for("update");
+          if (!locked) return withFlags;
+          if (!["unverified", "contact_made", "confirmed"].includes(locked.status)) return locked;
+          const status = derivedStatus(locked);
+          if (locked.status === status) return locked;
+          const [row] = await tx.update(pickupRequestsTable)
+            .set({ status, updatedAt: new Date() })
+            .where(and(eq(pickupRequestsTable.id, withFlags.id), eq(pickupRequestsTable.updatedAt, locked.updatedAt))).returning();
+          if (!row) throw new Error("Pickup changed during verification");
+          await recordServiceActivity(tx, {
+            activityType: "pickup", loopStage: status === "confirmed" ? "verified" : "recognized",
+            relatedPickupId: row.id, status, staffOwner: row.assignedDriver,
+            scheduledStart: row.confirmedDatetime,
+            scheduledEnd: row.confirmedDatetime ? new Date(row.confirmedDatetime.getTime() + 60 * 60 * 1000) : null,
+            publicSafeSummary: status === "confirmed" ? "Pickup verified" : "Pickup requires review",
+            idempotencyKey: `pickup:${row.id}:status:${locked.status}:${status}:${locked.updatedAt.toISOString()}`,
+          });
+          return row;
+        });
 
   res.json(await pickupDetail(withStatus));
 });
@@ -408,19 +463,26 @@ router.post("/pickups/:id/contact-attempt", async (req, res): Promise<void> => {
         ? "closed_no_response"
         : pickup.status;
 
-  await db.insert(pickupContactAttemptsTable).values({
-    id: randomUUID(),
-    pickupRequestId: pickup.id,
-    attemptNumber,
-    result: body.data.result,
-    notes: body.data.notes ?? null,
+  const updated = await db.transaction(async (tx) => {
+    await tx.insert(pickupContactAttemptsTable).values({
+      id: randomUUID(), pickupRequestId: pickup.id, attemptNumber,
+      result: body.data.result, notes: body.data.notes ?? null,
+    });
+    const [row] = await tx.update(pickupRequestsTable)
+      .set({ contactAttempts: attemptNumber, status, updatedAt: new Date() })
+      .where(eq(pickupRequestsTable.id, pickup.id))
+      .returning();
+    await recordServiceActivity(tx, {
+      activityType: "pickup", loopStage: status === "closed_no_response" ? "learned" : "recognized",
+      relatedPickupId: pickup.id, status, staffOwner: row.assignedDriver,
+      scheduledStart: row.confirmedDatetime,
+      scheduledEnd: row.confirmedDatetime ? new Date(row.confirmedDatetime.getTime() + 60 * 60 * 1000) : null,
+      publicSafeSummary: status === "closed_no_response" ? "Pickup request closed" : "Pickup contact attempted",
+      internalNotes: body.data.notes ?? null,
+      idempotencyKey: `pickup:${pickup.id}:contact:${attemptNumber}`,
+    });
+    return row;
   });
-
-  const [updated] = await db
-    .update(pickupRequestsTable)
-    .set({ contactAttempts: attemptNumber, status, updatedAt: new Date() })
-    .where(eq(pickupRequestsTable.id, pickup.id))
-    .returning();
 
   res.json(await pickupDetail(updated));
 });
@@ -453,11 +515,19 @@ router.post("/pickups/:id/dispatch", async (req, res): Promise<void> => {
     return;
   }
 
-  const [updated] = await db
-    .update(pickupRequestsTable)
-    .set({ status: "dispatched", updatedAt: new Date() })
-    .where(eq(pickupRequestsTable.id, pickup.id))
-    .returning();
+  const updated = await db.transaction(async (tx) => {
+    const [row] = await tx.update(pickupRequestsTable)
+      .set({ status: "dispatched", updatedAt: new Date() })
+      .where(eq(pickupRequestsTable.id, pickup.id)).returning();
+    await recordServiceActivity(tx, {
+      activityType: "pickup", loopStage: "scheduled", relatedPickupId: pickup.id,
+      status: "dispatched", staffOwner: row.assignedDriver,
+      scheduledStart: row.confirmedDatetime,
+      scheduledEnd: row.confirmedDatetime ? new Date(row.confirmedDatetime.getTime() + 60 * 60 * 1000) : null,
+      publicSafeSummary: "Pickup dispatched", idempotencyKey: `pickup:${pickup.id}:dispatched`,
+    });
+    return row;
+  });
   res.json(await pickupDetail(updated));
 });
 
@@ -488,9 +558,8 @@ router.post("/pickups/:id/outcome", async (req, res): Promise<void> => {
   }
 
   const status = outcomeToStatus(body.data.outcome) ?? pickup.status;
-  const [updated] = await db
-    .update(pickupRequestsTable)
-    .set({
+  const updated = await db.transaction(async (tx) => {
+    const [row] = await tx.update(pickupRequestsTable).set({
       status,
       outcome: body.data.outcome,
       outcomeNotes: body.data.notes ?? null,
@@ -498,6 +567,17 @@ router.post("/pickups/:id/outcome", async (req, res): Promise<void> => {
     })
     .where(eq(pickupRequestsTable.id, pickup.id))
     .returning();
+    await recordServiceActivity(tx, {
+      activityType: "pickup", loopStage: "learned", relatedPickupId: pickup.id,
+      status: body.data.outcome, staffOwner: row.assignedDriver, completedAt: new Date(),
+      scheduledStart: row.confirmedDatetime,
+      scheduledEnd: row.confirmedDatetime ? new Date(row.confirmedDatetime.getTime() + 60 * 60 * 1000) : null,
+      publicSafeSummary: body.data.outcome === "no_show" ? "Pickup marked no-show" : "Pickup closed",
+      internalNotes: body.data.notes ?? null,
+      idempotencyKey: `pickup:${pickup.id}:outcome:${body.data.outcome}`,
+    });
+    return row;
+  });
 
   let flagged = updated;
   if (body.data.outcome === "false_address") {
@@ -607,6 +687,35 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
       toStage: "intake",
       notes: `Received from completed pickup ${completed.id}${body.data.notes ? ` | ${body.data.notes}` : ""}`,
     });
+    const activityId = await recordServiceActivity(tx, {
+      activityType: "pickup",
+      loopStage: "served",
+      relatedPickupId: completed.id,
+      relatedItemId: item.id,
+      status: "completed",
+      scheduledStart: completed.confirmedDatetime,
+      scheduledEnd: completed.confirmedDatetime ? new Date(completed.confirmedDatetime.getTime() + 60 * 60 * 1000) : null,
+      completedAt: now,
+      publicSafeSummary: "Donation pickup completed",
+      internalNotes: body.data.notes ?? null,
+      idempotencyKey: `pickup:${completed.id}:completed`,
+    });
+    await recordAcknowledgment(tx, {
+      parentActivityId: activityId,
+      relatedItemId: item.id,
+      relatedPickupId: completed.id,
+      staffOwner: completed.assignedDriver,
+    });
+    await recordServiceActivity(tx, {
+      activityType: "donation_intake",
+      loopStage: "received",
+      relatedItemId: item.id,
+      status: "received",
+      completedAt: now,
+      publicSafeSummary: "Donation received",
+      internalNotes: `Created from completed pickup ${completed.id}`,
+      idempotencyKey: `item:${item.id}:received`,
+    });
 
     return { pickup: completed, item };
   });
@@ -660,38 +769,48 @@ router.post("/pickups/:id/route", async (req, res): Promise<void> => {
     return;
   }
 
-  if (pickup.linkedRouteId && pickup.linkedRouteId !== route.id) {
-    await db
-      .delete(routeStopsTable)
-      .where(eq(routeStopsTable.pickupRequestId, pickup.id));
-  }
-
-  const existingStops = await db
-    .select()
-    .from(routeStopsTable)
-    .where(eq(routeStopsTable.routeId, route.id))
-    .orderBy(desc(routeStopsTable.stopOrder));
-  const existingPickupStop = existingStops.find((stop) => stop.pickupRequestId === pickup.id);
-  if (!existingPickupStop) {
-    await db.insert(routeStopsTable).values({
-      id: randomUUID(),
-      routeId: route.id,
-      pickupRequestId: pickup.id,
-      stopOrder: existingStops.length > 0 ? existingStops[0].stopOrder + 1 : 1,
-      notes: `Pickup ${pickup.id}: ${pickup.address}`,
-    });
-  }
-
-  const [updated] = await db
-    .update(pickupRequestsTable)
-    .set({
+  const updated = await db.transaction(async (tx) => {
+    const [locked] = await tx.select().from(pickupRequestsTable)
+      .where(eq(pickupRequestsTable.id, pickup.id)).for("update");
+    if (!locked) throw new Error("Pickup request not found");
+    if (!["confirmed", "dispatched"].includes(locked.status)) return locked;
+    if (locked.linkedRouteId && locked.linkedRouteId !== route.id) {
+      await tx.delete(routeStopsTable).where(eq(routeStopsTable.pickupRequestId, pickup.id));
+    }
+    const existingStops = await tx.select().from(routeStopsTable)
+      .where(eq(routeStopsTable.routeId, route.id))
+      .orderBy(desc(routeStopsTable.stopOrder));
+    if (!existingStops.some((stop) => stop.pickupRequestId === pickup.id)) {
+      await tx.insert(routeStopsTable).values({
+        id: randomUUID(), routeId: route.id, pickupRequestId: pickup.id,
+        stopOrder: existingStops.length > 0 ? existingStops[0].stopOrder + 1 : 1,
+        notes: `Pickup ${pickup.id}: ${pickup.address}`,
+      });
+    }
+    const desiredDriver = body.data.assignedDriver ?? locked.assignedDriver;
+    const desiredDatetime = body.data.confirmedDatetime ?? locked.confirmedDatetime;
+    const isNoOp = locked.linkedRouteId === route.id &&
+      locked.assignedDriver === desiredDriver &&
+      locked.confirmedDatetime?.getTime() === desiredDatetime?.getTime();
+    if (isNoOp) return locked;
+    const [row] = await tx.update(pickupRequestsTable).set({
       linkedRouteId: route.id,
-      assignedDriver: body.data.assignedDriver ?? pickup.assignedDriver,
-      confirmedDatetime: body.data.confirmedDatetime ?? pickup.confirmedDatetime,
+      assignedDriver: desiredDriver,
+      confirmedDatetime: desiredDatetime,
       updatedAt: new Date(),
-    })
-    .where(eq(pickupRequestsTable.id, pickup.id))
-    .returning();
+    }).where(and(eq(pickupRequestsTable.id, pickup.id), eq(pickupRequestsTable.updatedAt, locked.updatedAt))).returning();
+    if (!row) throw new Error("Pickup changed during route assignment");
+    await recordServiceActivity(tx, {
+      activityType: "pickup", loopStage: "scheduled", relatedPickupId: pickup.id,
+      status: row.status, staffOwner: row.assignedDriver,
+      scheduledStart: row.confirmedDatetime,
+      scheduledEnd: row.confirmedDatetime ? new Date(row.confirmedDatetime.getTime() + 60 * 60 * 1000) : null,
+      publicSafeSummary: "Pickup assigned to route",
+      internalNotes: `Route ${route.id}`,
+      idempotencyKey: `pickup:${pickup.id}:route:${locked.updatedAt.toISOString()}`,
+    });
+    return row;
+  });
   res.json(await pickupDetail(updated));
 });
 

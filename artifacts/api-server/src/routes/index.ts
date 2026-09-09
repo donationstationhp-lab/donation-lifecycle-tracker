@@ -13,6 +13,7 @@ import notionHealthRouter from "./notionHealth";
 import pickupsRouter from "./pickups";
 import attendRouter from "./attend";
 import appointmentsRouter, { publicAppointmentsRouter } from "./appointments";
+import serviceActivitiesRouter from "./serviceActivities";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(cliExtrasRouter);
 router.use(pickupsRouter);
 router.use(attendRouter);
 router.use(appointmentsRouter);
+router.use(serviceActivitiesRouter);
 
 export default router;

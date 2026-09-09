@@ -18,6 +18,7 @@ import { requireSupervisor } from "../middlewares/apiKeyAuth";
 import { canCollectEvidence, validateClaimTransition, validateTransferTransition, type ClaimStatus, type TransferStatus } from "../lib/attendTransitions";
 import { deliverAttendOutboxByDedupeKey } from "../lib/attendSheets";
 import { isUniqueViolation } from "../lib/dbErrors";
+import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
 
 const router: IRouter = Router();
 const actor = (res: import("express").Response) => res.locals.authMethod === "api-key" ? "api-key" : (res.locals.staffUserId ?? "staff");
@@ -90,6 +91,13 @@ router.post("/claims", async (req, res): Promise<void> => {
     }).returning();
     await tx.insert(claimHistoryTable).values({ id: randomUUID(), claimId: id, fromStatus: null, toStatus: "submitted", by });
     await tx.insert(notificationOutboxTable).values(event("claim", id, "submitted")).onConflictDoNothing();
+    await recordServiceActivity(tx, {
+      activityType: "claim_request", loopStage: "received",
+      relatedItemId: created.itemId, relatedClaimId: id, relatedAccountId: created.accountId,
+      publicTrackingCode: trackingCode, status: "submitted", staffOwner: by,
+      publicSafeSummary: "Request received", internalNotes: parsed.data.notes ?? null,
+      idempotencyKey: `claim:${id}:submitted`,
+    });
     return created;
   });
   res.status(201).json(CreateClaimResponse.parse(claim));
@@ -168,6 +176,19 @@ router.patch("/claims/:id/status", async (req, res): Promise<void> => {
       await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "matched", toStage: "storage", notes: `Claim ${claim.id} cancelled` });
     }
     await tx.insert(notificationOutboxTable).values(event("claim", claim.id, body.data.status)).onConflictDoNothing();
+    await recordServiceActivity(tx, {
+      activityType: "claim_request",
+      loopStage: body.data.status === "approved" ? "matched"
+        : body.data.status === "cancelled" || body.data.status === "denied" ? "learned"
+        : "recognized",
+      relatedItemId: claim.itemId, relatedClaimId: claim.id, relatedAccountId: claim.accountId,
+      publicTrackingCode: claim.trackingCode, status: body.data.status, staffOwner: by,
+      publicSafeSummary: body.data.status === "approved" ? "Eligibility verified and item matched"
+        : body.data.status === "cancelled" ? "Request canceled"
+        : body.data.status === "denied" ? "Request closed" : "Request under review",
+      internalNotes: body.data.notes ?? null,
+      idempotencyKey: `claim:${claim.id}:${body.data.status}`,
+    });
     return { claim: updated };
   });
   if ("error" in result) { res.status(result.error === "Claim not found" ? 404 : 409).json({ error: result.error }); return; }
@@ -201,6 +222,13 @@ router.post("/transfers", async (req, res): Promise<void> => {
       await tx.insert(transferHistoryTable).values({ id: randomUUID(), transferId: id, fromStatus: null, toStatus: "planned", by });
       await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "matched", toStage: "scheduled", notes: `Transfer ${id} planned` });
       await tx.insert(notificationOutboxTable).values(event("transfer", id, "planned")).onConflictDoNothing();
+      const activityId = await recordServiceActivity(tx, {
+        activityType: "distribution", loopStage: "scheduled",
+        relatedItemId: item.id, relatedClaimId: claim.id, relatedAccountId: claim.accountId,
+        publicTrackingCode: claim.trackingCode, status: "planned", staffOwner: by,
+        publicSafeSummary: "Distribution scheduled", internalNotes: parsed.data.notes ?? null,
+        idempotencyKey: `transfer:${id}:planned`,
+      });
       return created;
     });
   } catch (error) {
@@ -257,6 +285,19 @@ router.patch("/transfers/:id/status", async (req, res): Promise<void> => {
       await tx.insert(claimHistoryTable).values({ id: randomUUID(), claimId: claim.id, fromStatus: "approved", toStatus: "fulfilled", by, notes: "Transfer received" });
       await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "scheduled", toStage: "distributed", notes: `Transfer ${transfer.id} received` });
       await tx.insert(notificationOutboxTable).values([event("transfer", transfer.id, "received"), event("claim", claim.id, "fulfilled")]).onConflictDoNothing();
+      const activityKey = `transfer:${transfer.id}:received`;
+      const activityId = await recordServiceActivity(tx, {
+        activityType: "distribution", loopStage: "served",
+        relatedItemId: item.id, relatedClaimId: claim.id, relatedAccountId: account.id,
+        publicTrackingCode: claim.trackingCode, status: "completed", staffOwner: by,
+        completedAt: new Date(), publicSafeSummary: "Completed and distributed",
+        internalNotes: body.data.notes ?? null, idempotencyKey: activityKey,
+      });
+      await recordAcknowledgment(tx, {
+        parentActivityId: activityId,
+        relatedItemId: item.id, relatedClaimId: claim.id, relatedAccountId: account.id,
+        publicTrackingCode: claim.trackingCode, staffOwner: by,
+      });
       return { transfer: updated };
     }
     if (body.data.status === "cancelled") {
@@ -270,6 +311,17 @@ router.patch("/transfers/:id/status", async (req, res): Promise<void> => {
     const [updated] = await tx.update(transfersTable).set({ status: body.data.status, ...(body.data.status === "released" ? { releasedBy: by } : {}) }).where(eq(transfersTable.id, transfer.id)).returning();
     await tx.insert(transferHistoryTable).values({ id: randomUUID(), transferId: transfer.id, fromStatus: transfer.status, toStatus: body.data.status, by, notes: body.data.notes ?? null });
     await tx.insert(notificationOutboxTable).values(event("transfer", transfer.id, body.data.status)).onConflictDoNothing();
+    const [claim] = await tx.select().from(claimsTable).where(eq(claimsTable.id, transfer.claimId));
+    await recordServiceActivity(tx, {
+      activityType: "distribution",
+      loopStage: body.data.status === "cancelled" ? "learned" : "scheduled",
+      relatedItemId: transfer.itemId, relatedClaimId: transfer.claimId,
+      relatedAccountId: transfer.accountId, publicTrackingCode: claim?.trackingCode ?? null,
+      status: body.data.status, staffOwner: by,
+      publicSafeSummary: body.data.status === "cancelled" ? "Distribution canceled" : "Ready for pickup",
+      internalNotes: body.data.notes ?? null,
+      idempotencyKey: `transfer:${transfer.id}:${body.data.status}`,
+    });
     return { transfer: updated };
   });
   if ("error" in result) { res.status(result.error === "Transfer not found" ? 404 : 409).json({ error: result.error }); return; }

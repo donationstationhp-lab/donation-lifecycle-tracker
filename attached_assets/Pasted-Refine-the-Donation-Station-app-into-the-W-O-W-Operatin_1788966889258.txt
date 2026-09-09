@@ -1,0 +1,103 @@
+Refine the Donation Station app into the W.O.W. Operating System.
+
+Meaning:
+W.O.W. = War On Waste / We All Stop Trashing Earth.
+
+Core doctrine:
+Receiving → Gaining → Giving
+
+Universal service loop:
+Receive → Recognize → Classify → Match → Schedule → Serve → Verify → Acknowledge → Learn
+
+Goal:
+Make the app language and structure reflect that all Donation Station activity is W.O.W. due diligence infrastructure.
+
+Do not work on Twilio/SMS/OTP yet.
+
+Refinements to make:
+
+1. Rename or add language in dashboard/public pages:
+- “W.O.W. Operating System”
+- “Receive. Gain. Give.”
+- “War On Waste / We All Stop Trashing Earth”
+- “Receive the resource. Gain the truth. Give with proof.”
+
+2. Staff dashboard language:
+Show the staff console as the internal due-diligence layer:
+- Received
+- In Review
+- Verified
+- Reserved
+- Scheduled
+- Distributed
+- Acknowledged
+
+3. Public tracking language:
+Keep the public page privacy-safe, but align wording:
+- Tracking code
+- Item category
+- Sanitized item name
+- Current service stage
+- Last updated approx
+- Exact time locked
+- Claim timeline
+
+Use public-safe labels:
+- Request Received
+- Eligibility Verified
+- Ready for Matching
+- Reserved
+- Appointment Scheduled
+- Distributed
+- Acknowledged
+
+4. Calendar/scheduling language:
+Calendar should support the W.O.W. service loop:
+- Donation Drop-off
+- Donation Pickup
+- Receiver Pickup Window
+- Reserve Item Pickup
+- Volunteer Shift
+- Donation Market Window
+- Future Barter Handoff
+
+5. Reservation and barter alignment:
+Prepare language so barter is not separate chaos.
+Barter becomes scheduled, verified exchange:
+- Offer received
+- Bid/Request gained
+- Trade matched
+- Handoff scheduled
+- Exchange verified
+- Ledger acknowledged
+
+6. Dashboard metrics:
+Prepare W.O.W. metrics:
+- Resources received
+- Resources verified
+- Resources reserved
+- Resources distributed
+- Waste diverted
+- Appointments completed
+- No-shows
+- Acknowledgments pending/sent
+- Time from receive to give
+- Public tracking views if available
+
+7. Privacy and due diligence:
+Keep public responses whitelisted only.
+Never expose:
+- names
+- phone numbers
+- emails
+- addresses
+- donor identity
+- receiver identity
+- private notes
+- internal notes
+
+8. Outcome:
+The app should feel like one connected system:
+Receiving = intake/donation/request/offer
+Gaining = classify/verify/match/schedule/reserve
+Giving = distribute/complete/acknowledge/report

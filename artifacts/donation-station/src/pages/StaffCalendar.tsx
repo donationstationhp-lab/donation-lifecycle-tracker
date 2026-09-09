@@ -8,15 +8,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 
-type Appointment = {
+type ServiceActivity = {
   id: string;
-  appointmentType: string;
+  activityType: string;
+  appointmentType?: string;
+  loopStage: string;
   status: string;
-  scheduledStart: string;
-  scheduledEnd: string;
-  locationId: string;
+  scheduledStart?: string;
+  scheduledEnd?: string;
+  locationId?: string;
+  staffOwner?: string;
+  publicSafeSummary?: string;
+  relatedAppointmentId?: string;
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
@@ -50,15 +56,28 @@ const statusColors: Record<string, string> = {
 export default function StaffCalendar() {
   const [status, setStatus] = useState('all');
   const [type, setType] = useState('all');
+  const [date, setDate] = useState('');
+  const [staffOwner, setStaffOwner] = useState('');
+  const [related, setRelated] = useState('');
   const client = useQueryClient();
   
   const query = new URLSearchParams();
   if (status !== 'all') query.set('status', status);
-  if (type !== 'all') query.set('appointmentType', type);
+  if (type !== 'all') query.set('activityType', type);
+  query.set('scheduled', 'true');
+  if (staffOwner.trim()) query.set('staffOwner', staffOwner.trim());
+  if (related.trim().startsWith('claim:')) query.set('relatedClaimId', related.trim().slice(6));
+  if (related.trim().startsWith('item:')) query.set('relatedItemId', related.trim().slice(5));
+  if (date) {
+    const start = new Date(`${date}T00:00:00`);
+    const end = new Date(`${date}T23:59:59`);
+    query.set('start', start.toISOString());
+    query.set('end', end.toISOString());
+  }
   
-  const { data = [], isLoading } = useQuery<Appointment[]>({
-    queryKey: ['appointments', status, type],
-    queryFn: () => customFetch(`/api/appointments?${query}`, { responseType: 'json' })
+  const { data = [], isLoading } = useQuery<ServiceActivity[]>({
+    queryKey: ['service-activities', status, type, date, staffOwner, related],
+    queryFn: () => customFetch(`/api/service-activities?${query}`, { responseType: 'json' })
   });
 
   const update = useMutation({
@@ -71,7 +90,7 @@ export default function StaffCalendar() {
         reason,
       })
     }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ['appointments'] }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['service-activities'] }),
   });
   const linkClaim = useMutation({
     mutationFn: (id: string) => customFetch(`/api/appointments/${id}/link-claim`, {
@@ -80,7 +99,7 @@ export default function StaffCalendar() {
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
     }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ['appointments'] }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['service-activities'] }),
   });
 
   return (
@@ -110,11 +129,14 @@ export default function StaffCalendar() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All appointment types</SelectItem>
-            {Object.entries(labels).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
+            {['appointment','item_reservation','distribution','volunteer_shift','pickup','dropoff','barter_handoff'].map(value => (
+              <SelectItem key={value} value={value}>{value.replaceAll('_', ' ')}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Input type="date" value={date} onChange={event => setDate(event.target.value)} className="w-full sm:w-44" aria-label="Filter by date" />
+        <Input value={staffOwner} onChange={event => setStaffOwner(event.target.value)} placeholder="Staff owner" className="w-full sm:w-44" />
+        <Input value={related} onChange={event => setRelated(event.target.value)} placeholder="claim:ID or item:ID" className="w-full sm:w-56" />
         
         <Select value={status} onValueChange={setStatus}>
           <SelectTrigger className="w-full sm:w-[180px] bg-background">
@@ -169,16 +191,17 @@ export default function StaffCalendar() {
                       </span>
                     </div>
                     <h3 className="font-semibold text-base mb-1">
-                      {labels[appointment.appointmentType] ?? appointment.appointmentType}
+                      {labels[appointment.appointmentType ?? ''] ?? appointment.activityType.replaceAll('_', ' ')}
                     </h3>
                     <div className="space-y-1 mt-2">
                       <p className="flex items-center gap-2 text-sm text-foreground font-medium">
                         <Clock className="w-4 h-4 text-muted-foreground" />
-                        {format(new Date(appointment.scheduledStart), 'MMM d, h:mm a')} – {format(new Date(appointment.scheduledEnd), 'h:mm a')}
+                        {appointment.scheduledStart ? format(new Date(appointment.scheduledStart), 'MMM d, h:mm a') : 'Unscheduled'}
+                        {appointment.scheduledEnd ? ` – ${format(new Date(appointment.scheduledEnd), 'h:mm a')}` : ''}
                       </p>
                       <p className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="w-4 h-4 shrink-0" />
-                        Station {appointment.locationId}
+                        {appointment.locationId ? `Station ${appointment.locationId}` : `Owner: ${appointment.staffOwner || 'Unassigned'}`}
                       </p>
                     </div>
                   </div>
@@ -237,13 +260,13 @@ export default function StaffCalendar() {
                   {/* Column 4: Actions */}
                   <div className="p-5 flex items-center justify-center lg:justify-end bg-slate-50/50 dark:bg-slate-900/20">
                     <div className="w-full lg:w-40 flex flex-col gap-2">
-                      {appointment.appointmentType === 'reserve_item_pickup' && !appointment.relatedClaimId && (
-                        <Button size="sm" variant="outline" onClick={() => linkClaim.mutate(appointment.id)} disabled={linkClaim.isPending}>
+                      {appointment.appointmentType === 'reserve_item_pickup' && appointment.relatedAppointmentId && !appointment.relatedClaimId && (
+                        <Button size="sm" variant="outline" onClick={() => linkClaim.mutate(appointment.relatedAppointmentId!)} disabled={linkClaim.isPending}>
                           Link approved claim
                         </Button>
                       )}
                       <Label className="text-xs text-muted-foreground lg:hidden">Update Status</Label>
-                      <Select 
+                      {appointment.relatedAppointmentId ? <Select 
                         value={appointment.status} 
                         onValueChange={(next) => {
                           if (next === appointment.status) return;
@@ -252,7 +275,7 @@ export default function StaffCalendar() {
                             reason = window.prompt(`Reason for ${next.replace('_', ' ')}`)?.trim();
                             if (!reason) return;
                           }
-                          update.mutate({ id: appointment.id, next, reason });
+                          update.mutate({ id: appointment.relatedAppointmentId!, next, reason });
                         }}
                         disabled={update.isPending}
                       >
@@ -266,7 +289,7 @@ export default function StaffCalendar() {
                             </SelectItem>
                           ))}
                         </SelectContent>
-                      </Select>
+                      </Select> : <p className="text-xs text-muted-foreground">{appointment.publicSafeSummary || appointment.loopStage}</p>}
                       {update.isPending && <p className="text-xs text-center text-muted-foreground animate-pulse">Saving...</p>}
                     </div>
                   </div>

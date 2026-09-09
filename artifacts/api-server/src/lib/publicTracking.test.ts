@@ -7,6 +7,7 @@ import {
   safeCategory,
   safeItemName,
 } from "../routes/publicTrack";
+import { buildPublicActivityTimeline } from "./publicServiceActivity";
 
 test("public item labels never echo unknown free-form content", () => {
   const privateName = "Donation for Jane Doe, 123 Main Street, jane@example.com";
@@ -104,4 +105,21 @@ test("public impact counts only received transfers as distributions", () => {
     "totalItemsDistributed",
     "totalItemsReceived",
   ]);
+});
+
+test("public service activity timeline whitelists labels and excludes private fields", () => {
+  const timeline = buildPublicActivityTimeline([{
+    activityType: "item_reservation",
+    status: "reserved",
+    createdAt: new Date("2026-09-09T15:00:00Z"),
+    internalNotes: "Jane Doe, jane@example.com, 312-555-0100",
+    staffOwner: "private-staff-id",
+  } as Parameters<typeof buildPublicActivityTimeline>[0][number]]);
+
+  assert.deepEqual(timeline, [{
+    label: "Item Reserved",
+    timestamp: new Date("2026-09-09T15:00:00Z"),
+  }]);
+  assert.equal(JSON.stringify(timeline).includes("Jane Doe"), false);
+  assert.equal(JSON.stringify(timeline).includes("private-staff-id"), false);
 });

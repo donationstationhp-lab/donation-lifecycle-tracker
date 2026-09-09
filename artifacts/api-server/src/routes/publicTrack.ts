@@ -9,12 +9,14 @@ import {
   transfersTable,
   appointmentsTable,
   appointmentHistoryTable,
+  serviceActivitiesTable,
 } from "@workspace/db";
 import { publicItemStageLabel } from "../lib/itemLifecycle";
 import {
   GetPublicImpactSummaryResponse,
   GetPublicTrackingResponse,
 } from "@workspace/api-zod";
+import { buildPublicActivityTimeline } from "../lib/publicServiceActivity";
 
 const router: IRouter = Router();
 const PUBLIC_TIME_ZONE = "America/Chicago";
@@ -111,7 +113,8 @@ interface PublicTrackingSource {
 }
 
 interface PublicTimelineSource {
-  status: string;
+  status?: string;
+  label?: string;
   timestamp: Date;
 }
 
@@ -137,7 +140,7 @@ export function buildPublicTrackingResponse(
     lastUpdatedApprox: approximateTimestamp(source.updatedAt),
     lastUpdatedExact: null,
     timeline: history.map((entry) => ({
-      label: publicClaimStatusLabel(entry.status),
+      label: entry.label ?? publicClaimStatusLabel(entry.status ?? ""),
       approx: approximateTimestamp(entry.timestamp),
       exact: null,
     })),
@@ -236,7 +239,7 @@ router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
     return;
   }
 
-  const [history, appointmentHistory] = await Promise.all([db
+  const [history, appointmentHistory, activities] = await Promise.all([db
     .select({
       status: claimHistoryTable.toStatus,
       timestamp: claimHistoryTable.timestamp,
@@ -254,18 +257,34 @@ router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
         eq(appointmentsTable.appointmentType, "reserve_item_pickup"),
       ))
       .orderBy(asc(appointmentHistoryTable.timestamp)),
+    db.select({
+      activityType: serviceActivitiesTable.activityType,
+      status: serviceActivitiesTable.status,
+      createdAt: serviceActivitiesTable.createdAt,
+    }).from(serviceActivitiesTable)
+      .where(eq(serviceActivitiesTable.publicTrackingCode, trackingCode))
+      .orderBy(asc(serviceActivitiesTable.createdAt)),
   ]);
 
-  res.json(buildPublicTrackingResponse({
-    ...result,
-    trackingCode: result.trackingCode,
-  }, [
+  const mergedTimeline = [
     ...history,
     ...appointmentHistory.map((entry) => ({
       status: `reservation_${entry.status}`,
       timestamp: entry.timestamp,
     })),
-  ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())));
+    ...buildPublicActivityTimeline(activities),
+  ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  const seen = new Set<string>();
+  res.json(buildPublicTrackingResponse({
+    ...result,
+    trackingCode: result.trackingCode,
+  }, mergedTimeline.filter((entry) => {
+    const label = "label" in entry ? entry.label : publicClaimStatusLabel(entry.status);
+    const key = `${label}:${entry.timestamp.toISOString().slice(0, 10)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  })));
 });
 
 router.get("/public/impact-summary", async (_req, res): Promise<void> => {

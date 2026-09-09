@@ -12,6 +12,12 @@ import { Button } from '@/components/ui/button';
 
 export default function Dashboard() {
   const { data: summary, isLoading, isError } = useGetDashboard();
+  const serviceMetrics = (summary as typeof summary & { serviceMetrics?: {
+    receivedToday: number; receivedThisWeek: number; scheduledToday: number; overdue: number;
+    pendingVerification: number; reservedItems: number; completedDistributions: number;
+    acknowledgmentOnTimeRate: number | null; noShowRate: number | null;
+    receivedToServedHours: number | null; requestToMatchedHours: number | null; scheduledToCompletedHours: number | null;
+  } })?.serviceMetrics;
   const pendingCount = summary?.pendingReviewCount ?? 0;
 
   // Build the public donate URL — same origin, /donation-station/donate
@@ -158,6 +164,36 @@ export default function Dashboard() {
           </Card>
         </Link>
       </div>
+
+      {serviceMetrics && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Universal Service Loop</CardTitle>
+            <CardDescription>Receive → Recognize → Classify → Match → Schedule → Serve → Verify → Acknowledge → Learn</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              ['Received today', serviceMetrics.receivedToday],
+              ['Received this week', serviceMetrics.receivedThisWeek],
+              ['Scheduled today', serviceMetrics.scheduledToday],
+              ['Overdue', serviceMetrics.overdue],
+              ['Pending verification', serviceMetrics.pendingVerification],
+              ['Reserved items', serviceMetrics.reservedItems],
+              ['Completed distributions', serviceMetrics.completedDistributions],
+              ['Acknowledgment on time', serviceMetrics.acknowledgmentOnTimeRate == null ? '—' : `${serviceMetrics.acknowledgmentOnTimeRate}%`],
+              ['No-show rate', serviceMetrics.noShowRate == null ? '—' : `${serviceMetrics.noShowRate}%`],
+              ['Received → served', serviceMetrics.receivedToServedHours == null ? '—' : `${serviceMetrics.receivedToServedHours}h`],
+              ['Request → matched', serviceMetrics.requestToMatchedHours == null ? '—' : `${serviceMetrics.requestToMatchedHours}h`],
+              ['Scheduled → completed', serviceMetrics.scheduledToCompletedHours == null ? '—' : `${serviceMetrics.scheduledToCompletedHours}h`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="mt-1 text-2xl font-bold">{value}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Share Donate Link banner */}
       <div className="rounded-xl bg-gradient-to-r from-[#1E7A4E]/10 to-[#2C4B6E]/10 border border-[#1E7A4E]/20 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
