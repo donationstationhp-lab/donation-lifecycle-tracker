@@ -106,8 +106,8 @@ export default function StaffCalendar() {
     <div className="space-y-6 pb-12 max-w-7xl mx-auto animate-fade-in">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 border-b border-border/50 pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Service Loop Calendar</h1>
-          <p className="text-sm font-medium text-muted-foreground mt-2">Operational awareness for bookings, reservations, pickups, and shifts.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Bridging Calendar</h1>
+          <p className="text-sm font-medium text-muted-foreground mt-2">pickup/drop-off, receiver pickup, volunteer shifts, market windows, reserved item pickup, with barter handoff later.</p>
         </div>
         <div className="flex items-center gap-3">
           <Badge variant="secondary" className="px-3 py-1.5 font-bold tracking-wide shadow-sm">

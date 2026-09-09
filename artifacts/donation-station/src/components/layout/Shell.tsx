@@ -25,23 +25,23 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/items', label: 'Items', icon: Package },
+    { href: '/items', label: 'Items', desktopLabel: 'Items — Received Resources', icon: Package },
     { href: '/donors', label: 'Donors', icon: Heart },
     { href: '/accounts', label: 'Accounts', icon: Users },
-    { href: '/claims', label: 'Claims', icon: FileText },
-    { href: '/transfers', label: 'Transfers', icon: ArrowRightLeft },
-    { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+    { href: '/claims', label: 'Claims', desktopLabel: 'Claims — Service Requests / Gaining Verification', icon: FileText },
+    { href: '/transfers', label: 'Transfers', desktopLabel: 'Transfers — Giving / Distribution', icon: ArrowRightLeft },
+    { href: '/calendar', label: 'Calendar', desktopLabel: 'Calendar — Bridging Time', icon: CalendarDays },
     { href: '/pickups', label: 'Pickups', icon: ClipboardCheck },
     { href: '/pickup-flags', label: 'Flags', icon: Flag },
     { href: '/expiring', label: 'Expiring', icon: AlertTriangle },
-    { href: '/routes', label: 'Routes', icon: Truck },
-    { href: '/pending', label: 'Review', icon: Clock, badge: pendingCount },
+    { href: '/routes', label: 'Routes', desktopLabel: 'Routes — Bridging Movement', icon: Truck },
+    { href: '/pending', label: 'Review', desktopLabel: 'Review — Due Diligence', icon: Clock, badge: pendingCount },
   ];
 
   return (
     <div className="flex h-screen bg-background text-foreground flex-col md:flex-row overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-[260px] flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xl z-10">
+      <aside className="hidden md:flex w-[300px] flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xl z-10">
         <div className="p-6 border-b border-sidebar-border/50">
           <div className="flex items-center gap-3">
             <div className="bg-primary/20 p-2 rounded-lg text-primary">
@@ -71,7 +71,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   }`}
                 >
                   <item.icon className={`mr-3 w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-primary' : ''}`} />
-                  <span className="flex-1 text-left">{item.label}</span>
+                  <span className="flex-1 text-left whitespace-normal text-xs md:text-sm">{item.desktopLabel || item.label}</span>
                   {item.badge != null && item.badge > 0 && (
                     <span className="ml-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold px-1.5 shadow-sm">
                       {item.badge > 99 ? '99+' : item.badge}

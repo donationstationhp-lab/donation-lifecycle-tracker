@@ -1,0 +1,134 @@
+Refine Donation Station / W.O.W. Universal Servicing OS with the core foundation statement:
+
+Acknowledgement received.
+Appreciation gained.
+Gratitude given.
+
+Meaning:
+- Acknowledgement Received = the system recognizes every person, item, donation, request, claim, appointment, offer, and service event that enters.
+- Appreciation Gained = the system gains truth through due diligence: classify, verify, inspect, match, schedule, reserve, and understand value.
+- Gratitude Given = the system completes the loop: distribute, complete, acknowledge, update tracking, report impact, and strengthen relationships.
+
+Core operating language:
+Receive → Gain → Give
+Receive the resource. Gain the truth. Give with proof.
+Acknowledgement received. Appreciation gained. Gratitude given.
+
+Do not work on Twilio/SMS/OTP yet.
+
+Implement/refine these areas:
+
+1. Dashboard header
+Add/adjust dashboard language:
+- W.O.W. Universal Servicing OS
+- War On Waste / We All Stop Trashing Earth
+- Receive. Gain. Give.
+- Acknowledgement received. Appreciation gained. Gratitude given.
+
+Keep the dashboard operational and clear. Do not make it too wordy.
+
+2. Dashboard sections
+Organize or label key operational areas around:
+- Receiving
+- Gaining
+- Giving
+- Bridging
+- Relationships
+- Universal Service
+
+Suggested mapping:
+- Receiving = donations, requests, claims, item intake
+- Gaining = verification, quality control, review, matching, reservation
+- Giving = distribution, completed appointments, acknowledgments
+- Bridging = calendar, routes, pickup/dropoff, scheduling
+- Relationships = donors, receivers, volunteers, partners, staff
+- Universal Service = metrics, impact, public-safe proof
+
+3. Public tracking page
+Keep privacy-safe tracking working.
+
+Add gentle language:
+- This page shows public-safe service progress.
+- Exact times remain locked to protect identities.
+- Donation Station receives, verifies, schedules, and gives with proof.
+- Acknowledgement received. Appreciation gained. Gratitude given.
+
+Do not expose:
+- names
+- phone numbers
+- email
+- addresses
+- donor identity
+- receiver identity
+- private notes
+- internal notes
+
+4. Claim timeline labels
+Use public-safe service language:
+- Request Received
+- Resource Recognized
+- Eligibility Verified
+- Ready for Matching
+- Item Reserved
+- Appointment Scheduled
+- Ready for Pickup
+- Distributed
+- Acknowledged
+- Completed
+
+5. Staff claim/detail page
+Keep showing:
+- Claim Tracking Code
+- Copy public tracking link
+- Public Tracking panel
+
+Add small wording if appropriate:
+- “Give with proof”
+- “Public-safe tracking”
+- “Acknowledgement → Appreciation → Gratitude”
+
+6. Acknowledgment workflow placeholder
+Prepare an acknowledgment activity/status if not already present:
+- Pending
+- Sent
+- Overdue
+- Completed
+
+Trigger/placeholders:
+- after donation intake
+- after pickup/dropoff
+- after claim fulfillment
+- after item distribution
+- after barter handoff later
+
+No real SMS required yet.
+
+7. Metrics language
+Prepare dashboard metrics around:
+- Acknowledgements received
+- Items/resources received
+- Requests received
+- Claims verified
+- Items reserved
+- Appointments scheduled
+- Resources distributed
+- Gratitude given / acknowledgments sent
+- Time from receive to give
+- Waste diverted
+
+8. Preserve working features
+Do not break:
+- /claims
+- /track/DSC-000001
+- claim tracking codes
+- copy public tracking link
+- public privacy-safe response
+- dashboard loading
+
+After changes, test:
+- /dashboard loads
+- /claims loads
+- claim details load
+- /track/DSC-000001 loads
+- public tracking still hides PII
+- no Twilio credentials are required
