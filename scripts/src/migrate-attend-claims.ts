@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
+  allocateClaimTrackingCode,
   claimEvidenceTable,
   claimHistoryTable,
   claimsTable,
@@ -50,10 +51,6 @@ const statusMapping: Record<AttendStatus, ClaimStatus> = {
   verified: "approved",
   blocked: "rejected",
 };
-
-function generateTrackingCode(): string {
-  return `DS-${randomBytes(8).toString("hex").toUpperCase()}`;
-}
 
 function escapeIlikePattern(value: string): string {
   return value.replace(/[\\%_]/g, "\\$&");
@@ -191,10 +188,11 @@ async function main(): Promise<void> {
 
     await db.transaction(async (tx) => {
       const claimId = randomUUID();
+      const trackingCode = await allocateClaimTrackingCode(tx);
 
       await tx.insert(claimsTable).values({
         id: claimId,
-        trackingCode: generateTrackingCode(),
+        trackingCode,
         accountId: account.id,
         itemId: item.id,
         status: mappedStatus,

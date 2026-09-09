@@ -1361,8 +1361,12 @@ export const ListClaimsQueryParams = zod.object({
   "itemStage": zod.enum(['intake', 'qc', 'storage', 'distributed']).optional()
 })
 
+export const listClaimsResponseTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');
+
+
 export const ListClaimsResponseItem = zod.object({
   "id": zod.string(),
+  "trackingCode": zod.string().regex(listClaimsResponseTrackingCodeRegExp).nullish(),
   "accountId": zod.string(),
   "itemId": zod.string(),
   "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
@@ -1381,8 +1385,12 @@ export const CreateClaimBody = zod.object({
   "notes": zod.string().optional()
 })
 
+export const createClaimResponseTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');
+
+
 export const CreateClaimResponse = zod.object({
   "id": zod.string(),
+  "trackingCode": zod.string().regex(createClaimResponseTrackingCodeRegExp).nullish(),
   "accountId": zod.string(),
   "itemId": zod.string(),
   "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
@@ -1423,8 +1431,12 @@ export const GetClaimParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const getClaimResponseOneTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');
+
+
 export const GetClaimResponse = zod.object({
   "id": zod.string(),
+  "trackingCode": zod.string().regex(getClaimResponseOneTrackingCodeRegExp).nullish(),
   "accountId": zod.string(),
   "itemId": zod.string(),
   "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
@@ -1475,8 +1487,12 @@ export const TransitionClaimBody = zod.object({
   "notes": zod.string().optional()
 })
 
+export const transitionClaimResponseTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');
+
+
 export const TransitionClaimResponse = zod.object({
   "id": zod.string(),
+  "trackingCode": zod.string().regex(transitionClaimResponseTrackingCodeRegExp).nullish(),
   "accountId": zod.string(),
   "itemId": zod.string(),
   "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
@@ -1617,5 +1633,37 @@ export const ListAttendOutboxResponseItem = zod.object({
   "createdAt": zod.coerce.date()
 })
 export const ListAttendOutboxResponse = zod.array(ListAttendOutboxResponseItem)
+
+
+/**
+ * @summary Get PII-safe public claim tracking
+ */
+export const getPublicTrackingPathTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');
+
+
+export const GetPublicTrackingParams = zod.object({
+  "trackingCode": zod.coerce.string().regex(getPublicTrackingPathTrackingCodeRegExp)
+})
+
+export const getPublicTrackingResponseTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');
+
+
+export const GetPublicTrackingResponse = zod.object({
+  "trackingCode": zod.string().regex(getPublicTrackingResponseTrackingCodeRegExp),
+  "item": zod.object({
+  "categoryLabel": zod.string(),
+  "name": zod.string()
+}),
+  "stage": zod.string(),
+  "status": zod.string(),
+  "lastUpdatedApprox": zod.string(),
+  "lastUpdatedExact": zod.null(),
+  "timeline": zod.array(zod.object({
+  "label": zod.string(),
+  "approx": zod.string(),
+  "exact": zod.null()
+})),
+  "exactTimesLocked": zod.literal(true)
+})
 
 

@@ -1,0 +1,100 @@
+Build the Donation Station public tracking system.
+Goal: Add claim-level public tracking codes in the format DSC-000123, separate from item IDs like DS-1001.
+Requirements
+Keep item code and claim tracking code separate
+Existing item code like DS-1001 remains the internal inventory/item ID.
+New claim tracking code like DSC-000123 belongs to the claim/request.
+Public tracking URL should use the claim tracking code:
+/track/DSC-000123
+API: /api/public/track/DSC-000123
+Database changes
+Add trackingCode or tracking_code to the claims table.
+It must be unique.
+Add a counter table if one does not exist:
+tracking_counters
+fields:
+name primary key, value "claim"
+next_number integer
+Seed counter with next_number = 1 unless existing claims need backfill.
+Generate tracking code when claim is created
+Format: DSC-${number.toString().padStart(6, "0")}
+Example first code: DSC-000001
+Use a transaction so duplicate codes cannot happen.
+Never regenerate or reuse a tracking code.
+Backfill existing claims
+Existing claim e4125761-0d15-41f8-b67a-bdf69dede99d should receive a tracking code.
+If possible, backfill all claims without tracking codes.
+Public API
+Update or create:
+GET /api/public/track/:trackingCode
+It should query claims by trackingCode, not by item ID and not by UUID.
+It must be public and mounted before any API auth middleware.
+It must return PII-safe data only.
+Public response shape
+Return something like:
+{
+  "trackingCode": "DSC-000123",
+  "item": {
+    "categoryLabel": "Food item",
+    "name": "Canned Soup (Mixed)"
+  },
+  "stage": "Storage",
+  "status": "Verified",
+  "lastUpdatedApprox": "Sep 9 (morning)",
+  "lastUpdatedExact": null,
+  "timeline": [
+    {
+      "label": "Claim submitted",
+      "approx": "Sep 9 (morning)",
+      "exact": null
+    },
+    {
+      "label": "Verified",
+      "approx": "Sep 9 (morning)",
+      "exact": null
+    }
+  ],
+  "exactTimesLocked": true
+}
+​
+Privacy rules
+Do not return:
+recipient name
+donor name
+phone number
+email
+address
+private notes
+Show:
+tracking code
+item category label
+sanitized item name
+stage
+status
+approximate timestamps
+Exact timestamps stay locked until future OTP/Twilio work.
+Claim Details UI
+On the claim detail page, show:
+Claim Tracking Code: DSC-000123
+button: Copy public tracking link
+Link should be:
+https://donation-lifecycle-tracker.replit.app/track/<trackingCode>
+Public tracking frontend
+Update PublicTrack.tsx so it displays:
+Tracking code
+Item category
+Item name
+Stage
+Status
+Approx last updated
+Exact time: Locked — verify to view
+Keep OTP/SMS button disabled or marked “coming soon” until Twilio approval.
+Test after implementation
+Create or use one existing claim.
+Confirm claim detail shows tracking code.
+Confirm this works:
+/track/DSC-000001
+/public/track/DSC-000001
+Confirm the public page returns real status instead of Tracking error: HTTP 404.
+Important
+Do not work on Twilio yet. Twilio is paused until Trust Hub approval. Keep any OTP/SMS parts as placeholders only.

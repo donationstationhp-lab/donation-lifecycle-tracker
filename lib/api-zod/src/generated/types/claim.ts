@@ -9,6 +9,8 @@ import type { ClaimStatus } from './claimStatus';
 
 export interface Claim {
   id: string;
+  /** @pattern ^DSC-[0-9]{6}$ */
+  trackingCode?: string | null;
   accountId: string;
   itemId: string;
   status: ClaimStatus;

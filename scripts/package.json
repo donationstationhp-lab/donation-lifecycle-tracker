@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "preview:smoke": "tsx ./src/preview-smoke.ts",
     "migrate-attend-claims": "tsx ./src/migrate-attend-claims.ts",
+    "backfill-claim-tracking-codes": "tsx ./src/backfill-claim-tracking-codes.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

@@ -78,6 +78,8 @@ export const ClaimStatus = {
 
 export interface Claim {
   id: string;
+  /** @pattern ^DSC-[0-9]{6}$ */
+  trackingCode?: string | null;
   accountId: string;
   itemId: string;
   status: ClaimStatus;
@@ -88,6 +90,31 @@ export interface Claim {
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PublicTrackingItem {
+  categoryLabel: string;
+  name: string;
+}
+
+export interface PublicTrackingTimelineEntry {
+  label: string;
+  approx: string;
+  /** @nullable */
+  exact: null;
+}
+
+export interface PublicTrackingResponse {
+  /** @pattern ^DSC-[0-9]{6}$ */
+  trackingCode: string;
+  item: PublicTrackingItem;
+  stage: string;
+  status: string;
+  lastUpdatedApprox: string;
+  /** @nullable */
+  lastUpdatedExact: null;
+  timeline: PublicTrackingTimelineEntry[];
+  exactTimesLocked: true;
 }
 
 export interface ClaimInput {

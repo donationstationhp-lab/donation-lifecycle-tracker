@@ -29,7 +29,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { 
   ArrowLeft, FileText, User, Package, CheckCircle2, ShieldCheck, 
-  Clock, Plus, History, ArrowRightLeft, Loader2, XCircle
+  Clock, Plus, History, ArrowRightLeft, Loader2, XCircle, Copy, ExternalLink
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ClaimStatusBadge } from './ClaimsList';
@@ -155,6 +155,25 @@ export default function ClaimDetail() {
         toast({ title: 'Failed to create transfer', description: err.message, variant: 'destructive' });
       }
     });
+  };
+
+  const publicTrackingUrl = claim.trackingCode
+    ? `https://donation-lifecycle-tracker.replit.app/track/${claim.trackingCode}`
+    : null;
+
+  const copyPublicTrackingLink = async () => {
+    if (!publicTrackingUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(publicTrackingUrl);
+      toast({ title: 'Public tracking link copied' });
+    } catch {
+      toast({
+        title: 'Unable to copy link',
+        description: publicTrackingUrl,
+        variant: 'destructive',
+      });
+    }
   };
 
   const hasIdentity = claim.evidence.some(e => e.kind === 'identity');
@@ -345,6 +364,38 @@ export default function ClaimDetail() {
         </div>
 
         <div className="space-y-6">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ExternalLink className="w-5 h-5 text-primary" />
+                Public Tracking
+              </CardTitle>
+              <CardDescription>
+                Share this link without exposing recipient or donor details.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <span className="text-xs text-muted-foreground uppercase">
+                  Claim Tracking Code
+                </span>
+                <p className="mt-1 font-mono text-lg font-semibold tracking-wide">
+                  {claim.trackingCode ?? 'Not assigned'}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={!publicTrackingUrl}
+                onClick={copyPublicTrackingLink}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy public tracking link
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">

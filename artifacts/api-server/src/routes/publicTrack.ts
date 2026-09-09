@@ -1,76 +1,100 @@
-import { createHmac, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { and, desc, eq, isNull, lt } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import {
+  claimHistoryTable,
   claimsTable,
   db,
   donationItemsTable,
-  recipientAccountsTable,
-  trackingOtpsTable,
 } from "@workspace/db";
+import { GetPublicTrackingResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+const PUBLIC_TIME_ZONE = "America/Chicago";
 
-const OTP_TTL_MS = 10 * 60_000;
-const OTP_RESEND_COOLDOWN_MS = 60_000;
-const OTP_MAX_ATTEMPTS = 5;
-const genericSendResponse = {
-  message: "If the tracking code is eligible, a verification code will be sent.",
-};
+const titleCase = (value: string) =>
+  value
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 
 function normalizedTrackingCode(value: string | string[]): string {
   return (Array.isArray(value) ? value[0] : value).trim().toUpperCase();
 }
 
-function hashOtp(trackingCode: string, code: string, pepper: string): Buffer {
-  return createHmac("sha256", pepper)
-    .update(`${trackingCode}:${code}`)
-    .digest();
+const publicCategories: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /\bfood\b/i, label: "Food" },
+  { pattern: /\bcloth(?:es|ing)?\b/i, label: "Clothing" },
+  { pattern: /\bfurniture\b/i, label: "Furniture" },
+  { pattern: /\belectronics?\b/i, label: "Electronics" },
+  { pattern: /\b(household|home)\b/i, label: "Household" },
+  { pattern: /\b(hygiene|toiletr(?:y|ies)|personal care)\b/i, label: "Hygiene" },
+  { pattern: /\b(medical|health)\b/i, label: "Medical supply" },
+  { pattern: /\b(school|education)\b/i, label: "School supply" },
+];
+
+const publicItemNames: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /\bfrozen\b.*\bchicken\b|\bchicken\b.*\bfrozen\b/i, label: "Frozen chicken" },
+  { pattern: /\bcanned\b.*\bsoup\b|\bsoup\b.*\bcanned\b/i, label: "Canned soup" },
+  { pattern: /\bcanned goods?\b/i, label: "Canned goods" },
+  { pattern: /\bproduce\b|\bvegetables?\b|\bfruit\b/i, label: "Fresh produce" },
+  { pattern: /\brice\b/i, label: "Rice" },
+  { pattern: /\bpasta\b/i, label: "Pasta" },
+  { pattern: /\bcoat\b|\bjacket\b/i, label: "Coat or jacket" },
+  { pattern: /\bshirt\b/i, label: "Shirt" },
+  { pattern: /\bpants?\b|\btrousers?\b/i, label: "Pants" },
+  { pattern: /\bshoes?\b|\bboots?\b/i, label: "Footwear" },
+  { pattern: /\bblankets?\b/i, label: "Blanket" },
+  { pattern: /\bsoap\b/i, label: "Soap" },
+  { pattern: /\bdiapers?\b/i, label: "Diapers" },
+];
+
+export function safeCategory(category: string): string {
+  return publicCategories.find(({ pattern }) => pattern.test(category))?.label
+    ?? "Donation";
 }
 
-function configuredSecret(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`${name} is not configured`);
-  }
-  return value;
+export function safeItemName(name: string, category: string): string {
+  return publicItemNames.find(({ pattern }) => pattern.test(name))?.label
+    ?? `${safeCategory(category)} item`;
 }
 
-async function sendTwilioOtp(to: string, code: string): Promise<void> {
-  const accountSid = configuredSecret("TWILIO_ACCOUNT_SID");
-  const authToken = configuredSecret("TWILIO_AUTH_TOKEN");
-  const fromNumber = configuredSecret("TWILIO_FROM_NUMBER");
-  const body = new URLSearchParams({
-    To: to,
-    From: fromNumber,
-    Body: `Your Donation Station verification code is ${code}. It expires in 10 minutes.`,
-  });
-
-  const response = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(accountSid)}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-        "content-type": "application/x-www-form-urlencoded",
-      },
-      body,
-    },
+function approximateTimestamp(value: Date): string {
+  const date = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: PUBLIC_TIME_ZONE,
+  }).format(value);
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone: PUBLIC_TIME_ZONE,
+    }).format(value),
   );
+  const period =
+    hour < 5 ? "overnight" :
+    hour < 12 ? "morning" :
+    hour < 17 ? "afternoon" :
+    hour < 21 ? "evening" :
+    "night";
 
-  if (!response.ok) {
-    throw new Error(`Twilio SMS request failed (${response.status})`);
-  }
+  return `${date} (${period})`;
 }
 
-async function getPublicTrackingResult(trackingCode: string) {
-  const [row] = await db
+router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
+  const trackingCode = normalizedTrackingCode(req.params.trackingCode);
+  if (!/^DSC-\d{6}$/.test(trackingCode)) {
+    res.status(404).json({ error: "Tracking record not found" });
+    return;
+  }
+
+  const [result] = await db
     .select({
+      claimId: claimsTable.id,
       trackingCode: claimsTable.trackingCode,
-      claimStatus: claimsTable.status,
-      claimCreatedAt: claimsTable.createdAt,
-      claimUpdatedAt: claimsTable.updatedAt,
-      itemId: donationItemsTable.itemId,
+      status: claimsTable.status,
+      updatedAt: claimsTable.updatedAt,
+      itemName: donationItemsTable.name,
+      itemCategory: donationItemsTable.category,
       itemStage: donationItemsTable.stage,
     })
     .from(claimsTable)
@@ -78,155 +102,39 @@ async function getPublicTrackingResult(trackingCode: string) {
     .where(eq(claimsTable.trackingCode, trackingCode))
     .limit(1);
 
-  return row;
-}
-
-router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
-  const trackingCode = normalizedTrackingCode(req.params.trackingCode);
-  const result = await getPublicTrackingResult(trackingCode);
-
-  if (!result) {
+  if (!result?.trackingCode) {
     res.status(404).json({ error: "Tracking record not found" });
     return;
   }
 
-  res.json(result);
-});
-
-router.post("/public/track/:trackingCode/send-otp", async (req, res): Promise<void> => {
-  const trackingCode = normalizedTrackingCode(req.params.trackingCode);
-  const [claim] = await db
+  const history = await db
     .select({
-      id: claimsTable.id,
-      accountId: claimsTable.accountId,
+      status: claimHistoryTable.toStatus,
+      timestamp: claimHistoryTable.timestamp,
     })
-    .from(claimsTable)
-    .where(eq(claimsTable.trackingCode, trackingCode))
-    .limit(1);
+    .from(claimHistoryTable)
+    .where(eq(claimHistoryTable.claimId, result.claimId))
+    .orderBy(asc(claimHistoryTable.timestamp));
 
-  if (!claim) {
-    res.status(202).json(genericSendResponse);
-    return;
-  }
-
-  const [account] = await db
-    .select({ contactPhone: recipientAccountsTable.contactPhone })
-    .from(recipientAccountsTable)
-    .where(eq(recipientAccountsTable.id, claim.accountId))
-    .limit(1);
-
-  if (!account?.contactPhone?.trim()) {
-    res.status(202).json(genericSendResponse);
-    return;
-  }
-
-  const [latestOtp] = await db
-    .select({ createdAt: trackingOtpsTable.createdAt })
-    .from(trackingOtpsTable)
-    .where(eq(trackingOtpsTable.claimId, claim.id))
-    .orderBy(desc(trackingOtpsTable.createdAt))
-    .limit(1);
-
-  if (
-    latestOtp &&
-    Date.now() - latestOtp.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS
-  ) {
-    res.status(429).json({ error: "Please wait before requesting another code" });
-    return;
-  }
-
-  const pepper = configuredSecret("OTP_PEPPER");
-  const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
-
-  try {
-    await sendTwilioOtp(account.contactPhone.trim(), code);
-  } catch (error) {
-    req.log.error(
-      { error: error instanceof Error ? error.message : "Unknown Twilio error" },
-      "Unable to send tracking OTP",
-    );
-    res.status(502).json({ error: "Unable to send verification code" });
-    return;
-  }
-
-  await db.insert(trackingOtpsTable).values({
-    id: randomUUID(),
-    claimId: claim.id,
-    codeHash: hashOtp(trackingCode, code, pepper).toString("hex"),
-    expiresAt: new Date(Date.now() + OTP_TTL_MS),
-  });
-
-  res.status(202).json(genericSendResponse);
-});
-
-router.post("/public/track/:trackingCode/verify-otp", async (req, res): Promise<void> => {
-  const trackingCode = normalizedTrackingCode(req.params.trackingCode);
-  const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
-
-  if (!/^\d{6}$/.test(code)) {
-    res.status(400).json({ error: "A six-digit verification code is required" });
-    return;
-  }
-
-  const [claim] = await db
-    .select({ id: claimsTable.id })
-    .from(claimsTable)
-    .where(eq(claimsTable.trackingCode, trackingCode))
-    .limit(1);
-
-  if (!claim) {
-    res.status(401).json({ error: "Invalid or expired verification code" });
-    return;
-  }
-
-  const pepper = configuredSecret("OTP_PEPPER");
-  const verified = await db.transaction(async (tx) => {
-    const [otp] = await tx
-      .select()
-      .from(trackingOtpsTable)
-      .where(
-        and(
-          eq(trackingOtpsTable.claimId, claim.id),
-          isNull(trackingOtpsTable.usedAt),
-          lt(trackingOtpsTable.attempts, OTP_MAX_ATTEMPTS),
-        ),
-      )
-      .orderBy(desc(trackingOtpsTable.createdAt))
-      .limit(1)
-      .for("update");
-
-    if (!otp || otp.expiresAt.getTime() <= Date.now()) {
-      return false;
-    }
-
-    const expected = Buffer.from(otp.codeHash, "hex");
-    const supplied = hashOtp(trackingCode, code, pepper);
-    const matches =
-      expected.length === supplied.length && timingSafeEqual(expected, supplied);
-
-    await tx
-      .update(trackingOtpsTable)
-      .set({
-        attempts: otp.attempts + 1,
-        usedAt: matches ? new Date() : null,
-      })
-      .where(eq(trackingOtpsTable.id, otp.id));
-
-    return matches;
-  });
-
-  if (!verified) {
-    res.status(401).json({ error: "Invalid or expired verification code" });
-    return;
-  }
-
-  const result = await getPublicTrackingResult(trackingCode);
-  if (!result) {
-    res.status(404).json({ error: "Tracking record not found" });
-    return;
-  }
-
-  res.json({ verified: true, tracking: result });
+  res.json(GetPublicTrackingResponse.parse({
+    trackingCode: result.trackingCode,
+    item: {
+      categoryLabel: `${safeCategory(result.itemCategory)} item`,
+      name: safeItemName(result.itemName, result.itemCategory),
+    },
+    stage: titleCase(result.itemStage),
+    status: titleCase(result.status),
+    lastUpdatedApprox: approximateTimestamp(result.updatedAt),
+    lastUpdatedExact: null,
+    timeline: history.map((entry) => ({
+      label: entry.status === "submitted"
+        ? "Claim submitted"
+        : titleCase(entry.status),
+      approx: approximateTimestamp(entry.timestamp),
+      exact: null,
+    })),
+    exactTimesLocked: true,
+  }));
 });
 
 export default router;

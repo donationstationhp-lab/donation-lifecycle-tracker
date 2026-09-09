@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, desc, eq, like } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
-  db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
+  allocateClaimTrackingCode, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
   notificationOutboxTable, recipientAccountsTable, stageHistoryTable, transferHistoryTable, transfersTable,
 } from "@workspace/db";
 import {
@@ -18,7 +18,6 @@ import { requireSupervisor } from "../middlewares/apiKeyAuth";
 import { canCollectEvidence, validateClaimTransition, validateTransferTransition, type ClaimStatus, type TransferStatus } from "../lib/attendTransitions";
 import { deliverAttendOutboxByDedupeKey } from "../lib/attendSheets";
 import { isUniqueViolation } from "../lib/dbErrors";
-import { generateTrackingCode } from "../lib/trackingCodes";
 
 const router: IRouter = Router();
 const actor = (res: import("express").Response) => res.locals.authMethod === "api-key" ? "api-key" : (res.locals.staffUserId ?? "staff");
@@ -81,9 +80,10 @@ router.post("/claims", async (req, res): Promise<void> => {
   if (!account || !item) { res.status(404).json({ error: "Recipient account or item not found" }); return; }
   const by = actor(res); const id = randomUUID();
   const claim = await db.transaction(async (tx) => {
+    const trackingCode = await allocateClaimTrackingCode(tx);
     const [created] = await tx.insert(claimsTable).values({
       id,
-      trackingCode: generateTrackingCode(),
+      trackingCode,
       ...parsed.data,
       submittedBy: by,
     }).returning();

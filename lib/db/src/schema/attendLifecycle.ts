@@ -55,6 +55,11 @@ export const claimsTable = pgTable(
   }),
 );
 
+export const trackingCountersTable = pgTable("tracking_counters", {
+  name: text("name").primaryKey(),
+  nextNumber: integer("next_number").notNull(),
+});
+
 export const trackingOtpsTable = pgTable(
   "tracking_otps",
   {
@@ -165,6 +170,7 @@ export const notificationOutboxTable = pgTable(
 
 export const insertRecipientAccountSchema = createInsertSchema(recipientAccountsTable).omit({ createdAt: true, updatedAt: true });
 export const insertClaimSchema = createInsertSchema(claimsTable).omit({ createdAt: true, updatedAt: true });
+export const insertTrackingCounterSchema = createInsertSchema(trackingCountersTable);
 export const insertTrackingOtpSchema = createInsertSchema(trackingOtpsTable).omit({ createdAt: true, usedAt: true });
 export const insertClaimEvidenceSchema = createInsertSchema(claimEvidenceTable).omit({ createdAt: true });
 export const insertClaimHistorySchema = createInsertSchema(claimHistoryTable).omit({ timestamp: true });
@@ -174,6 +180,7 @@ export const insertNotificationOutboxSchema = createInsertSchema(notificationOut
 
 export type RecipientAccount = typeof recipientAccountsTable.$inferSelect;
 export type Claim = typeof claimsTable.$inferSelect;
+export type TrackingCounter = typeof trackingCountersTable.$inferSelect;
 export type TrackingOtp = typeof trackingOtpsTable.$inferSelect;
 export type ClaimEvidence = typeof claimEvidenceTable.$inferSelect;
 export type ClaimHistory = typeof claimHistoryTable.$inferSelect;
@@ -182,6 +189,7 @@ export type TransferHistory = typeof transferHistoryTable.$inferSelect;
 export type NotificationOutbox = typeof notificationOutboxTable.$inferSelect;
 export type InsertRecipientAccount = z.infer<typeof insertRecipientAccountSchema>;
 export type InsertClaim = z.infer<typeof insertClaimSchema>;
+export type InsertTrackingCounter = z.infer<typeof insertTrackingCounterSchema>;
 export type InsertTrackingOtp = z.infer<typeof insertTrackingOtpSchema>;
 export type InsertClaimEvidence = z.infer<typeof insertClaimEvidenceSchema>;
 export type InsertClaimHistory = z.infer<typeof insertClaimHistorySchema>;

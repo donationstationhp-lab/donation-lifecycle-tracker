@@ -62,6 +62,7 @@ import type {
   PickupRequestInput,
   PickupRequestUpdate,
   PickupRouteInput,
+  PublicTrackingResponse,
   RecipientAccount,
   RecipientAccountInput,
   StageAdvance,
@@ -3243,6 +3244,83 @@ export function useListAttendOutbox<TData = Awaited<ReturnType<typeof listAttend
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListAttendOutboxQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPublicTrackingUrl = (trackingCode: string,) => {
+
+
+
+
+  return `/api/public/track/${trackingCode}`
+}
+
+/**
+ * @summary Get PII-safe public claim tracking
+ */
+export const getPublicTracking = async (trackingCode: string, options?: Parameters<typeof customFetch>[1]): Promise<PublicTrackingResponse> => {
+
+  return customFetch<PublicTrackingResponse>(getGetPublicTrackingUrl(trackingCode),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicTrackingQueryKey = (trackingCode: string,) => {
+    return [
+    `/api/public/track/${trackingCode}`
+    ] as const;
+    }
+
+
+export const getGetPublicTrackingQueryOptions = <TData = Awaited<ReturnType<typeof getPublicTracking>>, TError = ErrorType<ErrorResponse>>(trackingCode: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicTracking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicTrackingQueryKey(trackingCode);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicTracking>>> = ({ signal }) => getPublicTracking(trackingCode, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: trackingCode !== null && trackingCode !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicTracking>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicTrackingQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicTracking>>>
+export type GetPublicTrackingQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get PII-safe public claim tracking
+ */
+
+export function useGetPublicTracking<TData = Awaited<ReturnType<typeof getPublicTracking>>, TError = ErrorType<ErrorResponse>>(
+ trackingCode: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicTracking>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicTrackingQueryOptions(trackingCode,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

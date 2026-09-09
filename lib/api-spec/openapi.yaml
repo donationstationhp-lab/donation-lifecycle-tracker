@@ -821,6 +821,31 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AttendOutboxEntry"
+  /public/track/{trackingCode}:
+    get:
+      operationId: getPublicTracking
+      tags: [attend]
+      summary: Get PII-safe public claim tracking
+      parameters:
+        - name: trackingCode
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^DSC-[0-9]{6}$"
+      responses:
+        "200":
+          description: Public claim tracking details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicTrackingResponse"
+        "404":
+          description: Tracking record not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     AttendOutboxEntry:
@@ -872,6 +897,7 @@ components:
       required: [id, accountId, itemId, status, submittedBy, createdAt, updatedAt]
       properties:
         id: { type: string }
+        trackingCode: { type: string, nullable: true, pattern: "^DSC-[0-9]{6}$" }
         accountId: { type: string }
         itemId: { type: string }
         status: { type: string, enum: [submitted, verified, approved, fulfilled, rejected, cancelled] }
@@ -880,6 +906,45 @@ components:
         notes: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+    PublicTrackingItem:
+      type: object
+      additionalProperties: false
+      required: [categoryLabel, name]
+      properties:
+        categoryLabel: { type: string }
+        name: { type: string }
+    PublicTrackingTimelineEntry:
+      type: object
+      additionalProperties: false
+      required: [label, approx, exact]
+      properties:
+        label: { type: string }
+        approx: { type: string }
+        exact: { type: "null" }
+    PublicTrackingResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - trackingCode
+        - item
+        - stage
+        - status
+        - lastUpdatedApprox
+        - lastUpdatedExact
+        - timeline
+        - exactTimesLocked
+      properties:
+        trackingCode: { type: string, pattern: "^DSC-[0-9]{6}$" }
+        item: { $ref: "#/components/schemas/PublicTrackingItem" }
+        stage: { type: string }
+        status: { type: string }
+        lastUpdatedApprox: { type: string }
+        lastUpdatedExact: { type: "null" }
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicTrackingTimelineEntry"
+        exactTimesLocked: { type: boolean, const: true }
     ClaimInput:
       type: object
       required: [accountId, itemId]
