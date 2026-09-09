@@ -120,8 +120,8 @@ export function PickupDetailPane({ pickupId }: { pickupId: string }) {
           )}
 
           {pickup.status === 'contact_made' && !pickup.confirmationSent && (
-            <Button size="sm" variant="secondary" className="border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100" onClick={() => updatePickup.mutate({ id: pickup.id, data: { confirmationSent: true } })}>
-              <MessageSquare className="w-4 h-4 mr-2" /> Send Confirmation SMS
+            <Button size="sm" variant="secondary" className="border-blue-200 text-blue-700 bg-blue-50" disabled>
+              <MessageSquare className="w-4 h-4 mr-2" /> SMS confirmation — Coming soon
             </Button>
           )}
 

@@ -165,10 +165,15 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
               </CardContent>
             </Card>
 
-            <Button disabled className="w-full">
-              <LockKeyhole className="mr-2 h-4 w-4" />
-              Verify to view exact times — Coming soon
-            </Button>
+            <div className="space-y-2">
+              <Button disabled className="w-full">
+                <LockKeyhole className="mr-2 h-4 w-4" />
+                Verify to view exact times
+              </Button>
+              <p className="text-center text-sm text-slate-500">
+                SMS verification coming soon
+              </p>
+            </div>
           </>
         )}
       </div>
