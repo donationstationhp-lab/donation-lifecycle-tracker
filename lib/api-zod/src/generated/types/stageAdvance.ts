@@ -10,4 +10,7 @@ import type { StageAdvanceStage } from './stageAdvanceStage';
 export interface StageAdvance {
   stage: StageAdvanceStage;
   notes?: string;
+  override?: boolean;
+  /** @minLength 1 */
+  reason?: string;
 }

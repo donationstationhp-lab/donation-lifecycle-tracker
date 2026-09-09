@@ -13,5 +13,8 @@ export const StageCountStage = {
   intake: 'intake',
   qc: 'qc',
   storage: 'storage',
+  matched: 'matched',
+  scheduled: 'scheduled',
   distributed: 'distributed',
+  closed: 'closed',
 } as const;

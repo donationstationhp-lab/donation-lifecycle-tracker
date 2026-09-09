@@ -295,7 +295,10 @@ export const DonationItemStage = {
   intake: 'intake',
   qc: 'qc',
   storage: 'storage',
+  matched: 'matched',
+  scheduled: 'scheduled',
   distributed: 'distributed',
+  closed: 'closed',
 } as const;
 
 export interface DonationItem {
@@ -499,12 +502,18 @@ export const StageAdvanceStage = {
   intake: 'intake',
   qc: 'qc',
   storage: 'storage',
+  matched: 'matched',
+  scheduled: 'scheduled',
   distributed: 'distributed',
+  closed: 'closed',
 } as const;
 
 export interface StageAdvance {
   stage: StageAdvanceStage;
   notes?: string;
+  override?: boolean;
+  /** @minLength 1 */
+  reason?: string;
 }
 
 export type ExpiringItemUrgency = typeof ExpiringItemUrgency[keyof typeof ExpiringItemUrgency];
@@ -551,7 +560,10 @@ export const StageCountStage = {
   intake: 'intake',
   qc: 'qc',
   storage: 'storage',
+  matched: 'matched',
+  scheduled: 'scheduled',
   distributed: 'distributed',
+  closed: 'closed',
 } as const;
 
 export interface StageCount {
@@ -874,7 +886,10 @@ export const ListItemsStage = {
   intake: 'intake',
   qc: 'qc',
   storage: 'storage',
+  matched: 'matched',
+  scheduled: 'scheduled',
   distributed: 'distributed',
+  closed: 'closed',
 } as const;
 
 export type ListItemsTier = typeof ListItemsTier[keyof typeof ListItemsTier];
@@ -966,7 +981,10 @@ export const ListClaimsItemStage = {
   intake: 'intake',
   qc: 'qc',
   storage: 'storage',
+  matched: 'matched',
+  scheduled: 'scheduled',
   distributed: 'distributed',
+  closed: 'closed',
 } as const;
 
 export type ListTransfersParams = {

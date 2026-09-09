@@ -27,7 +27,10 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
     intake: 0,
     qc: 0,
     storage: 0,
+    matched: 0,
+    scheduled: 0,
     distributed: 0,
+    closed: 0,
   };
   for (const item of allItems) {
     if (item.stage in stageCounts) stageCounts[item.stage]++;

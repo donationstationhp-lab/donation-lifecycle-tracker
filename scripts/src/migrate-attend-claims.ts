@@ -8,6 +8,7 @@ import {
   db,
   donationItemsTable,
   recipientAccountsTable,
+  stageHistoryTable,
 } from "@workspace/db";
 import { eq, ilike } from "drizzle-orm";
 import { z } from "zod";
@@ -189,6 +190,19 @@ async function main(): Promise<void> {
     await db.transaction(async (tx) => {
       const claimId = randomUUID();
       const trackingCode = await allocateClaimTrackingCode(tx);
+      const [lockedItem] = await tx
+        .select({ id: donationItemsTable.id, stage: donationItemsTable.stage })
+        .from(donationItemsTable)
+        .where(eq(donationItemsTable.id, item.id))
+        .for("update");
+      if (!lockedItem) {
+        throw new Error(`Item ${entry.linkedItemId} disappeared during migration`);
+      }
+      if (mappedStatus === "approved" && lockedItem.stage !== "storage") {
+        throw new Error(
+          `Approved ATTEND claim ${entry.id} requires item ${entry.linkedItemId} to be in storage`,
+        );
+      }
 
       await tx.insert(claimsTable).values({
         id: claimId,
@@ -209,6 +223,24 @@ async function main(): Promise<void> {
         by: "attend-migration",
         notes: `Migrated from ATTEND entry #${entry.id}`,
       });
+
+      if (mappedStatus === "approved") {
+        const [matched] = await tx
+          .update(donationItemsTable)
+          .set({ stage: "matched", updatedAt: new Date() })
+          .where(eq(donationItemsTable.id, lockedItem.id))
+          .returning({ id: donationItemsTable.id });
+        if (!matched) {
+          throw new Error(`Item ${entry.linkedItemId} changed during migration`);
+        }
+        await tx.insert(stageHistoryTable).values({
+          id: randomUUID(),
+          itemId: lockedItem.id,
+          fromStage: "storage",
+          toStage: "matched",
+          notes: `Approved claim imported from ATTEND entry #${entry.id}`,
+        });
+      }
 
       if (mappedStatus === "approved" && entry.artifactReference?.trim()) {
         await tx.insert(claimEvidenceTable).values({

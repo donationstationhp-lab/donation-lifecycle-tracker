@@ -79,7 +79,7 @@ async function createFixture(): Promise<Fixture> {
     condition: "good",
     donor: "Concurrency test donor",
     lotNumber: `LOT-${suffix}`,
-    stage: "storage",
+    stage: "matched",
   });
   await db.insert(claimsTable).values({
     id: fixture.claimId,
@@ -127,6 +127,10 @@ async function removeFixture(fixture: Fixture, transferIds: string[] = []): Prom
 
 async function insertReleasedTransfer(fixture: Fixture): Promise<string> {
   const transferId = randomUUID();
+  await db
+    .update(donationItemsTable)
+    .set({ stage: "scheduled" })
+    .where(eq(donationItemsTable.id, fixture.itemId));
   await db.insert(transfersTable).values({
     id: transferId,
     claimId: fixture.claimId,

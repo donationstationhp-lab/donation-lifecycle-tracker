@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ArrowLeft, ArrowRight, Package, MapPin, Calendar, Scale, Map, 
   User, CheckCircle2, History, Loader2, ArrowUpCircle, FileText, ArrowRightLeft
@@ -17,7 +18,21 @@ import { ClaimStatusBadge } from './ClaimsList';
 import { TransferStatusBadge } from './TransfersList';
 import { format } from 'date-fns';
 
-const stageFlow: DonationItemStage[] = ['intake', 'qc', 'storage', 'distributed'];
+const stageFlow: DonationItemStage[] = ['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed'];
+const stageLabels: Record<DonationItemStage, string> = {
+  intake: 'Intake',
+  qc: 'Quality Check',
+  storage: 'Storage',
+  matched: 'Matched / Claimed',
+  scheduled: 'Scheduled',
+  distributed: 'Distributed',
+  closed: 'Closed',
+};
+const manualNextStages: Partial<Record<DonationItemStage, DonationItemStage>> = {
+  intake: 'qc',
+  qc: 'storage',
+  distributed: 'closed',
+};
 
 export default function ItemDetail() {
   const [, params] = useRoute('/items/:id');
@@ -32,6 +47,10 @@ export default function ItemDetail() {
 
   const [isAdvanceDialogOpen, setIsAdvanceDialogOpen] = useState(false);
   const [advanceNotes, setAdvanceNotes] = useState('');
+  const [isOverrideDialogOpen, setIsOverrideDialogOpen] = useState(false);
+  const [overrideStage, setOverrideStage] = useState<DonationItemStage | ''>('');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [overrideNotes, setOverrideNotes] = useState('');
 
   if (isLoading) {
     return (
@@ -57,8 +76,7 @@ export default function ItemDetail() {
     );
   }
 
-  const currentStageIndex = stageFlow.indexOf(item.stage);
-  const nextStage = currentStageIndex < stageFlow.length - 1 ? stageFlow[currentStageIndex + 1] : null;
+  const nextStage = manualNextStages[item.stage] ?? null;
 
   const handleAdvance = () => {
     if (!nextStage) return;
@@ -91,6 +109,41 @@ export default function ItemDetail() {
     });
   };
 
+  const handleOverride = () => {
+    if (!overrideStage || !overrideReason.trim()) return;
+
+    advanceStage.mutate({
+      id,
+      data: {
+        stage: overrideStage,
+        override: true,
+        reason: overrideReason.trim(),
+        notes: overrideNotes.trim() || undefined,
+      },
+    }, {
+      onSuccess: () => {
+        setIsOverrideDialogOpen(false);
+        setOverrideStage('');
+        setOverrideReason('');
+        setOverrideNotes('');
+        queryClient.invalidateQueries({ queryKey: getGetItemQueryKey(id) });
+        queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+        toast({
+          title: 'Stage override recorded',
+          description: `${item.itemId} is now in ${stageLabels[overrideStage]}`,
+        });
+      },
+      onError: (err: any) => {
+        toast({
+          title: 'Stage override failed',
+          description: err.message || 'An error occurred.',
+          variant: 'destructive',
+        });
+      },
+    });
+  };
+
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -113,15 +166,24 @@ export default function ItemDetail() {
           </div>
         </div>
 
-        {nextStage && (
-          <Button 
-            onClick={() => setIsAdvanceDialogOpen(true)}
-            className="w-full md:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+        <div className="flex w-full md:w-auto gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsOverrideDialogOpen(true)}
+            className="flex-1 md:flex-none"
           >
-            Advance to {nextStage.charAt(0).toUpperCase() + nextStage.slice(1)}
-            <ArrowRight className="w-4 h-4 ml-2" />
+            Override stage
           </Button>
-        )}
+          {nextStage && (
+            <Button 
+              onClick={() => setIsAdvanceDialogOpen(true)}
+              className="flex-1 md:flex-none bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+            >
+              Advance to {stageLabels[nextStage]}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -346,6 +408,56 @@ export default function ItemDetail() {
             >
               {advanceStage.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
               Confirm Move
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isOverrideDialogOpen} onOpenChange={setIsOverrideDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Override item stage</DialogTitle>
+            <DialogDescription>
+              Use this only when the normal lifecycle path cannot be followed. The reason and staff identity are recorded in history.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Target stage</label>
+              <Select value={overrideStage} onValueChange={(value) => setOverrideStage(value as DonationItemStage)}>
+                <SelectTrigger><SelectValue placeholder="Select a stage" /></SelectTrigger>
+                <SelectContent>
+                  {stageFlow.filter((stage) => stage !== item.stage).map((stage) => (
+                    <SelectItem key={stage} value={stage}>{stageLabels[stage]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="override-reason" className="text-sm font-medium">Override reason (Required)</label>
+              <Textarea
+                id="override-reason"
+                placeholder="Explain why the normal lifecycle path cannot be followed..."
+                value={overrideReason}
+                onChange={(event) => setOverrideReason(event.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="override-notes" className="text-sm font-medium">Additional notes (Optional)</label>
+              <Textarea
+                id="override-notes"
+                value={overrideNotes}
+                onChange={(event) => setOverrideNotes(event.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsOverrideDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleOverride} disabled={!overrideStage || !overrideReason.trim() || advanceStage.isPending}>
+              {advanceStage.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Record override
             </Button>
           </DialogFooter>
         </DialogContent>

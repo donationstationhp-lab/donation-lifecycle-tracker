@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { safeCategory, safeItemName } from "../routes/publicTrack";
+import {
+  publicClaimStatusLabel,
+  safeCategory,
+  safeItemName,
+} from "../routes/publicTrack";
 
 test("public item labels never echo unknown free-form content", () => {
   const privateName = "Donation for Jane Doe, 123 Main Street, jane@example.com";
@@ -20,4 +24,10 @@ test("known categories and items resolve only to curated labels", () => {
     safeItemName("Call 312-555-0100 about winter shirt", "Clothing"),
     "Shirt",
   );
+});
+
+test("public claim statuses use curated language", () => {
+  assert.equal(publicClaimStatusLabel("approved"), "Claim Approved");
+  assert.equal(publicClaimStatusLabel("fulfilled"), "Completed");
+  assert.equal(publicClaimStatusLabel("private_internal_status"), "In Progress");
 });

@@ -72,27 +72,6 @@ router.post("/public/donate", async (req, res): Promise<void> => {
   const qty = parseInt(String(quantity ?? 1), 10) || 1;
   const itemName = qty > 1 ? `${name.trim()} (×${qty})` : name.trim();
 
-  const [item] = await db
-    .insert(donationItemsTable)
-    .values({
-      id,
-      itemId,
-      name: itemName,
-      category: category ? String(category).trim() : "General",
-      tier: "R", // Default tier — staff will classify during review
-      condition: condition ? String(condition) : "good",
-      donor: donorStr,
-      expiryDate: perishable && expiryDate ? String(expiryDate) : null,
-      temperatureZone: perishable ? (temperatureZone ?? "ambient") : "ambient",
-      weight: perishable && weight ? Number(weight) : null,
-      origin: origin ? String(origin).trim() : null,
-      lotNumber,
-      powerConnectionReading: computeNumerology(now),
-      stage: "intake",
-      pendingReview: true,
-    })
-    .returning();
-
   const historyNotes = [
     "Submitted via public donor form",
     notes ? `Donor notes: ${String(notes).trim()}` : null,
@@ -101,12 +80,35 @@ router.post("/public/donate", async (req, res): Promise<void> => {
     .filter(Boolean)
     .join(" | ");
 
-  await db.insert(stageHistoryTable).values({
-    id: randomUUID(),
-    itemId: id,
-    fromStage: null,
-    toStage: "intake",
-    notes: historyNotes,
+  const item = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(donationItemsTable)
+      .values({
+        id,
+        itemId,
+        name: itemName,
+        category: category ? String(category).trim() : "General",
+        tier: "R", // Default tier — staff will classify during review
+        condition: condition ? String(condition) : "good",
+        donor: donorStr,
+        expiryDate: perishable && expiryDate ? String(expiryDate) : null,
+        temperatureZone: perishable ? (temperatureZone ?? "ambient") : "ambient",
+        weight: perishable && weight ? Number(weight) : null,
+        origin: origin ? String(origin).trim() : null,
+        lotNumber,
+        powerConnectionReading: computeNumerology(now),
+        stage: "intake",
+        pendingReview: true,
+      })
+      .returning();
+    await tx.insert(stageHistoryTable).values({
+      id: randomUUID(),
+      itemId: id,
+      fromStage: null,
+      toStage: "intake",
+      notes: historyNotes,
+    });
+    return created;
   });
 
   res.status(201).json({

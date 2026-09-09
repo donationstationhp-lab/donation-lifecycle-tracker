@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, like } from "drizzle-orm";
+import { and, desc, eq, inArray, like } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
   allocateClaimTrackingCode, ensureClaimTrackingCodes, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
@@ -127,14 +127,46 @@ router.patch("/claims/:id/status", async (req, res): Promise<void> => {
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
   if (body.data.status === "approved" && res.locals.staffRole !== "supervisor") { requireSupervisor(req, res, () => undefined); return; }
   const result = await db.transaction(async (tx) => {
-    const [claim] = await tx.select().from(claimsTable).where(eq(claimsTable.id, params.data.id));
-    if (!claim) return { error: "Claim not found" };
+    const [snapshot] = await tx.select().from(claimsTable).where(eq(claimsTable.id, params.data.id));
+    if (!snapshot) return { error: "Claim not found" };
+    const [item] = await tx.select().from(donationItemsTable).where(eq(donationItemsTable.id, snapshot.itemId)).for("update");
+    const [claim] = await tx.select().from(claimsTable).where(eq(claimsTable.id, params.data.id)).for("update");
+    if (!claim || !item) return { error: "Claim references a missing item" };
     const evidence = await tx.select().from(claimEvidenceTable).where(eq(claimEvidenceTable.claimId, claim.id));
     const allowed = validateClaimTransition(claim.status as ClaimStatus, body.data.status as ClaimStatus, evidence);
     if (!allowed.ok) return { error: allowed.reason };
     if (allowed.idempotent) return { claim };
+    if (body.data.status === "approved" && item.stage !== "storage") {
+      return { error: "Item must be in storage before a claim can be approved" };
+    }
+    if (claim.status === "approved" && body.data.status === "cancelled") {
+      const [activeTransfer] = await tx
+        .select({ id: transfersTable.id })
+        .from(transfersTable)
+        .where(and(
+          eq(transfersTable.claimId, claim.id),
+          inArray(transfersTable.status, ["planned", "released"]),
+        ))
+        .limit(1);
+      if (activeTransfer) {
+        return { error: "Cancel the active transfer before cancelling this claim" };
+      }
+      if (item.stage !== "matched") {
+        return { error: "Matched item stage is required to cancel an approved claim" };
+      }
+    }
     const by = actor(res); const [updated] = await tx.update(claimsTable).set({ status: body.data.status, ...(body.data.status === "approved" ? { approvedBy: by } : {}) }).where(eq(claimsTable.id, claim.id)).returning();
     await tx.insert(claimHistoryTable).values({ id: randomUUID(), claimId: claim.id, fromStatus: claim.status, toStatus: body.data.status, by, notes: body.data.notes ?? null });
+    if (body.data.status === "approved" && item.stage === "storage") {
+      const [matched] = await tx.update(donationItemsTable).set({ stage: "matched", updatedAt: new Date() }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "storage"))).returning();
+      if (!matched) return { error: "Item stage changed while approving claim" };
+      await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "storage", toStage: "matched", notes: `Claim ${claim.id} approved` });
+    }
+    if (claim.status === "approved" && body.data.status === "cancelled") {
+      const [restored] = await tx.update(donationItemsTable).set({ stage: "storage", updatedAt: new Date() }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "matched"))).returning();
+      if (!restored) return { error: "Item stage changed while cancelling claim" };
+      await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "matched", toStage: "storage", notes: `Claim ${claim.id} cancelled` });
+    }
     await tx.insert(notificationOutboxTable).values(event("claim", claim.id, body.data.status)).onConflictDoNothing();
     return { claim: updated };
   });
@@ -162,8 +194,12 @@ router.post("/transfers", async (req, res): Promise<void> => {
       if (!item || !claim || claim.status !== "approved" || claim.accountId !== parsed.data.accountId || claim.itemId !== parsed.data.itemId) {
         throw new Error("TRANSFER_PRECONDITION");
       }
+      if (item.stage !== "matched") throw new Error("ITEM_NOT_MATCHED");
       const [created] = await tx.insert(transfersTable).values({ id, ...parsed.data }).returning();
+      const [scheduled] = await tx.update(donationItemsTable).set({ stage: "scheduled", updatedAt: new Date() }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "matched"))).returning();
+      if (!scheduled) throw new Error("ITEM_NOT_MATCHED");
       await tx.insert(transferHistoryTable).values({ id: randomUUID(), transferId: id, fromStatus: null, toStatus: "planned", by });
+      await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "matched", toStage: "scheduled", notes: `Transfer ${id} planned` });
       await tx.insert(notificationOutboxTable).values(event("transfer", id, "planned")).onConflictDoNothing();
       return created;
     });
@@ -172,8 +208,9 @@ router.post("/transfers", async (req, res): Promise<void> => {
       isUniqueViolation(error, "transfers_active_claim_idx")
       || isUniqueViolation(error, "transfers_active_item_idx")
       || (error instanceof Error && error.message === "TRANSFER_PRECONDITION")
+      || (error instanceof Error && error.message === "ITEM_NOT_MATCHED")
     ) {
-      res.status(409).json({ error: "Transfer requires an approved claim with matching account and item, with no active transfer" }); return;
+      res.status(409).json({ error: "Transfer requires an approved claim with a matched item and no active transfer" }); return;
     }
     throw error;
   }
@@ -210,17 +247,25 @@ router.patch("/transfers/:id/status", async (req, res): Promise<void> => {
       const [claim] = await tx.select().from(claimsTable).where(eq(claimsTable.id, transfer.claimId)).for("update");
       const [account] = await tx.select().from(recipientAccountsTable).where(eq(recipientAccountsTable.id, transfer.accountId));
       if (!claim || !item || !account || claim.status !== "approved" || claim.accountId !== transfer.accountId || claim.itemId !== transfer.itemId) return { error: "An approved, consistent claim is required to receive a transfer" };
-      if (item.stage !== "storage") return { error: "Item must be in storage before it can be distributed" };
+      if (item.stage !== "scheduled") return { error: "Item must be scheduled before it can be distributed" };
       const [updated] = await tx.update(transfersTable).set({ status: "received", receivedBy: by }).where(and(eq(transfersTable.id, transfer.id), eq(transfersTable.status, "released"))).returning();
       if (!updated) return { error: "Transfer receipt was already processed" };
       const [fulfilled] = await tx.update(claimsTable).set({ status: "fulfilled" }).where(and(eq(claimsTable.id, claim.id), eq(claimsTable.status, "approved"))).returning();
-      const [distributed] = await tx.update(donationItemsTable).set({ stage: "distributed", recipient: account.name }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "storage"))).returning();
+      const [distributed] = await tx.update(donationItemsTable).set({ stage: "distributed", recipient: account.name }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "scheduled"))).returning();
       if (!fulfilled || !distributed) return { error: "Claim or item changed while receiving transfer" };
       await tx.insert(transferHistoryTable).values({ id: randomUUID(), transferId: transfer.id, fromStatus: transfer.status, toStatus: "received", by, notes: body.data.notes ?? null });
       await tx.insert(claimHistoryTable).values({ id: randomUUID(), claimId: claim.id, fromStatus: "approved", toStatus: "fulfilled", by, notes: "Transfer received" });
-      await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "storage", toStage: "distributed", notes: `Transfer ${transfer.id} received` });
+      await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "scheduled", toStage: "distributed", notes: `Transfer ${transfer.id} received` });
       await tx.insert(notificationOutboxTable).values([event("transfer", transfer.id, "received"), event("claim", claim.id, "fulfilled")]).onConflictDoNothing();
       return { transfer: updated };
+    }
+    if (body.data.status === "cancelled") {
+      const [item] = await tx.select().from(donationItemsTable).where(eq(donationItemsTable.id, transfer.itemId)).for("update");
+      if (item?.stage === "scheduled") {
+        const [restored] = await tx.update(donationItemsTable).set({ stage: "matched", updatedAt: new Date() }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "scheduled"))).returning();
+        if (!restored) return { error: "Item stage changed while cancelling transfer" };
+        await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "scheduled", toStage: "matched", notes: `Transfer ${transfer.id} cancelled` });
+      }
     }
     const [updated] = await tx.update(transfersTable).set({ status: body.data.status, ...(body.data.status === "released" ? { releasedBy: by } : {}) }).where(eq(transfersTable.id, transfer.id)).returning();
     await tx.insert(transferHistoryTable).values({ id: randomUUID(), transferId: transfer.id, fromStatus: transfer.status, toStatus: body.data.status, by, notes: body.data.notes ?? null });

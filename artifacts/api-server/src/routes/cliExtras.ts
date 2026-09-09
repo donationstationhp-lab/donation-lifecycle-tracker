@@ -18,6 +18,7 @@ import {
   routeStopsTable,
   pickupRequestsTable,
 } from "@workspace/db";
+import { isItemStage } from "../lib/itemLifecycle";
 
 const router: IRouter = Router();
 
@@ -64,6 +65,22 @@ router.post("/import", async (req, res): Promise<void> => {
       return;
     }
 
+    const requestedStage = item.stage != null ? String(item.stage) : "intake";
+    if (!isItemStage(requestedStage)) {
+      res.status(400).json({ error: `Imported item ${String(id)} has an invalid lifecycle stage` });
+      return;
+    }
+    const [existingBeforeImport] = await db
+      .select({ id: donationItemsTable.id })
+      .from(donationItemsTable)
+      .where(eq(donationItemsTable.id, String(id)));
+    if (!existingBeforeImport && requestedStage !== "intake") {
+      res.status(400).json({
+        error: `New imported item ${String(id)} must start at intake; use a logged staff override after import`,
+      });
+      return;
+    }
+
     const values = {
       id: String(id),
       itemId: String(itemId),
@@ -88,35 +105,46 @@ router.post("/import", async (req, res): Promise<void> => {
           item.power_connection_reading ??
           computeNumerology(now),
       ),
-      stage: item.stage != null ? String(item.stage) : "intake",
+      stage: requestedStage,
       pendingReview: booleanOrDefault(item.pendingReview, false),
     };
 
-    await db
-      .insert(donationItemsTable)
-      .values(values)
-      .onConflictDoUpdate({
-        target: donationItemsTable.id,
-        set: {
-          itemId: values.itemId,
-          name: values.name,
-          category: values.category,
-          tier: values.tier,
-          condition: values.condition,
-          donor: values.donor,
-          recipient: values.recipient,
-          location: values.location,
-          expiryDate: values.expiryDate,
-          temperatureZone: values.temperatureZone,
-          weight: values.weight,
-          origin: values.origin,
-          lotNumber: values.lotNumber,
-          powerConnectionReading: values.powerConnectionReading,
-          stage: values.stage,
-          pendingReview: values.pendingReview,
-          updatedAt: now,
-        },
-      });
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(donationItemsTable)
+        .values(values)
+        .onConflictDoUpdate({
+          target: donationItemsTable.id,
+          set: {
+            itemId: values.itemId,
+            name: values.name,
+            category: values.category,
+            tier: values.tier,
+            condition: values.condition,
+            donor: values.donor,
+            recipient: values.recipient,
+            location: values.location,
+            expiryDate: values.expiryDate,
+            temperatureZone: values.temperatureZone,
+            weight: values.weight,
+            origin: values.origin,
+            lotNumber: values.lotNumber,
+            powerConnectionReading: values.powerConnectionReading,
+            pendingReview: values.pendingReview,
+            updatedAt: now,
+          },
+        });
+
+      if (!existingBeforeImport) {
+        await tx.insert(stageHistoryTable).values({
+          id: randomUUID(),
+          itemId: values.id,
+          fromStage: null,
+          toStage: values.stage,
+          notes: "Imported item created",
+        });
+      }
+    });
 
     ids.push(values.id);
   }

@@ -11,7 +11,10 @@ test("only in-system stages count as active", () => {
   assert.equal(isActiveItemStage("intake"), true);
   assert.equal(isActiveItemStage("qc"), true);
   assert.equal(isActiveItemStage("storage"), true);
+  assert.equal(isActiveItemStage("matched"), true);
+  assert.equal(isActiveItemStage("scheduled"), true);
   assert.equal(isActiveItemStage("distributed"), false);
+  assert.equal(isActiveItemStage("closed"), false);
   assert.equal(isActiveItemStage("archived"), false);
   assert.equal(isActiveItemStage("removed"), false);
 });

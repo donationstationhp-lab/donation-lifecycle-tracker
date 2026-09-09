@@ -23,7 +23,7 @@ export const donationItemsTable = pgTable(
     lotNumber: text("lot_number").notNull(),
     powerConnectionReading: text("power_connection_reading").notNull().default(""),
     sourcePickupId: text("source_pickup_id"),
-    stage: text("stage").notNull().default("intake"), // intake | qc | storage | distributed
+    stage: text("stage").notNull().default("intake"), // intake | qc | storage | matched | scheduled | distributed | closed
     pendingReview: boolean("pending_review").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

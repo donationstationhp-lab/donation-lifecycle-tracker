@@ -1,4 +1,4 @@
-import { Cloud, Snowflake, Thermometer, Box, FileCheck, Warehouse, Send, Sparkles, TrendingUp, Clock3, AlertOctagon, RotateCcw } from 'lucide-react';
+import { Cloud, Snowflake, Thermometer, Box, FileCheck, Warehouse, Send, Sparkles, TrendingUp, Clock3, AlertOctagon, RotateCcw, Handshake, CalendarCheck, CircleCheckBig } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DonationItemTier, DonationItemStage, DonationItemCondition, DonationItemTemperatureZone, DonorStage } from '@workspace/api-client-react';
 
@@ -27,9 +27,12 @@ export function TierBadge({ tier }: { tier: DonationItemTier }) {
 export function StageChip({ stage }: { stage: DonationItemStage }) {
   const config = {
     intake: { icon: Box, label: 'Intake', style: 'bg-blue-50 text-blue-700 border-blue-200' },
-    qc: { icon: FileCheck, label: 'Quality Control', style: 'bg-purple-50 text-purple-700 border-purple-200' },
+    qc: { icon: FileCheck, label: 'Quality Check', style: 'bg-purple-50 text-purple-700 border-purple-200' },
     storage: { icon: Warehouse, label: 'Storage', style: 'bg-amber-50 text-amber-700 border-amber-200' },
+    matched: { icon: Handshake, label: 'Matched / Claimed', style: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+    scheduled: { icon: CalendarCheck, label: 'Scheduled', style: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
     distributed: { icon: Send, label: 'Distributed', style: 'bg-green-50 text-green-700 border-green-200' },
+    closed: { icon: CircleCheckBig, label: 'Closed', style: 'bg-slate-100 text-slate-700 border-slate-300' },
   };
 
   const { icon: Icon, label, style } = config[stage];

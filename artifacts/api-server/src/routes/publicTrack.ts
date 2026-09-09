@@ -7,15 +7,24 @@ import {
   donationItemsTable,
   ensureClaimTrackingCodes,
 } from "@workspace/db";
+import { publicItemStageLabel } from "../lib/itemLifecycle";
 import { GetPublicTrackingResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 const PUBLIC_TIME_ZONE = "America/Chicago";
 
-const titleCase = (value: string) =>
-  value
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (character) => character.toUpperCase());
+const PUBLIC_CLAIM_STATUS_LABELS: Record<string, string> = {
+  submitted: "Request Received",
+  verified: "Eligibility Verified",
+  approved: "Claim Approved",
+  fulfilled: "Completed",
+  rejected: "Request Not Approved",
+  cancelled: "Cancelled",
+};
+
+export function publicClaimStatusLabel(status: string): string {
+  return PUBLIC_CLAIM_STATUS_LABELS[status] ?? "In Progress";
+}
 
 function normalizedTrackingCode(value: string | string[]): string {
   return (Array.isArray(value) ? value[0] : value).trim().toUpperCase();
@@ -125,14 +134,12 @@ router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
       categoryLabel: `${safeCategory(result.itemCategory)} item`,
       name: safeItemName(result.itemName, result.itemCategory),
     },
-    stage: titleCase(result.itemStage),
-    status: titleCase(result.status),
+    stage: publicItemStageLabel(result.itemStage),
+    status: publicClaimStatusLabel(result.status),
     lastUpdatedApprox: approximateTimestamp(result.updatedAt),
     lastUpdatedExact: null,
     timeline: history.map((entry) => ({
-      label: entry.status === "submitted"
-        ? "Claim submitted"
-        : titleCase(entry.status),
+      label: publicClaimStatusLabel(entry.status),
       approx: approximateTimestamp(entry.timestamp),
       exact: null,
     })),

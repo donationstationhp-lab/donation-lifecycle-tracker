@@ -50,7 +50,10 @@ export default function ItemsList() {
               <TabsTrigger value="intake" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md px-4 py-2">Intake</TabsTrigger>
               <TabsTrigger value="qc" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white rounded-md px-4 py-2">QC</TabsTrigger>
               <TabsTrigger value="storage" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white rounded-md px-4 py-2">Storage</TabsTrigger>
+              <TabsTrigger value="matched" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white rounded-md px-4 py-2">Matched</TabsTrigger>
+              <TabsTrigger value="scheduled" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white rounded-md px-4 py-2">Scheduled</TabsTrigger>
               <TabsTrigger value="distributed" className="data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-md px-4 py-2">Distributed</TabsTrigger>
+              <TabsTrigger value="closed" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white rounded-md px-4 py-2">Closed</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

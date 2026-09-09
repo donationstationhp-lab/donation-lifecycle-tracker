@@ -49,6 +49,9 @@ export const claimsTable = pgTable(
   },
   (table) => ({
     trackingCodeUnique: uniqueIndex("claims_tracking_code_unique_idx").on(table.trackingCode),
+    approvedItemUnique: uniqueIndex("claims_approved_item_unique_idx")
+      .on(table.itemId)
+      .where(sql`${table.status} = 'approved'`),
     accountIndex: index("claims_account_idx").on(table.accountId),
     itemIndex: index("claims_item_idx").on(table.itemId),
     statusIndex: index("claims_status_idx").on(table.status),

@@ -49,7 +49,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [intake, qc, storage, distributed]
+            enum: [intake, qc, storage, matched, scheduled, distributed, closed]
         - name: tier
           in: query
           schema:
@@ -743,7 +743,7 @@ paths:
         - { name: status, in: query, schema: { type: string, enum: [submitted, verified, approved, fulfilled, rejected, cancelled] } }
         - { name: accountId, in: query, schema: { type: string } }
         - { name: itemId, in: query, schema: { type: string } }
-        - { name: itemStage, in: query, schema: { type: string, enum: [intake, qc, storage, distributed] } }
+        - { name: itemStage, in: query, schema: { type: string, enum: [intake, qc, storage, matched, scheduled, distributed, closed] } }
       responses:
         "200": { description: Claims, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/Claim" } } } } }
     post:
@@ -1130,7 +1130,7 @@ components:
           description: Numerology reading on intake date
         stage:
           type: string
-          enum: [intake, qc, storage, distributed]
+          enum: [intake, qc, storage, matched, scheduled, distributed, closed]
         createdAt:
           type: string
           format: date-time
@@ -1336,9 +1336,15 @@ components:
       properties:
         stage:
           type: string
-          enum: [intake, qc, storage, distributed]
+          enum: [intake, qc, storage, matched, scheduled, distributed, closed]
         notes:
           type: string
+        override:
+          type: boolean
+          default: false
+        reason:
+          type: string
+          minLength: 1
 
     ExpiringItem:
       allOf:
@@ -1399,7 +1405,7 @@ components:
       properties:
         stage:
           type: string
-          enum: [intake, qc, storage, distributed]
+          enum: [intake, qc, storage, matched, scheduled, distributed, closed]
         count:
           type: number
 

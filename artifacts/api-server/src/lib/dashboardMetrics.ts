@@ -1,4 +1,10 @@
-const ACTIVE_ITEM_STAGES = new Set(["intake", "qc", "storage"]);
+const ACTIVE_ITEM_STAGES = new Set([
+  "intake",
+  "qc",
+  "storage",
+  "matched",
+  "scheduled",
+]);
 const DAY_IN_MS = 86_400_000;
 
 export function isActiveItemStage(stage: string): boolean {

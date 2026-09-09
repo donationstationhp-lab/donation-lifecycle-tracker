@@ -21,7 +21,7 @@ export const HealthCheckResponse = zod.object({
  * @summary List donation items
  */
 export const ListItemsQueryParams = zod.object({
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']).optional(),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']).optional(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).optional(),
   "category": zod.coerce.string().optional(),
   "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
@@ -45,7 +45,7 @@ export const ListItemsResponseItem = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -90,7 +90,7 @@ export const CreateItemResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -120,7 +120,7 @@ export const GetItemResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }).and(zod.object({
@@ -185,7 +185,7 @@ export const UpdateItemResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -208,9 +208,14 @@ export const AdvanceItemStageParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const advanceItemStageBodyOverrideDefault = false;
+
+
 export const AdvanceItemStageBody = zod.object({
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
-  "notes": zod.string().optional()
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
+  "notes": zod.string().optional(),
+  "override": zod.boolean().default(advanceItemStageBodyOverrideDefault),
+  "reason": zod.string().min(1).optional()
 })
 
 export const AdvanceItemStageResponse = zod.object({
@@ -230,7 +235,7 @@ export const AdvanceItemStageResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -257,7 +262,7 @@ export const ListExpiringItemsResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }).and(zod.object({
@@ -281,7 +286,7 @@ export const ListExpiringItemsResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }).and(zod.object({
@@ -305,7 +310,7 @@ export const ListExpiringItemsResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }).and(zod.object({
@@ -329,7 +334,7 @@ export const ListExpiringItemsResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }).and(zod.object({
@@ -419,7 +424,7 @@ export const GetDonorResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }))
@@ -436,7 +441,7 @@ export const GetDashboardResponse = zod.object({
   "count": zod.number()
 })),
   "byStage": zod.array(zod.object({
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "count": zod.number()
 })),
   "recentItems": zod.array(zod.object({
@@ -456,7 +461,7 @@ export const GetDashboardResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })),
@@ -547,7 +552,7 @@ export const GetRouteResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }),zod.null()]).optional(),
@@ -1114,7 +1119,7 @@ export const CompletePickupResponse = zod.object({
   "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
   "powerConnectionReading": zod.string(),
   "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
-  "stage": zod.enum(['intake', 'qc', 'storage', 'distributed']),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -1358,7 +1363,7 @@ export const ListClaimsQueryParams = zod.object({
   "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']).optional(),
   "accountId": zod.coerce.string().optional(),
   "itemId": zod.coerce.string().optional(),
-  "itemStage": zod.enum(['intake', 'qc', 'storage', 'distributed']).optional()
+  "itemStage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']).optional()
 })
 
 export const listClaimsResponseTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');

@@ -13,6 +13,7 @@ import {
   AdvanceItemStageBody,
 } from "@workspace/api-zod";
 import { isUniqueViolation } from "../lib/dbErrors";
+import { validateItemStageTransition } from "../lib/itemLifecycle";
 
 const router: IRouter = Router();
 
@@ -67,30 +68,42 @@ async function getItemById(id: string) {
 async function advanceStage(
   itemId: string,
   toStage: string,
-  options: { by?: string; notes?: string; extra?: string } = {}
-): Promise<void> {
-  const [item] = await db
-    .select({ stage: donationItemsTable.stage })
-    .from(donationItemsTable)
-    .where(eq(donationItemsTable.id, itemId));
+  options: { by?: string; notes?: string; extra?: string } = {},
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return db.transaction(async (tx) => {
+    const [item] = await tx
+      .select({ stage: donationItemsTable.stage })
+      .from(donationItemsTable)
+      .where(eq(donationItemsTable.id, itemId))
+      .for("update");
+    if (!item) return { ok: false, error: "Item not found" };
 
-  await db
-    .update(donationItemsTable)
-    .set({ stage: toStage, updatedAt: new Date() })
-    .where(eq(donationItemsTable.id, itemId));
+    const validation = validateItemStageTransition(item.stage, toStage, {});
+    if (!validation.ok) return { ok: false, error: validation.reason };
 
-  const parts = [
-    options.notes ?? null,
-    options.by ? `By: ${options.by}` : null,
-    options.extra ?? null,
-  ].filter(Boolean);
+    const [updated] = await tx
+      .update(donationItemsTable)
+      .set({ stage: toStage, updatedAt: new Date() })
+      .where(and(
+        eq(donationItemsTable.id, itemId),
+        eq(donationItemsTable.stage, item.stage),
+      ))
+      .returning({ id: donationItemsTable.id });
+    if (!updated) return { ok: false, error: "Item stage changed during transition" };
 
-  await db.insert(stageHistoryTable).values({
-    id: randomUUID(),
-    itemId,
-    fromStage: item?.stage ?? null,
-    toStage,
-    notes: parts.length > 0 ? parts.join(" | ") : null,
+    const parts = [
+      options.notes?.trim() || null,
+      options.by ? `By: ${options.by}` : null,
+      options.extra ?? null,
+    ].filter(Boolean);
+    await tx.insert(stageHistoryTable).values({
+      id: randomUUID(),
+      itemId,
+      fromStage: item.stage,
+      toStage,
+      notes: parts.length > 0 ? parts.join(" | ") : null,
+    });
+    return { ok: true };
   });
 }
 
@@ -157,31 +170,46 @@ router.post("/items", async (req, res): Promise<void> => {
   const lotNumber = parsed.data.lotNumber ?? generateLotNumber();
   const powerConnectionReading = parsed.data.powerConnectionReading ?? computeNumerology(now);
   const donorId = await resolveDonorId(parsed.data.donor);
+  const historyParts = [
+    "Item received at intake",
+    req.body.notes ? `Notes: ${req.body.notes}` : null,
+    req.body.by ? `By: ${req.body.by}` : null,
+  ].filter(Boolean);
 
   let item: typeof donationItemsTable.$inferSelect;
   try {
-    [item] = await db
-      .insert(donationItemsTable)
-      .values({
-        id,
-        itemId,
-        name: parsed.data.name,
-        category: parsed.data.category,
-        tier: parsed.data.tier,
-        condition: parsed.data.condition,
-        donor: parsed.data.donor,
-        donorId,
-        recipient: parsed.data.recipient ?? null,
-        location: parsed.data.location ?? null,
-        expiryDate: toDateString(parsed.data.expiryDate),
-        temperatureZone: parsed.data.temperatureZone ?? "ambient",
-        weight: parsed.data.weight ?? null,
-        origin: parsed.data.origin ?? null,
-        lotNumber,
-        powerConnectionReading,
-        stage: "intake",
-      })
-      .returning();
+    item = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(donationItemsTable)
+        .values({
+          id,
+          itemId,
+          name: parsed.data.name,
+          category: parsed.data.category,
+          tier: parsed.data.tier,
+          condition: parsed.data.condition,
+          donor: parsed.data.donor,
+          donorId,
+          recipient: parsed.data.recipient ?? null,
+          location: parsed.data.location ?? null,
+          expiryDate: toDateString(parsed.data.expiryDate),
+          temperatureZone: parsed.data.temperatureZone ?? "ambient",
+          weight: parsed.data.weight ?? null,
+          origin: parsed.data.origin ?? null,
+          lotNumber,
+          powerConnectionReading,
+          stage: "intake",
+        })
+        .returning();
+      await tx.insert(stageHistoryTable).values({
+        id: randomUUID(),
+        itemId: id,
+        fromStage: null,
+        toStage: "intake",
+        notes: historyParts.join(" | "),
+      });
+      return created;
+    });
   } catch (error) {
     if (isUniqueViolation(error, "donation_items_item_id_unique")) {
       res.status(409).json({ error: "Generated item identifier already exists; please retry" });
@@ -189,20 +217,6 @@ router.post("/items", async (req, res): Promise<void> => {
     }
     throw error;
   }
-
-  const historyParts = [
-    "Item received at intake",
-    req.body.notes ? `Notes: ${req.body.notes}` : null,
-    req.body.by ? `By: ${req.body.by}` : null,
-  ].filter(Boolean);
-
-  await db.insert(stageHistoryTable).values({
-    id: randomUUID(),
-    itemId: id,
-    fromStage: null,
-    toStage: "intake",
-    notes: historyParts.join(" | "),
-  });
 
   res.status(201).json(item);
 });
@@ -299,7 +313,8 @@ router.post("/items/:id/qc", async (req, res): Promise<void> => {
     maintenance ? `Maintenance: ${maintenance}` : null,
   ].filter(Boolean).join(" | ") || undefined;
 
-  await advanceStage(id, "qc", { by, notes, extra });
+  const transition = await advanceStage(id, "qc", { by, notes, extra });
+  if (!transition.ok) { res.status(409).json({ error: transition.error }); return; }
 
   const updated = await getItemById(id);
   res.json(updated);
@@ -321,7 +336,8 @@ router.post("/items/:id/store", async (req, res): Promise<void> => {
       .where(eq(donationItemsTable.id, id));
   }
 
-  await advanceStage(id, "storage", { by, notes });
+  const transition = await advanceStage(id, "storage", { by, notes });
+  if (!transition.ok) { res.status(409).json({ error: transition.error }); return; }
 
   const updated = await getItemById(id);
   res.json(updated);
@@ -344,7 +360,8 @@ router.post("/items/:id/distribute", async (req, res): Promise<void> => {
   }
 
   const extra = substitution ? `Substitution: ${substitution}` : undefined;
-  await advanceStage(id, "distributed", { by, notes, extra });
+  const transition = await advanceStage(id, "distributed", { by, notes, extra });
+  if (!transition.ok) { res.status(409).json({ error: transition.error }); return; }
 
   const updated = await getItemById(id);
   res.json(updated);
@@ -428,28 +445,61 @@ router.patch("/items/:id/stage", async (req, res): Promise<void> => {
   const parsed = AdvanceItemStageBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const [existing] = await db
-    .select()
-    .from(donationItemsTable)
-    .where(eq(donationItemsTable.id, params.data.id));
+  const result = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(donationItemsTable)
+      .where(eq(donationItemsTable.id, params.data.id))
+      .for("update");
 
-  if (!existing) { res.status(404).json({ error: "Item not found" }); return; }
+    if (!existing) return { error: "Item not found" };
 
-  const [item] = await db
-    .update(donationItemsTable)
-    .set({ stage: parsed.data.stage, updatedAt: new Date() })
-    .where(eq(donationItemsTable.id, params.data.id))
-    .returning();
+    const validation = validateItemStageTransition(
+      existing.stage,
+      parsed.data.stage,
+      parsed.data,
+    );
+    if (!validation.ok) return { error: validation.reason };
 
-  await db.insert(stageHistoryTable).values({
-    id: randomUUID(),
-    itemId: item.id,
-    fromStage: existing.stage,
-    toStage: parsed.data.stage,
-    notes: parsed.data.notes ?? null,
+    const [item] = await tx
+      .update(donationItemsTable)
+      .set({ stage: parsed.data.stage, updatedAt: new Date() })
+      .where(and(
+        eq(donationItemsTable.id, params.data.id),
+        eq(donationItemsTable.stage, existing.stage),
+      ))
+      .returning();
+
+    if (!item) return { error: "Item stage changed during transition" };
+
+    const actor = res.locals.authMethod === "api-key"
+      ? "api-key"
+      : (res.locals.staffUserId ?? "staff");
+    const notes = validation.override
+      ? [
+          `Staff override by ${actor}`,
+          `Reason: ${parsed.data.reason!.trim()}`,
+          parsed.data.notes?.trim() ? `Notes: ${parsed.data.notes.trim()}` : null,
+        ].filter(Boolean).join(" | ")
+      : parsed.data.notes?.trim() || null;
+
+    await tx.insert(stageHistoryTable).values({
+      id: randomUUID(),
+      itemId: item.id,
+      fromStage: existing.stage,
+      toStage: parsed.data.stage,
+      notes,
+    });
+
+    return { item };
   });
 
-  res.json(item);
+  if ("error" in result) {
+    res.status(result.error === "Item not found" ? 404 : 409).json({ error: result.error });
+    return;
+  }
+
+  res.json(result.item);
 });
 
 export default router;
