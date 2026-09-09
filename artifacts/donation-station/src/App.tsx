@@ -1,3 +1,5 @@
+import PublicTrack from "@/pages/PublicTrack";
+
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Show, SignIn, SignUp, UserButton, useAuth, useUser } from '@clerk/react';
@@ -58,6 +60,16 @@ function AuthCard({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   );
 }
 
+function PublicTrackRedirect({ trackingCode }: { trackingCode: string }) {
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    setLocation(`/track/${trackingCode}`);
+  }, [trackingCode, setLocation]);
+
+  return null;
+}
+
 function SessionCacheReset() {
   const { user, isLoaded } = useUser();
   const previousUserId = useRef<string | null | undefined>(undefined);
@@ -78,6 +90,12 @@ function SessionCacheReset() {
 function Router() {
   return (
     <Switch>
+      <Route path="/track/:trackingCode">
+        {(params) => <PublicTrack trackingCode={params.trackingCode} />}
+      </Route>
+      <Route path="/public/track/:trackingCode">
+        {(params) => <PublicTrackRedirect trackingCode={params.trackingCode} />}
+      </Route>
       {/* /donate is fully public — no Shell, no nav, no auth */}
       <Route path="/donate" component={Donate} />
       <Route path="/sign-in">
