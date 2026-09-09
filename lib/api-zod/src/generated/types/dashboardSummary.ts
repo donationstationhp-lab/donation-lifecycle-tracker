@@ -10,7 +10,7 @@ import type { StageCount } from './stageCount';
 import type { TierCount } from './tierCount';
 
 export interface DashboardSummary {
-  totalItems: number;
+  totalActiveItems: number;
   byTier: TierCount[];
   byStage: StageCount[];
   recentItems: DonationItem[];

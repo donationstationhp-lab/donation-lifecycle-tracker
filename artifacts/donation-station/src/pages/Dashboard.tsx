@@ -1,5 +1,4 @@
-import { customFetch, useGetDashboard } from '@workspace/api-client-react';
-import { useQuery } from '@tanstack/react-query';
+import { useGetDashboard } from '@workspace/api-client-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'wouter';
@@ -11,22 +10,9 @@ import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
-function usePendingCount() {
-  const { data } = useQuery<unknown[]>({
-    queryKey: ['pending-count'],
-    queryFn: () =>
-      customFetch<unknown[]>('/api/items?pendingReview=true', {
-        responseType: 'json',
-      }),
-    refetchInterval: 30000,
-    staleTime: 15000,
-  });
-  return Array.isArray(data) ? data.length : 0;
-}
-
 export default function Dashboard() {
   const { data: summary, isLoading, isError } = useGetDashboard();
-  const pendingCount = usePendingCount();
+  const pendingCount = summary?.pendingReviewCount ?? 0;
 
   // Build the public donate URL — same origin, /donation-station/donate
   const donateUrl = `${window.location.origin}/donation-station/donate`;
@@ -68,7 +54,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">{summary.totalItems}</div>
+            <div className="text-3xl font-bold text-foreground">{summary.totalActiveItems}</div>
             <p className="text-xs text-muted-foreground mt-1 tracking-tight">In system currently</p>
           </CardContent>
         </Card>

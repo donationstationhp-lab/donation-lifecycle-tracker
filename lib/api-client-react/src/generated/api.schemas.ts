@@ -560,7 +560,7 @@ export interface StageCount {
 }
 
 export interface DashboardSummary {
-  totalItems: number;
+  totalActiveItems: number;
   byTier: TierCount[];
   byStage: StageCount[];
   recentItems: DonationItem[];

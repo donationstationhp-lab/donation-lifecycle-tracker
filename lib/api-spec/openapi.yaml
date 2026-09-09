@@ -1406,7 +1406,7 @@ components:
     DashboardSummary:
       type: object
       required:
-        - totalItems
+        - totalActiveItems
         - byTier
         - byStage
         - recentItems
@@ -1416,7 +1416,7 @@ components:
         - pickupsConfirmedThisWeek
         - flaggedPickupValues
       properties:
-        totalItems:
+        totalActiveItems:
           type: number
         byTier:
           type: array

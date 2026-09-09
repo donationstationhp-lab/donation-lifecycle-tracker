@@ -430,7 +430,7 @@ export const GetDonorResponse = zod.object({
  * @summary Dashboard summary data
  */
 export const GetDashboardResponse = zod.object({
-  "totalItems": zod.number(),
+  "totalActiveItems": zod.number(),
   "byTier": zod.array(zod.object({
   "tier": zod.enum(['T', 'I', 'E', 'R']),
   "count": zod.number()
