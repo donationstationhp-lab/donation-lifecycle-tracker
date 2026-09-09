@@ -42,6 +42,8 @@ const evidenceSchema = z.object({
 
 type EvidenceValues = z.infer<typeof evidenceSchema>;
 
+const DEFAULT_PUBLIC_APP_URL = 'https://donation-lifecycle-tracker.replit.app';
+
 export default function ClaimDetail() {
   const [, params] = useRoute('/claims/:id');
   const id = params?.id || '';
@@ -157,8 +159,11 @@ export default function ClaimDetail() {
     });
   };
 
+  const publicAppUrl = (
+    import.meta.env.PUBLIC_APP_URL?.trim() || DEFAULT_PUBLIC_APP_URL
+  ).replace(/\/+$/, '');
   const publicTrackingUrl = claim.trackingCode
-    ? `https://donation-lifecycle-tracker.replit.app/track/${claim.trackingCode}`
+    ? `${publicAppUrl}/track/${encodeURIComponent(claim.trackingCode)}`
     : null;
 
   const copyPublicTrackingLink = async () => {
