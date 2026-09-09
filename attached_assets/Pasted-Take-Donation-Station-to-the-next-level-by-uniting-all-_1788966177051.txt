@@ -1,0 +1,178 @@
+Take Donation Station to the next level by uniting all service activity into one Universal Service Operating System.
+
+Current working state:
+- Public claim tracking works with codes like DSC-000001.
+- Public tracking page is privacy-safe.
+- Claim details show public tracking code and copy link.
+- Twilio/OTP remains paused until approval.
+
+Core operating loop:
+Receive → Recognize → Classify → Match → Schedule → Serve → Verify → Acknowledge → Learn
+
+Goal:
+Make every major object in the app follow this universal service loop:
+- donations
+- items
+- claims
+- requests
+- reservations
+- appointments
+- pickups/drop-offs
+- volunteer shifts
+- barter handoffs
+- future public scheduling
+
+Do not work on Twilio, SMS, or OTP yet.
+
+Build in this order:
+
+1. Universal Service Activity model
+Create or prepare a service_activities table/object if one does not exist.
+
+Fields:
+- id
+- activityType:
+  donation_intake
+  item_processing
+  claim_request
+  item_reservation
+  appointment
+  pickup
+  dropoff
+  distribution
+  volunteer_shift
+  barter_handoff
+  acknowledgment
+- loopStage:
+  received
+  recognized
+  classified
+  matched
+  scheduled
+  served
+  verified
+  acknowledged
+  learned
+- relatedItemId nullable
+- relatedClaimId nullable
+- relatedAppointmentId nullable
+- relatedPerson/account nullable
+- publicTrackingCode nullable
+- status
+- staffOwner nullable
+- scheduledStart nullable
+- scheduledEnd nullable
+- completedAt nullable
+- publicSafeSummary nullable
+- internalNotes private
+- createdAt
+- updatedAt
+
+2. Staff Service Calendar
+Create a private staff calendar view/page:
+- route: /calendar or /staff/calendar
+- show all service activities that have scheduledStart/scheduledEnd
+- support filters:
+  activity type
+  status
+  date
+  staff owner
+  related item/claim
+- show staff/private operational details only to staff.
+
+3. Public Scheduling Page
+Create public page:
+- route: /schedule
+- allow public-safe appointment requests for:
+  Donation Drop-off
+  Donation Pickup
+  Receiver Pickup Window
+  Reserve Item Pickup
+  Volunteer Shift
+  Donation Market Window
+- public users should see available slots only, not other people’s bookings.
+- if appointment creates/attaches to a claim, ensure claim tracking code exists.
+
+4. Reservation flow
+Add item reservation logic:
+- available item can become reserved
+- reservation links to claim + appointment
+- reservation has expiration window
+- if appointment is completed, item becomes distributed
+- if no-show/canceled/expired, item can return to available or staff review
+
+5. Tracking timeline integration
+Public tracking page should read from service activities / history.
+For /track/:trackingCode, show public-safe timeline events:
+- Request Received
+- Eligibility Verified
+- Item Reserved
+- Appointment Scheduled
+- Ready for Pickup
+- Completed / Distributed
+- Canceled / No-show if applicable
+
+Always hide:
+- names
+- phone numbers
+- emails
+- addresses
+- donor identity
+- receiver identity
+- private notes
+
+6. Barter alignment
+Prepare appointment/activity types for:
+- Barter Handoff
+- Station Escrow Drop-off
+- Station Escrow Pickup
+- Trade Completed
+Do not build full credit ledger yet, but make sure service activities can later link to offers, bids, trades, and mutual credit entries.
+
+7. Acknowledgment engine placeholder
+After serve/complete events:
+- create acknowledgment activity
+- mark acknowledgment pending/sent/overdue
+- no SMS required yet
+- email/SMS can be connected later
+
+8. Dashboard updates
+Add or prepare metrics based on the universal loop:
+- received today/this week
+- scheduled today
+- overdue service activities
+- pending verification
+- reserved items
+- completed distributions
+- acknowledgment on-time rate
+- no-show rate
+- time from received → served
+- time from request → matched
+- time from scheduled → completed
+
+9. Privacy audit helper
+Create one helper that builds all public-facing responses by whitelist only.
+
+Public fields allowed:
+- trackingCode
+- public activity labels
+- item category
+- sanitized item name
+- stage/status
+- approximate dates/times
+- exactTimesLocked: true
+
+Never return private fields by accident.
+
+10. Tests / verification
+After implementation:
+- /claims still works
+- /track/DSC-000001 still works
+- /calendar loads for staff
+- /schedule loads publicly
+- create test appointment
+- create reservation linked to item/claim
+- confirm public tracking timeline updates
+- confirm no PII appears in public endpoints
+- dashboard still loads
+- no Twilio credentials required
