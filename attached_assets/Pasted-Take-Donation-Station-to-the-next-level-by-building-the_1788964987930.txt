@@ -1,0 +1,133 @@
+Take Donation Station to the next level by building the Scheduling + Reservation Layer.
+
+Current state:
+- Public claim tracking works with DSC tracking codes.
+- Public page is privacy-safe.
+- Twilio/OTP is paused until approval.
+
+Goal:
+Add a Booksy-style scheduling system with:
+1. Staff awareness calendar
+2. Public booking calendar
+3. Appointment/reservation flow for donations, pickups, drop-offs, item reservations, volunteer shifts, and future barter handoffs.
+
+Use the workspace-aligned model:
+Intake → Classify → Match → Schedule → Acknowledge → Learn
+
+Do not work on Twilio/SMS/OTP yet.
+
+Build in this order:
+
+1. Core Appointment model
+Create an appointments table/object if one does not already exist.
+
+Fields:
+- id
+- appointmentType
+- person/account reference if available
+- relatedClaimId nullable
+- relatedItemId nullable
+- relatedDonationId nullable
+- station/location
+- scheduledStart
+- scheduledEnd
+- status: requested, confirmed, in_progress, completed, canceled, no_show
+- capacitySlotId nullable
+- staffAssigned nullable
+- publicTrackingCode nullable or related claim tracking code
+- internalNotes private
+- cancelReason/noShowReason nullable
+- createdAt
+- updatedAt
+
+2. Appointment Types
+Support v1:
+- Donation Drop-off
+- Donation Pickup
+- Receiver Pickup Window
+- Reserve Item Pickup
+- Volunteer Shift
+- Donation Market Window
+
+3. Staff Calendar
+Create a private/internal staff page:
+- route: /calendar or /staff/calendar
+- show day/week/list view
+- show all appointments
+- filters by type/status/date
+- allow staff to open appointment details
+- allow status updates
+- link to related claim/item when available
+
+4. Public Booking Calendar
+Create public page:
+- route: /schedule
+- public-safe booking flow:
+  a. choose appointment type
+  b. choose available slot
+  c. enter minimal required info
+  d. submit
+- never expose private staff notes or other people’s bookings
+- donation pickup may collect address privately, but never display it publicly
+
+5. Reservation flow
+If appointment type is Reserve Item Pickup:
+- create or attach claim
+- assign/confirm claim tracking code
+- place item in Reserved status
+- set reservation expiration window if appointment is not completed
+- public tracking page should update timeline:
+  Reserved
+  Appointment Scheduled
+  Pickup Completed / No-show / Canceled
+
+6. Capacity slots
+Create availability/capacity structure:
+- station/location
+- appointment type
+- start/end time
+- max bookings
+- current bookings
+- status open/closed
+- booking cutoff
+
+7. Privacy rules
+Public endpoints may show:
+- appointment type
+- available time slot
+- station/general location
+- claim tracking code
+- public item category/name if sanitized
+- status/stage
+
+Public endpoints must never show:
+- names of other people
+- phone numbers
+- emails
+- exact addresses
+- donor identity
+- receiver identity
+- private/internal notes
+
+8. Barter alignment
+Prepare appointment type for future:
+- Barter Handoff
+- Station Escrow Drop-off
+- Station Escrow Pickup
+
+Do not fully build credits yet, but design so appointments can later link to:
+- Offers
+- Bids
+- Trades
+- Mutual credit ledger entries
+
+9. Testing
+After implementation:
+- /claims still works
+- /track/DSC-000001 still works
+- staff calendar loads
+- create a Donation Drop-off appointment
+- create a Receiver Pickup Window appointment
+- create a Reserve Item Pickup appointment linked to a claim/item
+- public schedule page does not expose PII
+- staff calendar shows full operational detail

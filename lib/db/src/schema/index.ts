@@ -9,3 +9,4 @@ export * from "./pickupFlags";
 export * from "./pickupContactAttempts";
 export * from "./confirmationTemplates";
 export * from "./attendLifecycle";
+export * from "./appointments";

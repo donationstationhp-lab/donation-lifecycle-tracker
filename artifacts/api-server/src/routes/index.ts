@@ -12,6 +12,7 @@ import cliExtrasRouter from "./cliExtras";
 import notionHealthRouter from "./notionHealth";
 import pickupsRouter from "./pickups";
 import attendRouter from "./attend";
+import appointmentsRouter, { publicAppointmentsRouter } from "./appointments";
 
 const router: IRouter = Router();
 
@@ -20,6 +21,7 @@ const router: IRouter = Router();
 router.use(healthRouter);   // /healthz  /health
 router.use(publicRoutes);   // /public/donate
 router.use(publicTrackRouter); // /public/track/:trackingCode
+router.use(publicAppointmentsRouter); // public slots and booking
 router.use(notionHealthRouter); // /notion/health
 
 // ── Auth gate ────────────────────────────────────────────────────────────────
@@ -35,5 +37,6 @@ router.use(locationsRouter);
 router.use(cliExtrasRouter);
 router.use(pickupsRouter);
 router.use(attendRouter);
+router.use(appointmentsRouter);
 
 export default router;

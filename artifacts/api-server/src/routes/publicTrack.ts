@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import {
   claimHistoryTable,
   claimsTable,
@@ -7,6 +7,8 @@ import {
   donationItemsTable,
   ensureClaimTrackingCodes,
   transfersTable,
+  appointmentsTable,
+  appointmentHistoryTable,
 } from "@workspace/db";
 import { publicItemStageLabel } from "../lib/itemLifecycle";
 import {
@@ -24,6 +26,11 @@ const PUBLIC_CLAIM_STATUS_LABELS: Record<string, string> = {
   fulfilled: "Completed",
   rejected: "Request Not Approved",
   cancelled: "Cancelled",
+  reservation_requested: "Reserved",
+  reservation_confirmed: "Appointment Scheduled",
+  reservation_completed: "Pickup Completed",
+  reservation_no_show: "No-show",
+  reservation_canceled: "Canceled",
 };
 
 export function publicClaimStatusLabel(status: string): string {
@@ -229,19 +236,36 @@ router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
     return;
   }
 
-  const history = await db
+  const [history, appointmentHistory] = await Promise.all([db
     .select({
       status: claimHistoryTable.toStatus,
       timestamp: claimHistoryTable.timestamp,
     })
     .from(claimHistoryTable)
     .where(eq(claimHistoryTable.claimId, result.claimId))
-    .orderBy(asc(claimHistoryTable.timestamp));
+    .orderBy(asc(claimHistoryTable.timestamp)),
+    db.select({
+      status: appointmentHistoryTable.toStatus,
+      timestamp: appointmentHistoryTable.timestamp,
+    }).from(appointmentHistoryTable)
+      .innerJoin(appointmentsTable, eq(appointmentHistoryTable.appointmentId, appointmentsTable.id))
+      .where(and(
+        eq(appointmentsTable.relatedClaimId, result.claimId),
+        eq(appointmentsTable.appointmentType, "reserve_item_pickup"),
+      ))
+      .orderBy(asc(appointmentHistoryTable.timestamp)),
+  ]);
 
   res.json(buildPublicTrackingResponse({
     ...result,
     trackingCode: result.trackingCode,
-  }, history));
+  }, [
+    ...history,
+    ...appointmentHistory.map((entry) => ({
+      status: `reservation_${entry.status}`,
+      timestamp: entry.timestamp,
+    })),
+  ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())));
 });
 
 router.get("/public/impact-summary", async (_req, res): Promise<void> => {

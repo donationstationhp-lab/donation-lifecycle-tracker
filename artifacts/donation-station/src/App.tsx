@@ -35,6 +35,8 @@ import ClaimsList from '@/pages/ClaimsList';
 import ClaimDetail from '@/pages/ClaimDetail';
 import TransfersList from '@/pages/TransfersList';
 import TransferDetail from '@/pages/TransferDetail';
+import Schedule from '@/pages/Schedule';
+import StaffCalendar from '@/pages/StaffCalendar';
 
 const queryClient = new QueryClient();
 // Temporary stopgap until Managed Auth Production role assignment is resolved via Pro dashboard access or Replit support.
@@ -98,6 +100,7 @@ function Router() {
       </Route>
       {/* /donate is fully public — no Shell, no nav, no auth */}
       <Route path="/donate" component={Donate} />
+      <Route path="/schedule" component={Schedule} />
       <Route path="/sign-in">
         <Show when="signed-in" fallback={<AuthCard mode="sign-in" />}>
           <StaffApp />
@@ -176,6 +179,7 @@ function StaffApp() {
           <Route path="/claims/:id" component={ClaimDetail} />
           <Route path="/transfers" component={TransfersList} />
           <Route path="/transfers/:id" component={TransferDetail} />
+          <Route path="/calendar" component={StaffCalendar} />
           <Route path="/routes" component={RoutesList} />
           <Route path="/routes/:id" component={RouteDetail} />
           <Route path="/accounts" component={AccountsList} />

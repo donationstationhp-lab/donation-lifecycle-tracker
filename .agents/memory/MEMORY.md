@@ -9,3 +9,4 @@
 - [Public tracking verification rollout](public-tracking-verification-rollout.md) — keep SMS/OTP disabled until Twilio Trust Hub approval; public tracking stays approximate and PII-free.
 - [Claim tracking code migration](claim-tracking-code-migration.md) — repair null and legacy random codes before strict DSC response validation.
 - [OpenAPI integer codegen](openapi-integer-codegen.md) — model whole-number response fields as number plus multipleOf 1 while this Zod 3 generator emits unsupported zod.int().
+- [Reservation ownership and lifecycle](reservation-ownership-and-lifecycle.md) — public tracking codes cannot prove ownership; staff mediates claim links until OTP is enabled.
