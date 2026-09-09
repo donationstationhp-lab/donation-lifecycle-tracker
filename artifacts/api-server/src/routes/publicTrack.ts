@@ -6,9 +6,13 @@ import {
   db,
   donationItemsTable,
   ensureClaimTrackingCodes,
+  transfersTable,
 } from "@workspace/db";
 import { publicItemStageLabel } from "../lib/itemLifecycle";
-import { GetPublicTrackingResponse } from "@workspace/api-zod";
+import {
+  GetPublicImpactSummaryResponse,
+  GetPublicTrackingResponse,
+} from "@workspace/api-zod";
 
 const router: IRouter = Router();
 const PUBLIC_TIME_ZONE = "America/Chicago";
@@ -90,6 +94,112 @@ function approximateTimestamp(value: Date): string {
   return `${date} (${period})`;
 }
 
+interface PublicTrackingSource {
+  trackingCode: string;
+  status: string;
+  updatedAt: Date;
+  itemName: string;
+  itemCategory: string;
+  itemStage: string;
+}
+
+interface PublicTimelineSource {
+  status: string;
+  timestamp: Date;
+}
+
+interface PublicImpactSource {
+  items: Array<{ category: string; stage: string }>;
+  claims: Array<{ id: string; status: string }>;
+  history: Array<{ claimId: string; status: string; timestamp: Date }>;
+  receivedTransfers: Array<{ itemId: string }>;
+}
+
+export function buildPublicTrackingResponse(
+  source: PublicTrackingSource,
+  history: PublicTimelineSource[],
+) {
+  return GetPublicTrackingResponse.parse({
+    trackingCode: source.trackingCode,
+    item: {
+      categoryLabel: `${safeCategory(source.itemCategory)} item`,
+      name: safeItemName(source.itemName, source.itemCategory),
+    },
+    stage: publicItemStageLabel(source.itemStage),
+    status: publicClaimStatusLabel(source.status),
+    lastUpdatedApprox: approximateTimestamp(source.updatedAt),
+    lastUpdatedExact: null,
+    timeline: history.map((entry) => ({
+      label: publicClaimStatusLabel(entry.status),
+      approx: approximateTimestamp(entry.timestamp),
+      exact: null,
+    })),
+    exactTimesLocked: true,
+  });
+}
+
+export function buildPublicImpactSummary(source: PublicImpactSource) {
+  const categoryCounts = new Map<string, number>();
+  for (const item of source.items) {
+    const label = safeCategory(item.category);
+    categoryCounts.set(label, (categoryCounts.get(label) ?? 0) + 1);
+  }
+
+  const fulfillmentTimesByClaim = new Map<
+    string,
+    { submittedAt?: Date; fulfilledAt?: Date }
+  >();
+  for (const entry of source.history) {
+    const times = fulfillmentTimesByClaim.get(entry.claimId) ?? {};
+    if (
+      entry.status === "submitted" &&
+      (!times.submittedAt || entry.timestamp < times.submittedAt)
+    ) {
+      times.submittedAt = entry.timestamp;
+    }
+    if (
+      entry.status === "fulfilled" &&
+      (!times.fulfilledAt || entry.timestamp < times.fulfilledAt)
+    ) {
+      times.fulfilledAt = entry.timestamp;
+    }
+    fulfillmentTimesByClaim.set(entry.claimId, times);
+  }
+
+  const fulfillmentHours = Array.from(fulfillmentTimesByClaim.values())
+    .filter(
+      (times): times is { submittedAt: Date; fulfilledAt: Date } =>
+        Boolean(
+          times.submittedAt &&
+          times.fulfilledAt &&
+          times.fulfilledAt >= times.submittedAt,
+        ),
+    )
+    .map(
+      ({ submittedAt, fulfilledAt }) =>
+        (fulfilledAt.getTime() - submittedAt.getTime()) / 3_600_000,
+    );
+
+  return GetPublicImpactSummaryResponse.parse({
+    totalItemsReceived: source.items.length,
+    totalItemsDistributed: new Set(
+      source.receivedTransfers.map((transfer) => transfer.itemId),
+    ).size,
+    itemsByCategory: Array.from(categoryCounts, ([categoryLabel, count]) => ({
+      categoryLabel,
+      count,
+    })).sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel)),
+    claimsFulfilled: source.claims.filter((claim) => claim.status === "fulfilled").length,
+    averageFulfillmentHours: fulfillmentHours.length
+      ? Math.round(
+          fulfillmentHours.reduce((total, hours) => total + hours, 0) /
+            fulfillmentHours.length *
+            10,
+        ) / 10
+      : null,
+  });
+}
+
 router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
   const trackingCode = normalizedTrackingCode(req.params.trackingCode);
   if (!/^DSC-\d{6}$/.test(trackingCode)) {
@@ -128,22 +238,37 @@ router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
     .where(eq(claimHistoryTable.claimId, result.claimId))
     .orderBy(asc(claimHistoryTable.timestamp));
 
-  res.json(GetPublicTrackingResponse.parse({
+  res.json(buildPublicTrackingResponse({
+    ...result,
     trackingCode: result.trackingCode,
-    item: {
-      categoryLabel: `${safeCategory(result.itemCategory)} item`,
-      name: safeItemName(result.itemName, result.itemCategory),
-    },
-    stage: publicItemStageLabel(result.itemStage),
-    status: publicClaimStatusLabel(result.status),
-    lastUpdatedApprox: approximateTimestamp(result.updatedAt),
-    lastUpdatedExact: null,
-    timeline: history.map((entry) => ({
-      label: publicClaimStatusLabel(entry.status),
-      approx: approximateTimestamp(entry.timestamp),
-      exact: null,
-    })),
-    exactTimesLocked: true,
+  }, history));
+});
+
+router.get("/public/impact-summary", async (_req, res): Promise<void> => {
+  const [items, claims, history, receivedTransfers] = await Promise.all([
+    db.select({
+      category: donationItemsTable.category,
+      stage: donationItemsTable.stage,
+    }).from(donationItemsTable),
+    db.select({
+      id: claimsTable.id,
+      status: claimsTable.status,
+    }).from(claimsTable),
+    db.select({
+      claimId: claimHistoryTable.claimId,
+      status: claimHistoryTable.toStatus,
+      timestamp: claimHistoryTable.timestamp,
+    }).from(claimHistoryTable),
+    db.select({
+      itemId: transfersTable.itemId,
+    }).from(transfersTable).where(eq(transfersTable.status, "received")),
+  ]);
+
+  res.json(buildPublicImpactSummary({
+    items,
+    claims,
+    history,
+    receivedTransfers,
   }));
 });
 

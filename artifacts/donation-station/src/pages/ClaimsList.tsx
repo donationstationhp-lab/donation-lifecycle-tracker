@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, FileText, AlertCircle } from 'lucide-react';
+import { Search, Plus, FileText, AlertCircle, Copy } from 'lucide-react';
 import { Link } from 'wouter';
 import { format } from 'date-fns';
 import { CreateClaimDialog } from '@/components/claims/CreateClaimDialog';
+import { buildPublicTrackingUrl } from '@/lib/publicTracking';
+import { useToast } from '@/hooks/use-toast';
 
 export function ClaimStatusBadge({ status }: { status: ClaimStatus | string }) {
   const variants: Record<string, string> = {
@@ -29,6 +31,7 @@ export function ClaimStatusBadge({ status }: { status: ClaimStatus | string }) {
 }
 
 export default function ClaimsList() {
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ListClaimsStatus | 'all'>('all');
   const [stageFilter, setStageFilter] = useState<ListClaimsItemStage | 'all'>('all');
@@ -68,7 +71,9 @@ export default function ClaimsList() {
       const accountMatch = account?.name.toLowerCase().includes(lowerSearch);
       const itemMatch = item?.name.toLowerCase().includes(lowerSearch) || item?.itemId.toLowerCase().includes(lowerSearch);
       
-      return accountMatch || itemMatch;
+      const trackingMatch = c.trackingCode?.toLowerCase().includes(lowerSearch);
+
+      return accountMatch || itemMatch || trackingMatch;
     });
   }, [claims, accountMap, itemMap, search]);
 
@@ -107,7 +112,10 @@ export default function ClaimsList() {
                 <SelectItem value="intake">Intake</SelectItem>
                 <SelectItem value="qc">QC</SelectItem>
                 <SelectItem value="storage">Storage</SelectItem>
+                <SelectItem value="matched">Ready for Matching</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
                 <SelectItem value="distributed">Distributed</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
               </SelectContent>
             </Select>
             
@@ -161,6 +169,7 @@ export default function ClaimsList() {
                 <th className="px-4 py-3 font-medium">Date</th>
                 <th className="px-4 py-3 font-medium">Account</th>
                 <th className="px-4 py-3 font-medium">Item</th>
+                <th className="px-4 py-3 font-medium">Tracking</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
@@ -171,6 +180,7 @@ export default function ClaimsList() {
                   <td className="px-4 py-3"><Skeleton className="h-4 w-20" /></td>
                   <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
                   <td className="px-4 py-3"><Skeleton className="h-4 w-32" /></td>
+                  <td className="px-4 py-3"><Skeleton className="h-4 w-24" /></td>
                   <td className="px-4 py-3"><Skeleton className="h-5 w-24 rounded-full" /></td>
                   <td className="px-4 py-3 text-right"><Skeleton className="h-8 w-20 ml-auto" /></td>
                 </tr>
@@ -178,7 +188,7 @@ export default function ClaimsList() {
               
               {isError && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-red-600 bg-red-50/50">
+                  <td colSpan={6} className="px-4 py-12 text-center text-red-600 bg-red-50/50">
                     <AlertCircle className="w-8 h-8 mx-auto mb-3 opacity-50" />
                     <p className="font-medium">Error loading claims</p>
                     <p className="text-xs mt-1">Please try again or check your connection.</p>
@@ -188,7 +198,7 @@ export default function ClaimsList() {
 
               {!isLoading && !isError && filteredClaims.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
                     <FileText className="w-8 h-8 mx-auto mb-3 opacity-20" />
                     <p className="font-medium text-foreground">No claims found</p>
                     <p className="text-xs mt-1">Adjust your search or create a new claim.</p>
@@ -212,6 +222,38 @@ export default function ClaimsList() {
                     <td className="px-4 py-3">
                       <div className="font-medium text-foreground">{item?.name || claim.itemId.substring(0,8)}</div>
                       {item?.itemId && <div className="text-xs text-muted-foreground font-mono">{item.itemId}</div>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <span className="font-mono text-xs font-medium">
+                          {claim.trackingCode ?? 'Pending'}
+                        </span>
+                        {claim.trackingCode && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            aria-label={`Copy public tracking link for ${claim.trackingCode}`}
+                            onClick={async () => {
+                              const url = buildPublicTrackingUrl(claim.trackingCode);
+                              if (!url) return;
+                              try {
+                                await navigator.clipboard.writeText(url);
+                                toast({ title: 'Public tracking link copied' });
+                              } catch {
+                                toast({
+                                  title: 'Unable to copy link',
+                                  description: url,
+                                  variant: 'destructive',
+                                });
+                              }
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <ClaimStatusBadge status={claim.status} />

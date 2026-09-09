@@ -117,6 +117,27 @@ export interface PublicTrackingResponse {
   exactTimesLocked: true;
 }
 
+export interface PublicImpactCategory {
+  categoryLabel: string;
+  /** @minimum 0 */
+  count: number;
+}
+
+export interface PublicImpactSummary {
+  /** @minimum 0 */
+  totalItemsReceived: number;
+  /** @minimum 0 */
+  totalItemsDistributed: number;
+  itemsByCategory: PublicImpactCategory[];
+  /** @minimum 0 */
+  claimsFulfilled: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  averageFulfillmentHours: number | null;
+}
+
 export interface ClaimInput {
   accountId: string;
   itemId: string;

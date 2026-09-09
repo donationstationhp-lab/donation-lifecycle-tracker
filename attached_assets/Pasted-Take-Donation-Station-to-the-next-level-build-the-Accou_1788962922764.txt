@@ -1,0 +1,87 @@
+Take Donation Station to the next level: build the Accountability Layer.
+
+Current state:
+- Public tracking works for claim tracking codes like DSC-000001.
+- Public page shows item category, sanitized item name, stage, status, approximate time, locked exact time.
+- Twilio/OTP is paused until approval.
+
+Goal:
+Turn the app into a reliable public-safe tracking and operational accountability system.
+
+Do not work on Twilio, SMS, or OTP yet.
+
+Build in this order:
+
+1. Public QR + tracking link
+- On Claim Details, keep showing Claim Tracking Code.
+- Add a QR code button or QR preview for the public tracking URL.
+- Public tracking URL format:
+  https://donation-lifecycle-tracker.replit.app/track/<trackingCode>
+- If PUBLIC_APP_URL env var exists, use that as base URL.
+- Otherwise fallback to https://donation-lifecycle-tracker.replit.app
+
+2. Claim list tracking visibility
+- Add a small tracking code column or copy-link action to the Claims list.
+- Do not show private recipient/donor details in the public link.
+
+3. Lifecycle stage history
+- Ensure every claim/item stage change writes to history.
+- Stages should naturally support:
+  Intake / Received
+  Quality Check
+  Storage
+  Ready for Matching
+  Scheduled
+  Distributed
+  Closed
+- Staff override is allowed only with reason logging.
+
+4. Public API privacy audit
+- Add a helper that builds the public tracking response.
+- The helper must whitelist allowed public fields only.
+- Public API may return:
+  trackingCode
+  item.categoryLabel
+  item.name only if sanitized
+  stage
+  status
+  lastUpdatedApprox
+  exactTimesLocked
+  timeline approximate events
+- Public API must never return:
+  recipient name
+  donor name
+  phone
+  email
+  address
+  private notes
+  internal notes
+  account IDs unless intentionally public-safe
+
+5. Dashboard metric truth fixes
+- Active Items should count only active/in-system items.
+- Expiring Soon should count items expiring within the next 14 days, excluding already expired items.
+- Pending Review should have one source of truth.
+- Distributed Items should count completed/verified distributions only.
+
+6. Public-safe impact summary endpoint
+Create or prepare an endpoint like:
+GET /api/public/impact-summary
+
+Return aggregate-only data:
+- total items received
+- total items distributed
+- items by category
+- claims fulfilled
+- average fulfillment time if available
+- no names, no phones, no addresses, no private notes
+
+7. Test
+After changes:
+- /claims loads.
+- Claim list shows tracking code/copy link.
+- Claim Details shows tracking code, copy link, and QR option.
+- /track/DSC-000001 still works.
+- Public tracking response contains no PII.
+- Dashboard numbers still load.
+- No Twilio credentials are required.

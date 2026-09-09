@@ -846,6 +846,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /public/impact-summary:
+    get:
+      operationId: getPublicImpactSummary
+      tags: [attend]
+      summary: Get aggregate-only public impact metrics
+      responses:
+        "200":
+          description: Public aggregate impact summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicImpactSummary"
 components:
   schemas:
     AttendOutboxEntry:
@@ -945,6 +957,31 @@ components:
           items:
             $ref: "#/components/schemas/PublicTrackingTimelineEntry"
         exactTimesLocked: { type: boolean, const: true }
+    PublicImpactCategory:
+      type: object
+      additionalProperties: false
+      required: [categoryLabel, count]
+      properties:
+        categoryLabel: { type: string }
+        count: { type: number, minimum: 0, multipleOf: 1 }
+    PublicImpactSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - totalItemsReceived
+        - totalItemsDistributed
+        - itemsByCategory
+        - claimsFulfilled
+        - averageFulfillmentHours
+      properties:
+        totalItemsReceived: { type: number, minimum: 0, multipleOf: 1 }
+        totalItemsDistributed: { type: number, minimum: 0, multipleOf: 1 }
+        itemsByCategory:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicImpactCategory"
+        claimsFulfilled: { type: number, minimum: 0, multipleOf: 1 }
+        averageFulfillmentHours: { type: ["number", "null"], minimum: 0 }
     ClaimInput:
       type: object
       required: [accountId, itemId]

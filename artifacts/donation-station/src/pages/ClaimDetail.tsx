@@ -29,10 +29,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { 
   ArrowLeft, FileText, User, Package, CheckCircle2, ShieldCheck, 
-  Clock, Plus, History, ArrowRightLeft, Loader2, XCircle, Copy, ExternalLink
+  Clock, Plus, History, ArrowRightLeft, Loader2, XCircle, Copy, ExternalLink,
+  QrCode
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ClaimStatusBadge } from './ClaimsList';
+import { QRCodeSVG } from 'qrcode.react';
+import { buildPublicTrackingUrl } from '@/lib/publicTracking';
 
 const evidenceSchema = z.object({
   kind: z.enum(['identity', 'eligibility', 'need']),
@@ -41,8 +44,6 @@ const evidenceSchema = z.object({
 });
 
 type EvidenceValues = z.infer<typeof evidenceSchema>;
-
-const DEFAULT_PUBLIC_APP_URL = 'https://donation-lifecycle-tracker.replit.app';
 
 export default function ClaimDetail() {
   const [, params] = useRoute('/claims/:id');
@@ -66,6 +67,7 @@ export default function ClaimDetail() {
   const [isVerifyOpen, setIsVerifyOpen] = useState(false);
   const [isApproveOpen, setIsApproveOpen] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [isQrOpen, setIsQrOpen] = useState(false);
   
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
@@ -159,12 +161,7 @@ export default function ClaimDetail() {
     });
   };
 
-  const publicAppUrl = (
-    import.meta.env.PUBLIC_APP_URL?.trim() || DEFAULT_PUBLIC_APP_URL
-  ).replace(/\/+$/, '');
-  const publicTrackingUrl = claim.trackingCode
-    ? `${publicAppUrl}/track/${encodeURIComponent(claim.trackingCode)}`
-    : null;
+  const publicTrackingUrl = buildPublicTrackingUrl(claim.trackingCode);
 
   const copyPublicTrackingLink = async () => {
     if (!publicTrackingUrl) return;
@@ -398,6 +395,16 @@ export default function ClaimDetail() {
                 <Copy className="w-4 h-4 mr-2" />
                 Copy public tracking link
               </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                disabled={!publicTrackingUrl}
+                onClick={() => setIsQrOpen(true)}
+              >
+                <QrCode className="w-4 h-4 mr-2" />
+                Show tracking QR code
+              </Button>
             </CardContent>
           </Card>
 
@@ -434,6 +441,37 @@ export default function ClaimDetail() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={isQrOpen} onOpenChange={setIsQrOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Public tracking QR code</DialogTitle>
+            <DialogDescription>
+              Scan to open the public-safe tracking page. Recipient and donor
+              details are not included.
+            </DialogDescription>
+          </DialogHeader>
+          {publicTrackingUrl && (
+            <div className="flex flex-col items-center gap-4 rounded-xl border bg-white p-6">
+              <QRCodeSVG
+                value={publicTrackingUrl}
+                size={220}
+                level="M"
+                title={`Tracking QR code for ${claim.trackingCode}`}
+              />
+              <p className="font-mono text-sm font-semibold tracking-wide">
+                {claim.trackingCode}
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={copyPublicTrackingLink}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isEvidenceOpen} onOpenChange={setIsEvidenceOpen}>
         <DialogContent>

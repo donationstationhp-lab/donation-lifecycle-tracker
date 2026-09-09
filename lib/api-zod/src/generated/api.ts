@@ -1672,3 +1672,34 @@ export const GetPublicTrackingResponse = zod.object({
 })
 
 
+/**
+ * @summary Get aggregate-only public impact metrics
+ */
+export const getPublicImpactSummaryResponseTotalItemsReceivedMin = 0;
+export const getPublicImpactSummaryResponseTotalItemsReceivedMultipleOf = 1;
+
+export const getPublicImpactSummaryResponseTotalItemsDistributedMin = 0;
+export const getPublicImpactSummaryResponseTotalItemsDistributedMultipleOf = 1;
+
+export const getPublicImpactSummaryResponseItemsByCategoryItemCountMin = 0;
+export const getPublicImpactSummaryResponseItemsByCategoryItemCountMultipleOf = 1;
+
+export const getPublicImpactSummaryResponseClaimsFulfilledMin = 0;
+export const getPublicImpactSummaryResponseClaimsFulfilledMultipleOf = 1;
+
+export const getPublicImpactSummaryResponseAverageFulfillmentHoursMin = 0;
+
+
+
+export const GetPublicImpactSummaryResponse = zod.object({
+  "totalItemsReceived": zod.number().min(getPublicImpactSummaryResponseTotalItemsReceivedMin).multipleOf(getPublicImpactSummaryResponseTotalItemsReceivedMultipleOf),
+  "totalItemsDistributed": zod.number().min(getPublicImpactSummaryResponseTotalItemsDistributedMin).multipleOf(getPublicImpactSummaryResponseTotalItemsDistributedMultipleOf),
+  "itemsByCategory": zod.array(zod.object({
+  "categoryLabel": zod.string(),
+  "count": zod.number().min(getPublicImpactSummaryResponseItemsByCategoryItemCountMin).multipleOf(getPublicImpactSummaryResponseItemsByCategoryItemCountMultipleOf)
+})),
+  "claimsFulfilled": zod.number().min(getPublicImpactSummaryResponseClaimsFulfilledMin).multipleOf(getPublicImpactSummaryResponseClaimsFulfilledMultipleOf),
+  "averageFulfillmentHours": zod.number().min(getPublicImpactSummaryResponseAverageFulfillmentHoursMin).nullable()
+})
+
+

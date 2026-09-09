@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildPublicImpactSummary,
+  buildPublicTrackingResponse,
   publicClaimStatusLabel,
   safeCategory,
   safeItemName,
@@ -30,4 +32,76 @@ test("public claim statuses use curated language", () => {
   assert.equal(publicClaimStatusLabel("approved"), "Claim Approved");
   assert.equal(publicClaimStatusLabel("fulfilled"), "Completed");
   assert.equal(publicClaimStatusLabel("private_internal_status"), "In Progress");
+});
+
+test("public tracking builder returns only explicitly whitelisted keys", () => {
+  const response = buildPublicTrackingResponse({
+    trackingCode: "DSC-000001",
+    status: "approved",
+    updatedAt: new Date("2026-09-09T15:00:00Z"),
+    itemName: "Frozen chicken for Jane Doe",
+    itemCategory: "Food",
+    itemStage: "matched",
+    recipientName: "Jane Doe",
+    phone: "312-555-0100",
+    privateNotes: "Do not expose",
+  } as Parameters<typeof buildPublicTrackingResponse>[0], [{
+    status: "submitted",
+    timestamp: new Date("2026-09-09T14:00:00Z"),
+  }]);
+
+  assert.deepEqual(Object.keys(response).sort(), [
+    "exactTimesLocked",
+    "item",
+    "lastUpdatedApprox",
+    "lastUpdatedExact",
+    "stage",
+    "status",
+    "timeline",
+    "trackingCode",
+  ]);
+  assert.equal(JSON.stringify(response).includes("Jane Doe"), false);
+  assert.equal(JSON.stringify(response).includes("312-555-0100"), false);
+  assert.equal(JSON.stringify(response).includes("Do not expose"), false);
+});
+
+test("public impact counts only received transfers as distributions", () => {
+  const summary = buildPublicImpactSummary({
+    items: [
+      { category: "Food", stage: "distributed" },
+      { category: "Clothing", stage: "closed" },
+    ],
+    claims: [
+      { id: "claim-1", status: "fulfilled" },
+      { id: "claim-2", status: "approved" },
+    ],
+    history: [
+      {
+        claimId: "claim-1",
+        status: "submitted",
+        timestamp: new Date("2026-09-09T10:00:00Z"),
+      },
+      {
+        claimId: "claim-1",
+        status: "fulfilled",
+        timestamp: new Date("2026-09-09T14:00:00Z"),
+      },
+    ],
+    receivedTransfers: [
+      { itemId: "item-1" },
+      { itemId: "item-1" },
+    ],
+  });
+
+  assert.equal(summary.totalItemsReceived, 2);
+  assert.equal(summary.totalItemsDistributed, 1);
+  assert.equal(summary.claimsFulfilled, 1);
+  assert.equal(summary.averageFulfillmentHours, 4);
+  assert.deepEqual(Object.keys(summary).sort(), [
+    "averageFulfillmentHours",
+    "claimsFulfilled",
+    "itemsByCategory",
+    "totalItemsDistributed",
+    "totalItemsReceived",
+  ]);
 });

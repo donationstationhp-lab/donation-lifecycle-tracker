@@ -87,6 +87,8 @@ export * from './pickupRequestInput';
 export * from './pickupRequestUpdate';
 export * from './pickupRouteInput';
 export * from './pickupStatus';
+export * from './publicImpactCategory';
+export * from './publicImpactSummary';
 export * from './publicTrackingItem';
 export * from './publicTrackingResponse';
 export * from './publicTrackingTimelineEntry';

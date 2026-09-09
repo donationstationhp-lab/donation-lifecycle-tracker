@@ -62,6 +62,7 @@ import type {
   PickupRequestInput,
   PickupRequestUpdate,
   PickupRouteInput,
+  PublicImpactSummary,
   PublicTrackingResponse,
   RecipientAccount,
   RecipientAccountInput,
@@ -3321,6 +3322,83 @@ export function useGetPublicTracking<TData = Awaited<ReturnType<typeof getPublic
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetPublicTrackingQueryOptions(trackingCode,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPublicImpactSummaryUrl = () => {
+
+
+
+
+  return `/api/public/impact-summary`
+}
+
+/**
+ * @summary Get aggregate-only public impact metrics
+ */
+export const getPublicImpactSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<PublicImpactSummary> => {
+
+  return customFetch<PublicImpactSummary>(getGetPublicImpactSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicImpactSummaryQueryKey = () => {
+    return [
+    `/api/public/impact-summary`
+    ] as const;
+    }
+
+
+export const getGetPublicImpactSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getPublicImpactSummary>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicImpactSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicImpactSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicImpactSummary>>> = ({ signal }) => getPublicImpactSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicImpactSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicImpactSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicImpactSummary>>>
+export type GetPublicImpactSummaryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get aggregate-only public impact metrics
+ */
+
+export function useGetPublicImpactSummary<TData = Awaited<ReturnType<typeof getPublicImpactSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicImpactSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicImpactSummaryQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
