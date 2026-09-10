@@ -39,6 +39,7 @@ import PublicTrack from "@/pages/PublicTrack";
 import PublicPrivacy from "@/pages/PublicPrivacy";
 import PublicTerms from "@/pages/PublicTerms";
 import Schedule from "@/pages/Schedule";
+import CommunityHistory from "@/pages/CommunityHistory";
 
 const queryClient = new QueryClient();
 const STAFF_EMAIL_ALLOWLIST = ["dewaynelogan79@gmail.com"];
@@ -50,7 +51,7 @@ function AuthCard({ mode }: { mode: "sign-in" | "sign-up" }) {
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold">Donation Station</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Staff access is required to view donor and operations records.
+            Sign in to view private community history or staff operations.
           </p>
         </div>
         {mode === "sign-in" ? (
@@ -128,24 +129,24 @@ function Router() {
       </Route>
       <Route path="/sign-in">
         <Show when="signed-in" fallback={<AuthCard mode="sign-in" />}>
-          <StaffApp />
+           <AuthenticatedApp />
         </Show>
       </Route>
       <Route path="/sign-up">
         <Show when="signed-in" fallback={<AuthCard mode="sign-up" />}>
-          <StaffApp />
+           <AuthenticatedApp />
         </Show>
       </Route>
       <Route>
         <Show when="signed-in" fallback={<AuthCard mode="sign-in" />}>
-          <StaffApp />
+          <AuthenticatedApp />
         </Show>
       </Route>
     </Switch>
   );
 }
 
-function StaffApp() {
+function AuthenticatedApp() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const [authTransportReady, setAuthTransportReady] = useState(false);
@@ -170,6 +171,9 @@ function StaffApp() {
   }
 
   const role = user?.publicMetadata.role;
+  if (role === "community") {
+    return <CommunityApp />;
+  }
   const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
   const isAllowlisted = email ? STAFF_EMAIL_ALLOWLIST.includes(email) : false;
 
@@ -220,6 +224,16 @@ function StaffApp() {
         </Switch>
       </RoutedErrorBoundary>
     </Shell>
+  );
+}
+
+function CommunityApp() {
+  return (
+    <main className="min-h-screen bg-background p-4 sm:p-8">
+      <div className="mx-auto max-w-6xl">
+        <CommunityHistory />
+      </div>
+    </main>
   );
 }
 

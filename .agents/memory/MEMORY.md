@@ -12,3 +12,4 @@
 - [Reservation ownership and lifecycle](reservation-ownership-and-lifecycle.md) — public tracking codes cannot prove ownership; staff mediates claim links until OTP is enabled.
 - [Service activity projections](service-activity-projections.md) — append immutable events, serialize aggregate transitions, and filter only after latest-state projection.
 - [Public resource catalog privacy](public-resource-catalog-privacy.md) — expose grouped, curated availability only; never raw inventory identifiers or free-form details.
+- [Community ownership links](community-ownership-links.md) — private history requires explicit staff-mediated identity links, never public-code or contact-field inference.

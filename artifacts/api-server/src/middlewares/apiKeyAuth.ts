@@ -3,12 +3,13 @@ import { clerkClient, getAuth } from "@clerk/express";
 import { timingSafeEqual } from "node:crypto";
 
 export type StaffRole = "staff" | "supervisor";
-const roleCache = new Map<string, { role: StaffRole; expiresAt: number }>();
+export type AppRole = StaffRole | "community";
+const roleCache = new Map<string, { role: AppRole; expiresAt: number }>();
 // Temporary stopgap until Managed Auth Production role assignment is resolved via Pro dashboard access or Replit support.
 const STAFF_EMAIL_ALLOWLIST = ["dewaynelogan79@gmail.com"];
 
 type ApiAuthRequest = Request;
-type RoleResolver = (req: ApiAuthRequest) => Promise<StaffRole | null>;
+type RoleResolver = (req: ApiAuthRequest) => Promise<AppRole | null>;
 type UserIdResolver = (req: ApiAuthRequest) => string | null | undefined;
 
 export interface ApiKeyAuthDependencies {
@@ -23,7 +24,7 @@ function safeEqual(provided: string, expected: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-async function getClerkRole(req: Request): Promise<StaffRole | null> {
+async function getClerkRole(req: Request): Promise<AppRole | null> {
   const { userId } = getAuth(req);
   if (!userId) return null;
   const cached = roleCache.get(userId);
@@ -34,8 +35,8 @@ async function getClerkRole(req: Request): Promise<StaffRole | null> {
   const isAllowlisted = email
     ? STAFF_EMAIL_ALLOWLIST.includes(email)
     : false;
-  const role: StaffRole | null =
-    metadataRole === "staff" || metadataRole === "supervisor"
+  const role: AppRole | null =
+    metadataRole === "staff" || metadataRole === "supervisor" || metadataRole === "community"
       ? metadataRole
       : isAllowlisted
         ? "staff"
@@ -63,6 +64,7 @@ export function createApiKeyAuth({
       safeEqual(provided, expected)
     ) {
       res.locals.staffRole = "supervisor" satisfies StaffRole;
+      res.locals.userRole = "supervisor" satisfies AppRole;
       res.locals.authMethod = "api-key";
       next();
       return;
@@ -80,9 +82,14 @@ export function createApiKeyAuth({
         res.status(403).json({ error: "Staff access has not been assigned" });
         return;
       }
-      res.locals.staffRole = role;
+      res.locals.userRole = role;
       res.locals.authMethod = "clerk";
-      res.locals.staffUserId = userId;
+      if (role === "staff" || role === "supervisor") {
+        res.locals.staffRole = role;
+        res.locals.staffUserId = userId;
+      } else {
+        res.locals.communityUserId = userId;
+      }
       next();
     } catch {
       res.status(401).json({ error: "Unable to validate staff session" });
@@ -99,6 +106,30 @@ export function requireSupervisor(
 ): void {
   if (res.locals.staffRole !== "supervisor") {
     res.status(403).json({ error: "Supervisor access required" });
+    return;
+  }
+  next();
+}
+
+export function requireStaff(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (res.locals.staffRole !== "staff" && res.locals.staffRole !== "supervisor") {
+    res.status(403).json({ error: "Staff access required" });
+    return;
+  }
+  next();
+}
+
+export function requireCommunity(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (res.locals.userRole !== "community" || res.locals.authMethod !== "clerk") {
+    res.status(403).json({ error: "Community access required" });
     return;
   }
   next();

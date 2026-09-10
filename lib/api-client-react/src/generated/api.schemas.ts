@@ -296,6 +296,70 @@ export type TransferDetail = Transfer & {
   item: ItemSummary;
 };
 
+export type CommunityOwnershipInputRecordType = typeof CommunityOwnershipInputRecordType[keyof typeof CommunityOwnershipInputRecordType];
+
+
+export const CommunityOwnershipInputRecordType = {
+  account: 'account',
+  donation: 'donation',
+  claim: 'claim',
+  appointment: 'appointment',
+  pickup_request: 'pickup_request',
+  service_activity: 'service_activity',
+} as const;
+
+export interface CommunityOwnershipInput {
+  /** @minLength 1 */
+  clerkUserId: string;
+  recordType: CommunityOwnershipInputRecordType;
+  /** @minLength 1 */
+  recordId: string;
+}
+
+export interface CommunityOwnership {
+  id: string;
+  clerkUserId: string;
+  recordType: string;
+  recordId: string;
+  verifiedBy: string;
+  verifiedAt: string;
+  createdAt: string;
+}
+
+export type CommunityHistoryDonationsItem = { [key: string]: unknown };
+
+export type CommunityHistoryClaimsItem = { [key: string]: unknown };
+
+export type CommunityHistoryAppointmentsItem = { [key: string]: unknown };
+
+export type CommunityHistoryReservationsItem = { [key: string]: unknown };
+
+export type CommunityHistoryVolunteerRequestsItem = { [key: string]: unknown };
+
+export type CommunityHistoryPickupsItem = { [key: string]: unknown };
+
+export type CommunityHistoryAcknowledgmentsItem = { [key: string]: unknown };
+
+export type CommunityHistoryHistoryItem = { [key: string]: unknown };
+
+export type CommunityHistoryOwnership = {
+  /** @minimum 0 */
+  linkedRecords: number;
+  staffMediated: boolean;
+};
+
+export interface CommunityHistory {
+  donations: CommunityHistoryDonationsItem[];
+  claims: CommunityHistoryClaimsItem[];
+  appointments: CommunityHistoryAppointmentsItem[];
+  reservations: CommunityHistoryReservationsItem[];
+  volunteerRequests: CommunityHistoryVolunteerRequestsItem[];
+  pickups: CommunityHistoryPickupsItem[];
+  acknowledgments: CommunityHistoryAcknowledgmentsItem[];
+  history: CommunityHistoryHistoryItem[];
+  ownership: CommunityHistoryOwnership;
+}
+
 export interface StatusTransitionInput {
   status: string;
   notes?: string;

@@ -32,6 +32,11 @@ const PUBLIC_TIME_ZONE = "America/Chicago";
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
+// Keep public SMS verification off until Trust Hub approval and an explicit
+// rollout decision are both recorded in deployment configuration.
+const PUBLIC_TRACKING_OTP_ENABLED =
+  process.env.PUBLIC_TRACKING_OTP_ENABLED === "true" &&
+  process.env.TWILIO_TRUST_HUB_APPROVED === "true";
 
 const PUBLIC_CLAIM_STATUS_LABELS: Record<string, string> = {
   submitted: "Request Received",
@@ -281,6 +286,10 @@ router.get("/public/track/:trackingCode", async (req, res): Promise<void> => {
 });
 
 router.post("/public/track/:trackingCode/verification/request", async (req, res): Promise<void> => {
+  if (!PUBLIC_TRACKING_OTP_ENABLED) {
+    res.status(503).json({ error: "SMS verification is not currently available" });
+    return;
+  }
   const params = RequestPublicTrackingVerificationParams.safeParse(req.params);
   if (!params.success) {
     res.status(404).json({ error: "Tracking record not found" });
@@ -357,6 +366,10 @@ router.post("/public/track/:trackingCode/verification/request", async (req, res)
 });
 
 router.post("/public/track/:trackingCode/verification/verify", async (req, res): Promise<void> => {
+  if (!PUBLIC_TRACKING_OTP_ENABLED) {
+    res.status(503).json({ error: "SMS verification is not currently available" });
+    return;
+  }
   const params = VerifyPublicTrackingParams.safeParse(req.params);
   const body = VerifyPublicTrackingBody.safeParse(req.body);
   if (!params.success || !body.success) {

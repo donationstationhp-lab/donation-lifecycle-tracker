@@ -27,6 +27,9 @@ import type {
   ClaimEvidence,
   ClaimEvidenceInput,
   ClaimInput,
+  CommunityHistory,
+  CommunityOwnership,
+  CommunityOwnershipInput,
   ConfirmationTemplate,
   ConfirmationTemplateInput,
   DashboardSummary,
@@ -1014,6 +1017,227 @@ export function useGetDashboard<TData = Awaited<ReturnType<typeof getDashboard>>
 
 
 
+
+export const getGetCommunityHistoryUrl = () => {
+
+
+
+
+  return `/api/community/history`
+}
+
+/**
+ * Returns only records linked to the authenticated Clerk identity by staff mediation. Public tracking codes are not accepted as ownership proof.
+ * @summary Get the signed-in community member's verified service history
+ */
+export const getCommunityHistory = async ( options?: Parameters<typeof customFetch>[1]): Promise<CommunityHistory> => {
+
+  return customFetch<CommunityHistory>(getGetCommunityHistoryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCommunityHistoryQueryKey = () => {
+    return [
+    `/api/community/history`
+    ] as const;
+    }
+
+
+export const getGetCommunityHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getCommunityHistory>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCommunityHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCommunityHistoryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCommunityHistory>>> = ({ signal }) => getCommunityHistory({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCommunityHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCommunityHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getCommunityHistory>>>
+export type GetCommunityHistoryQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get the signed-in community member's verified service history
+ */
+
+export function useGetCommunityHistory<TData = Awaited<ReturnType<typeof getCommunityHistory>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCommunityHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCommunityHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getLinkCommunityOwnershipUrl = () => {
+
+
+
+
+  return `/api/community/ownership`
+}
+
+/**
+ * Staff-only mediation endpoint. Never infer ownership from public tracking codes.
+ * @summary Link a verified record to a community member
+ */
+export const linkCommunityOwnership = async (communityOwnershipInput: CommunityOwnershipInput, options?: Parameters<typeof customFetch>[1]): Promise<CommunityOwnership> => {
+
+  return customFetch<CommunityOwnership>(getLinkCommunityOwnershipUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(communityOwnershipInput)
+  }
+);}
+
+
+
+
+
+export const getLinkCommunityOwnershipMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkCommunityOwnership>>, TError,{data: BodyType<CommunityOwnershipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof linkCommunityOwnership>>, TError,{data: BodyType<CommunityOwnershipInput>}, TContext> => {
+
+const mutationKey = ['linkCommunityOwnership'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof linkCommunityOwnership>>, {data: BodyType<CommunityOwnershipInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  linkCommunityOwnership(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LinkCommunityOwnershipMutationResult = NonNullable<Awaited<ReturnType<typeof linkCommunityOwnership>>>
+    export type LinkCommunityOwnershipMutationBody = BodyType<CommunityOwnershipInput>
+    export type LinkCommunityOwnershipMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Link a verified record to a community member
+ */
+export const useLinkCommunityOwnership = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof linkCommunityOwnership>>, TError,{data: BodyType<CommunityOwnershipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof linkCommunityOwnership>>,
+        TError,
+        {data: BodyType<CommunityOwnershipInput>},
+        TContext
+      > => {
+      return useMutation(getLinkCommunityOwnershipMutationOptions(options));
+    }
+
+export const getUnlinkCommunityOwnershipUrl = (id: string,) => {
+
+
+
+
+  return `/api/community/ownership/${id}`
+}
+
+/**
+ * @summary Remove a staff-mediated community ownership link
+ */
+export const unlinkCommunityOwnership = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUnlinkCommunityOwnershipUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnlinkCommunityOwnershipMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlinkCommunityOwnership>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlinkCommunityOwnership>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['unlinkCommunityOwnership'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlinkCommunityOwnership>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unlinkCommunityOwnership(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlinkCommunityOwnershipMutationResult = NonNullable<Awaited<ReturnType<typeof unlinkCommunityOwnership>>>
+
+    export type UnlinkCommunityOwnershipMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Remove a staff-mediated community ownership link
+ */
+export const useUnlinkCommunityOwnership = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlinkCommunityOwnership>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unlinkCommunityOwnership>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getUnlinkCommunityOwnershipMutationOptions(options));
+    }
 
 export const getListRoutesUrl = () => {
 

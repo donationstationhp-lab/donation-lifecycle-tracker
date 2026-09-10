@@ -11,3 +11,4 @@ export * from "./confirmationTemplates";
 export * from "./attendLifecycle";
 export * from "./appointments";
 export * from "./serviceActivities";
+export * from "./communityOwnership";

@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import type { NextFunction, Request, Response } from "express";
 import {
   createApiKeyAuth,
+  requireCommunity,
+  requireStaff,
   requireSupervisor,
+  type AppRole,
   type StaffRole,
 } from "./apiKeyAuth";
 
@@ -23,7 +26,7 @@ function runMiddleware({
   providedApiKey,
   expectedApiKey = SERVER_API_KEY,
 }: {
-  role: StaffRole | null;
+  role: AppRole | null;
   userId?: string | null;
   providedApiKey?: string;
   expectedApiKey?: string;
@@ -113,6 +116,7 @@ describe("staff privacy access matrix", () => {
         status: 200,
         allowed: true,
       },
+      { name: "community", role: "community" as const, status: 200, allowed: true },
     ];
 
     for (const testCase of cases) {
@@ -124,7 +128,13 @@ describe("staff privacy access matrix", () => {
       assert.equal(result.statusCode, testCase.status, testCase.name);
       assert.equal(result.nextCalled, testCase.allowed, testCase.name);
       if (testCase.allowed) {
-        assert.equal(result.locals.staffRole, testCase.role);
+        assert.equal(result.locals.userRole, testCase.role);
+        if (testCase.role === "community") {
+          assert.equal(result.locals.communityUserId, `clerk-${testCase.role}`);
+          assert.equal(result.locals.staffRole, undefined);
+        } else {
+          assert.equal(result.locals.staffRole, testCase.role);
+        }
         assert.equal(result.locals.authMethod, "clerk");
       } else {
         assert.deepEqual(result.body, {
@@ -172,6 +182,58 @@ describe("staff privacy access matrix", () => {
       SERVER_API_KEY,
       DONOR_PHONE,
     );
+  });
+});
+
+describe("community and staff route guards", () => {
+  function runGuard(
+    guard: typeof requireCommunity | typeof requireStaff,
+    locals: Record<string, unknown>,
+  ) {
+    const result = { statusCode: 200, body: undefined as unknown, nextCalled: false };
+    guard(
+      {} as Request,
+      {
+        locals,
+        status(code: number) {
+          result.statusCode = code;
+          return {
+            json(body: unknown) {
+              result.body = body;
+            },
+          };
+        },
+      } as unknown as Response,
+      (() => {
+        result.nextCalled = true;
+      }) as NextFunction,
+    );
+    return result;
+  }
+
+  it("lets a community role reach only the community router", () => {
+    const community = runGuard(requireCommunity, {
+      userRole: "community",
+      authMethod: "clerk",
+    });
+    assert.equal(community.nextCalled, true);
+
+    const staff = runGuard(requireStaff, {
+      userRole: "community",
+      authMethod: "clerk",
+    });
+    assert.equal(staff.statusCode, 403);
+    assert.equal(staff.nextCalled, false);
+  });
+
+  it("keeps staff routes unavailable to an API-key-less community session", () => {
+    const result = runGuard(requireCommunity, {
+      userRole: "staff",
+      authMethod: "clerk",
+      staffRole: "staff",
+    });
+    assert.equal(result.statusCode, 403);
+    assert.equal(result.nextCalled, false);
   });
 });
 

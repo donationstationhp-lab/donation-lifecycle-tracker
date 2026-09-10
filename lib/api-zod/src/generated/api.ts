@@ -474,6 +474,66 @@ export const GetDashboardResponse = zod.object({
 
 
 /**
+ * Returns only records linked to the authenticated Clerk identity by staff mediation. Public tracking codes are not accepted as ownership proof.
+ * @summary Get the signed-in community member's verified service history
+ */
+export const getCommunityHistoryResponseOwnershipLinkedRecordsMin = 0;
+export const getCommunityHistoryResponseOwnershipLinkedRecordsMultipleOf = 1;
+
+
+
+export const GetCommunityHistoryResponse = zod.object({
+  "donations": zod.array(zod.record(zod.string(), zod.unknown())),
+  "claims": zod.array(zod.record(zod.string(), zod.unknown())),
+  "appointments": zod.array(zod.record(zod.string(), zod.unknown())),
+  "reservations": zod.array(zod.record(zod.string(), zod.unknown())),
+  "volunteerRequests": zod.array(zod.record(zod.string(), zod.unknown())),
+  "pickups": zod.array(zod.record(zod.string(), zod.unknown())),
+  "acknowledgments": zod.array(zod.record(zod.string(), zod.unknown())),
+  "history": zod.array(zod.record(zod.string(), zod.unknown())),
+  "ownership": zod.object({
+  "linkedRecords": zod.number().min(getCommunityHistoryResponseOwnershipLinkedRecordsMin).multipleOf(getCommunityHistoryResponseOwnershipLinkedRecordsMultipleOf),
+  "staffMediated": zod.boolean()
+})
+})
+
+
+/**
+ * Staff-only mediation endpoint. Never infer ownership from public tracking codes.
+ * @summary Link a verified record to a community member
+ */
+
+
+
+
+export const LinkCommunityOwnershipBody = zod.object({
+  "clerkUserId": zod.string().min(1),
+  "recordType": zod.enum(['account', 'donation', 'claim', 'appointment', 'pickup_request', 'service_activity']),
+  "recordId": zod.string().min(1)
+})
+
+export const LinkCommunityOwnershipResponse = zod.object({
+  "id": zod.string(),
+  "clerkUserId": zod.string(),
+  "recordType": zod.string(),
+  "recordId": zod.string(),
+  "verifiedBy": zod.string(),
+  "verifiedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove a staff-mediated community ownership link
+ */
+export const UnlinkCommunityOwnershipParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UnlinkCommunityOwnershipResponse = zod.void()
+
+
+/**
  * @summary List delivery routes
  */
 export const ListRoutesResponseItem = zod.object({

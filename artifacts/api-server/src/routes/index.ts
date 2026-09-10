@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { apiKeyAuth } from "../middlewares/apiKeyAuth";
+import { apiKeyAuth, requireStaff } from "../middlewares/apiKeyAuth";
 import healthRouter, { protectedHealthRouter } from "./health";
 import publicRoutes from "./publicRoutes";
 import publicTrackRouter from "./publicTrack";
@@ -14,6 +14,7 @@ import pickupsRouter from "./pickups";
 import attendRouter from "./attend";
 import appointmentsRouter, { publicAppointmentsRouter } from "./appointments";
 import serviceActivitiesRouter from "./serviceActivities";
+import communityRouter from "./community";
 
 const router: IRouter = Router();
 
@@ -29,6 +30,8 @@ router.use(notionHealthRouter); // /notion/health
 router.use(apiKeyAuth);
 
 // ── Protected endpoints ──────────────────────────────────────────────────────
+router.use(communityRouter);
+router.use(requireStaff);
 router.use(protectedHealthRouter); // /health
 router.use(itemsRouter);
 router.use(donorsRouter);

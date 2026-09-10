@@ -16,6 +16,8 @@ tags:
     description: Donor operations
   - name: dashboard
     description: Dashboard and summary operations
+  - name: community
+    description: Private community member history and staff-mediated ownership
   - name: routes
     description: Delivery route operations
   - name: pickups
@@ -291,6 +293,84 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
+
+  /community/history:
+    get:
+      operationId: getCommunityHistory
+      tags: [community]
+      summary: Get the signed-in community member's verified service history
+      description: >
+        Returns only records linked to the authenticated Clerk identity by
+        staff mediation. Public tracking codes are not accepted as ownership proof.
+      responses:
+        "200":
+          description: Private personal service history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityHistory"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Community role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /community/ownership:
+    post:
+      operationId: linkCommunityOwnership
+      tags: [community]
+      summary: Link a verified record to a community member
+      description: Staff-only mediation endpoint. Never infer ownership from public tracking codes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommunityOwnershipInput"
+      responses:
+        "201":
+          description: Ownership link created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityOwnership"
+        "400":
+          description: Invalid ownership link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Record is already linked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /community/ownership/{id}:
+    delete:
+      operationId: unlinkCommunityOwnership
+      tags: [community]
+      summary: Remove a staff-mediated community ownership link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Ownership link removed }
+        "404":
+          description: Ownership link not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /routes:
     get:
@@ -1242,6 +1322,44 @@ components:
             account: { $ref: "#/components/schemas/RecipientAccountSummary" }
             claim: { $ref: "#/components/schemas/ClaimSummary" }
             item: { $ref: "#/components/schemas/ItemSummary" }
+    CommunityOwnershipInput:
+      type: object
+      required: [clerkUserId, recordType, recordId]
+      properties:
+        clerkUserId: { type: string, minLength: 1 }
+        recordType:
+          type: string
+          enum: [account, donation, claim, appointment, pickup_request, service_activity]
+        recordId: { type: string, minLength: 1 }
+    CommunityOwnership:
+      type: object
+      required: [id, clerkUserId, recordType, recordId, verifiedBy, verifiedAt, createdAt]
+      properties:
+        id: { type: string }
+        clerkUserId: { type: string }
+        recordType: { type: string }
+        recordId: { type: string }
+        verifiedBy: { type: string }
+        verifiedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+    CommunityHistory:
+      type: object
+      required: [donations, claims, appointments, reservations, volunteerRequests, pickups, acknowledgments, history, ownership]
+      properties:
+        donations: { type: array, items: { type: object, additionalProperties: true } }
+        claims: { type: array, items: { type: object, additionalProperties: true } }
+        appointments: { type: array, items: { type: object, additionalProperties: true } }
+        reservations: { type: array, items: { type: object, additionalProperties: true } }
+        volunteerRequests: { type: array, items: { type: object, additionalProperties: true } }
+        pickups: { type: array, items: { type: object, additionalProperties: true } }
+        acknowledgments: { type: array, items: { type: object, additionalProperties: true } }
+        history: { type: array, items: { type: object, additionalProperties: true } }
+        ownership:
+          type: object
+          required: [linkedRecords, staffMediated]
+          properties:
+            linkedRecords: { type: number, minimum: 0, multipleOf: 1 }
+            staffMediated: { type: boolean }
     StatusTransitionInput:
       type: object
       required: [status]

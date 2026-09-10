@@ -8,24 +8,14 @@ import {
 } from "lucide-react";
 import {
   getGetPublicTrackingQueryKey,
-  useRequestPublicTrackingVerification,
   useGetPublicTracking,
-  useVerifyPublicTracking,
   type PublicTrackingResponse,
 } from "@workspace/api-client-react";
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PublicTrack({ trackingCode }: { trackingCode: string }) {
-  const [verifiedData, setVerifiedData] = useState<PublicTrackingResponse | null>(null);
-  const [verificationOpen, setVerificationOpen] = useState(false);
-  const [code, setCode] = useState("");
-  const [message, setMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
   const {
     data,
     isLoading,
@@ -37,32 +27,7 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
       staleTime: 30_000,
     },
   });
-  const requestVerification = useRequestPublicTrackingVerification({
-    mutation: {
-      onSuccess: (result) => {
-        setVerificationOpen(true);
-        setMessage(result.message);
-        setErrorMessage("");
-      },
-      onError: (error) => {
-        setErrorMessage(getApiErrorMessage(error, "We could not send a verification code."));
-      },
-    },
-  });
-  const verifyTracking = useVerifyPublicTracking({
-    mutation: {
-      onSuccess: (result) => {
-        setVerifiedData(result);
-        setVerificationOpen(false);
-        setMessage("");
-        setErrorMessage("");
-      },
-      onError: (error) => {
-        setErrorMessage(getApiErrorMessage(error, "That code could not be verified."));
-      },
-    },
-  });
-  const visibleData = (verifiedData ?? data)!;
+  const visibleData = data!;
 
   return (
     <main className="flex-1 w-full bg-background px-4 py-8 sm:py-12">
@@ -236,91 +201,20 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
               </CardContent>
             </Card>
 
-             {visibleData.exactTimesLocked && (
-               <div className="space-y-3 pt-2">
-                 {!verificationOpen ? (
-                   <>
-                     <Button
-                       className="w-full h-12 text-sm font-bold tracking-wide shadow-sm"
-                       onClick={() => {
-                         setMessage("");
-                          setErrorMessage("");
-                         requestVerification.mutate({ trackingCode });
-                       }}
-                       disabled={requestVerification.isPending}
-                     >
-                       <LockKeyhole className="mr-2 h-4 w-4" />
-                       {requestVerification.isPending ? "Sending code…" : "Verify to view exact times"}
-                     </Button>
-                     <p className="text-center text-xs font-medium text-muted-foreground">
-                       We’ll send a six-digit code to the phone number on file.
-                     </p>
-                      {errorMessage && (
-                        <p className="text-sm font-medium text-destructive" role="alert">{errorMessage}</p>
-                      )}
-                   </>
-                 ) : (
-                   <Card className="border-primary/20 bg-primary/5">
-                     <CardContent className="space-y-4 p-5">
-                       <div>
-                         <p className="font-bold text-foreground">Enter your verification code</p>
-                         <p className="mt-1 text-sm text-muted-foreground">
-                           {message || "The code expires in 10 minutes."}
-                         </p>
-                       </div>
-                       <div className="flex gap-3">
-                         <Input
-                           value={code}
-                           onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                           inputMode="numeric"
-                           autoComplete="one-time-code"
-                           placeholder="000000"
-                           aria-label="Six-digit verification code"
-                           className="h-12 text-center font-mono text-xl tracking-[0.35em]"
-                         />
-                         <Button
-                           className="h-12 shrink-0"
-                           onClick={() => verifyTracking.mutate({ trackingCode, data: { code } })}
-                           disabled={code.length !== 6 || verifyTracking.isPending}
-                         >
-                           {verifyTracking.isPending ? "Checking…" : "Verify"}
-                         </Button>
-                       </div>
-                        {errorMessage && !verifyTracking.isPending && (
-                          <p className="text-sm font-medium text-destructive" role="alert">{errorMessage}</p>
-                       )}
-                       <button
-                         type="button"
-                         className="text-xs font-bold text-primary underline underline-offset-4 disabled:opacity-50"
-                         onClick={() => {
-                           setMessage("");
-                            setErrorMessage("");
-                           requestVerification.mutate({ trackingCode });
-                         }}
-                         disabled={requestVerification.isPending}
-                       >
-                         Resend code
-                       </button>
-                     </CardContent>
-                   </Card>
-                 )}
-               </div>
-             )}
+              {visibleData.exactTimesLocked && (
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardContent className="p-5">
+                    <p className="font-bold text-foreground">Exact time verification is not currently available</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Public tracking stays approximate until SMS verification is approved. Sign in for your private
+                      history or ask staff to help verify a record.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
           </>
         )}
       </div>
     </main>
   );
-}
-
-function getApiErrorMessage(error: unknown, fallback: string): string {
-  const response = error as {
-    data?: { error?: string; retryAfterSeconds?: number };
-  };
-  const message = response.data?.error;
-  if (!message) return fallback;
-  const retryAfterSeconds = response.data?.retryAfterSeconds;
-  return retryAfterSeconds
-    ? `${message}. Try again in about ${retryAfterSeconds} seconds.`
-    : message;
 }
