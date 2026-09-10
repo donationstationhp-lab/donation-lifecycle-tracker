@@ -37,7 +37,7 @@ export const claimsTable = pgTable(
   "claims",
   {
     id: text("id").primaryKey(),
-    trackingCode: text("tracking_code"),
+    trackingCode: text("tracking_code").notNull(),
     accountId: text("account_id").notNull().references(() => recipientAccountsTable.id),
     itemId: text("item_id").notNull().references(() => donationItemsTable.id),
     status: text("status").notNull().default("submitted"),

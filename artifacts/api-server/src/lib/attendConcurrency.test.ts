@@ -84,13 +84,17 @@ async function createFixture(): Promise<Fixture> {
     lotNumber: `LOT-${suffix}`,
     stage: "matched",
   });
-  await db.insert(claimsTable).values({
-    id: fixture.claimId,
-    accountId: fixture.accountId,
-    itemId: fixture.itemId,
-    status: "approved",
-    submittedBy: "concurrency-test",
-    approvedBy: "concurrency-test",
+  await db.transaction(async (tx) => {
+    const trackingCode = await allocateClaimTrackingCode(tx);
+    await tx.insert(claimsTable).values({
+      id: fixture.claimId,
+      trackingCode,
+      accountId: fixture.accountId,
+      itemId: fixture.itemId,
+      status: "approved",
+      submittedBy: "concurrency-test",
+      approvedBy: "concurrency-test",
+    });
   });
 
   return fixture;
@@ -217,8 +221,7 @@ test("re-running tracking-code backfill leaves assigned codes unchanged", async 
     try {
       await db.transaction(async (tx) => {
         const first = await backfillClaimTrackingCodes(tx);
-        const firstAssignment = first.find(({ id }) => id === fixture.claimId);
-        assert.ok(firstAssignment);
+        assert.equal(first.some(({ id }) => id === fixture.claimId), false);
 
         const second = await backfillClaimTrackingCodes(tx);
         assert.equal(second.some(({ id }) => id === fixture.claimId), false);
@@ -227,7 +230,7 @@ test("re-running tracking-code backfill leaves assigned codes unchanged", async 
           .select({ trackingCode: claimsTable.trackingCode })
           .from(claimsTable)
           .where(eq(claimsTable.id, fixture.claimId));
-        assert.equal(claim?.trackingCode, firstAssignment.trackingCode);
+        assert.match(claim?.trackingCode ?? "", /^DSC-\d{6}$/);
         throw rollback;
       });
       assert.fail("test transaction should roll back");

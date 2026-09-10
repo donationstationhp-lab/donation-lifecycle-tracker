@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 import {
+  allocateClaimTrackingCode,
   backfillClaimTrackingCodes,
   claimsTable,
   db,
@@ -33,7 +34,7 @@ function isImmutableTrackingCodeError(error: unknown): boolean {
   return false;
 }
 
-test("historical tracking codes stay fixed while repairs continue after the highest DSC code", async (t) => {
+test("historical tracking codes stay fixed while allocation continues after the highest DSC code", async (t) => {
   const [[account], [item]] = await Promise.all([
     db.select({ id: recipientAccountsTable.id }).from(recipientAccountsTable).limit(1),
     db.select({ id: donationItemsTable.id }).from(donationItemsTable).limit(1),
@@ -63,8 +64,6 @@ test("historical tracking codes stay fixed while repairs continue after the high
 
       const validId = randomUUID();
       const legacyId = randomUUID();
-      const firstMissingId = randomUUID();
-      const secondMissingId = randomUUID();
       const validCode = `DSC-${(highest + 1).toString().padStart(6, "0")}`;
       const legacyCode = "DS-LEGACY123456";
       const baseClaim = {
@@ -87,53 +86,32 @@ test("historical tracking codes stay fixed while repairs continue after the high
           trackingCode: legacyCode,
           createdAt: new Date("2020-01-02T00:00:00.000Z"),
         },
-        {
-          ...baseClaim,
-          id: firstMissingId,
-          trackingCode: null,
-          createdAt: new Date("2020-01-03T00:00:00.000Z"),
-        },
-        {
-          ...baseClaim,
-          id: secondMissingId,
-          trackingCode: null,
-          createdAt: new Date("2020-01-04T00:00:00.000Z"),
-        },
       ]);
       await tx
         .delete(trackingCountersTable)
         .where(eq(trackingCountersTable.name, "claim"));
 
       const assigned = await backfillClaimTrackingCodes(tx);
-      assert.deepEqual(assigned, [
-        {
-          id: firstMissingId,
-          trackingCode: `DSC-${(highest + 2).toString().padStart(6, "0")}`,
-        },
-        {
-          id: secondMissingId,
-          trackingCode: `DSC-${(highest + 3).toString().padStart(6, "0")}`,
-        },
-      ]);
+      assert.deepEqual(assigned, []);
+      const allocated = await allocateClaimTrackingCode(tx);
+      assert.equal(allocated, `DSC-${(highest + 2).toString().padStart(6, "0")}`);
 
       const records = await tx.execute<{ id: string; tracking_code: string }>(sql`
         SELECT id, tracking_code
         FROM claims
-        WHERE id IN (${validId}, ${legacyId}, ${firstMissingId}, ${secondMissingId})
+        WHERE id IN (${validId}, ${legacyId})
       `);
       const codesById = new Map(
         records.rows.map((record) => [record.id, record.tracking_code]),
       );
       assert.equal(codesById.get(validId), validCode);
       assert.equal(codesById.get(legacyId), legacyCode);
-      assert.equal(codesById.get(firstMissingId), assigned[0]?.trackingCode);
-      assert.equal(codesById.get(secondMissingId), assigned[1]?.trackingCode);
 
       const [counter] = await tx
         .select({ nextNumber: trackingCountersTable.nextNumber })
         .from(trackingCountersTable)
         .where(eq(trackingCountersTable.name, "claim"));
-      assert.equal(counter?.nextNumber, highest + 4);
+      assert.equal(counter?.nextNumber, highest + 3);
 
       throw rollback;
     });
@@ -143,7 +121,7 @@ test("historical tracking codes stay fixed while repairs continue after the high
   }
 });
 
-test("missing claim codes are assigned once and remain stable", async (t) => {
+test("claims without tracking codes are rejected by the database", async (t) => {
   const [[account], [item]] = await Promise.all([
     db.select({ id: recipientAccountsTable.id }).from(recipientAccountsTable).limit(1),
     db.select({ id: donationItemsTable.id }).from(donationItemsTable).limit(1),
@@ -154,37 +132,29 @@ test("missing claim codes are assigned once and remain stable", async (t) => {
     return;
   }
 
-  const id = randomUUID();
-  try {
-    await db.transaction(async (tx) => {
-      await tx.insert(claimsTable).values({
-        id,
-        trackingCode: null,
-        accountId: account.id,
-        itemId: item.id,
-        status: "cancelled",
-        submittedBy: "tracking-code-regression-test",
-      });
-
-      const firstRepair = await backfillClaimTrackingCodes(tx);
-      const assigned = firstRepair.find((entry) => entry.id === id);
-      assert.match(assigned?.trackingCode ?? "", /^DSC-\d{6}$/);
-
-      const secondRepair = await backfillClaimTrackingCodes(tx);
-      assert.equal(secondRepair.some((entry) => entry.id === id), false);
-
-      const [claim] = await tx
-        .select({ trackingCode: claimsTable.trackingCode })
-        .from(claimsTable)
-        .where(eq(claimsTable.id, id));
-      assert.equal(claim?.trackingCode, assigned?.trackingCode);
-
-      throw rollback;
-    });
-    assert.fail("test transaction should roll back");
-  } catch (error) {
-    assert.equal(error, rollback);
-  }
+  await assert.rejects(
+    db.execute(sql`
+      INSERT INTO claims (id, account_id, item_id, status, submitted_by)
+      VALUES (
+        ${randomUUID()},
+        ${account.id},
+        ${item.id},
+        'cancelled',
+        'tracking-code-regression-test'
+      )
+    `),
+    (error: unknown) => {
+      let current: unknown = error;
+      while (current && typeof current === "object") {
+        const candidate = current as { code?: unknown; column?: unknown; cause?: unknown };
+        if (candidate.code === "23502" && candidate.column === "tracking_code") {
+          return true;
+        }
+        current = candidate.cause;
+      }
+      return false;
+    },
+  );
 });
 
 test("assigned claim tracking codes cannot be cleared or replaced", async (t) => {
@@ -213,10 +183,11 @@ test("assigned claim tracking codes cannot be cleared or replaced", async (t) =>
 
   try {
     await assert.rejects(
-      db
-        .update(claimsTable)
-        .set({ trackingCode: null })
-        .where(eq(claimsTable.id, id)),
+      db.execute(sql`
+        UPDATE claims
+        SET tracking_code = NULL
+        WHERE id = ${id}
+      `),
       isImmutableTrackingCodeError,
     );
     await assert.rejects(
