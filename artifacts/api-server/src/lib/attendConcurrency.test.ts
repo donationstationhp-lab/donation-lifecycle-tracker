@@ -153,6 +153,77 @@ function trackingNumber(code: string): number {
   return Number(code.slice(4));
 }
 
+test("failed claim insertion rolls back its tracking-number allocation", async () => {
+  const rollback = Symbol("rollback");
+  const accountId = randomUUID();
+  const itemId = randomUUID();
+  const claimId = randomUUID();
+  let failedTrackingCode = "";
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`LOCK TABLE tracking_counters, claims IN SHARE ROW EXCLUSIVE MODE`);
+
+      await assert.rejects(
+        tx.transaction(async (failedTx) => {
+          failedTrackingCode = await allocateClaimTrackingCode(failedTx);
+          await failedTx.insert(claimsTable).values({
+            id: randomUUID(),
+            trackingCode: failedTrackingCode,
+            accountId: randomUUID(),
+            itemId: randomUUID(),
+            status: "submitted",
+            submittedBy: "tracking-rollback-test",
+          });
+        }),
+      );
+      assert.match(failedTrackingCode, /^DSC-\d{6}$/);
+
+      await tx.insert(recipientAccountsTable).values({
+        id: accountId,
+        name: "Tracking rollback test account",
+        type: "household",
+      });
+      await tx.insert(donationItemsTable).values({
+        id: itemId,
+        itemId: `TRACKING-ROLLBACK-${randomUUID()}`,
+        name: "Tracking rollback test item",
+        category: "equipment",
+        tier: "T",
+        condition: "good",
+        donor: "Tracking rollback test donor",
+        lotNumber: `TRACKING-ROLLBACK-LOT-${randomUUID()}`,
+        stage: "matched",
+      });
+
+      const successfulTrackingCode = await tx.transaction(async (successfulTx) => {
+        const trackingCode = await allocateClaimTrackingCode(successfulTx);
+        await successfulTx.insert(claimsTable).values({
+          id: claimId,
+          trackingCode,
+          accountId,
+          itemId,
+          status: "submitted",
+          submittedBy: "tracking-rollback-test",
+        });
+        return trackingCode;
+      });
+
+      assert.equal(successfulTrackingCode, failedTrackingCode);
+      const [insertedClaim] = await tx
+        .select({ trackingCode: claimsTable.trackingCode })
+        .from(claimsTable)
+        .where(eq(claimsTable.id, claimId));
+      assert.equal(insertedClaim?.trackingCode, failedTrackingCode);
+
+      throw rollback;
+    });
+    assert.fail("test transaction should roll back");
+  } catch (error) {
+    assert.equal(error, rollback);
+  }
+});
+
 test("parallel claim creation allocates unique monotonic tracking codes", async () => {
   const fixtureCount = 12;
   const suffix = randomUUID();
