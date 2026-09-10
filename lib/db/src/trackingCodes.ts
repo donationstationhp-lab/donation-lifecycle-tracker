@@ -52,10 +52,7 @@ export async function backfillClaimTrackingCodes(
   const claims = await tx
     .select({ id: claimsTable.id })
     .from(claimsTable)
-    .where(sql`
-      ${claimsTable.trackingCode} IS NULL
-      OR ${claimsTable.trackingCode} !~ '^DSC-[0-9]{6}$'
-    `)
+    .where(sql`${claimsTable.trackingCode} IS NULL`)
     .orderBy(asc(claimsTable.createdAt), asc(claimsTable.id))
     .for("update");
 
@@ -76,4 +73,50 @@ export async function ensureClaimTrackingCodes(): Promise<
   Array<{ id: string; trackingCode: string }>
 > {
   return db.transaction(backfillClaimTrackingCodes);
+}
+
+async function installClaimTrackingCodeImmutability(
+  tx: DbTransaction,
+): Promise<void> {
+  await tx.execute(sql`
+    CREATE OR REPLACE FUNCTION preserve_claim_tracking_code()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $function$
+    BEGIN
+      IF OLD.tracking_code IS NOT NULL
+        AND NEW.tracking_code IS DISTINCT FROM OLD.tracking_code
+      THEN
+        RAISE EXCEPTION 'Claim tracking codes are immutable once assigned'
+          USING ERRCODE = '23514',
+                CONSTRAINT = 'claims_tracking_code_immutable';
+      END IF;
+
+      RETURN NEW;
+    END;
+    $function$
+  `);
+
+  await tx.execute(sql`
+    DROP TRIGGER IF EXISTS claims_tracking_code_immutable_trigger ON claims
+  `);
+  await tx.execute(sql`
+    CREATE TRIGGER claims_tracking_code_immutable_trigger
+    BEFORE UPDATE OF tracking_code ON claims
+    FOR EACH ROW
+    EXECUTE FUNCTION preserve_claim_tracking_code()
+  `);
+}
+
+export async function initializeClaimTrackingCodes(): Promise<
+  Array<{ id: string; trackingCode: string }>
+> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL lock_timeout = '5s'`);
+    await tx.execute(sql`SET LOCAL statement_timeout = '30s'`);
+    await tx.execute(sql`LOCK TABLE claims IN SHARE ROW EXCLUSIVE MODE`);
+    const assigned = await backfillClaimTrackingCodes(tx);
+    await installClaimTrackingCodeImmutability(tx);
+    return assigned;
+  });
 }
