@@ -266,6 +266,28 @@ function hashOtp(code: string): string {
   return createHash("sha256").update(code).digest("hex");
 }
 
+export async function issueTrackingOtp(
+  claimId: string,
+  code: string,
+  now = new Date(),
+  otpId = randomUUID(),
+): Promise<{ id: string; expiresAt: Date }> {
+  const expiresAt = new Date(now.getTime() + OTP_TTL_MS);
+  await db.update(trackingOtpsTable)
+    .set({ usedAt: now })
+    .where(and(
+      eq(trackingOtpsTable.claimId, claimId),
+      isNull(trackingOtpsTable.usedAt),
+    ));
+  await db.insert(trackingOtpsTable).values({
+    id: otpId,
+    claimId,
+    codeHash: hashOtp(code),
+    expiresAt,
+  });
+  return { id: otpId, expiresAt };
+}
+
 export async function cleanupExpiredTrackingOtps(
   now = new Date(),
   retentionMs = TRACKING_OTP_RETENTION_MS,
@@ -438,20 +460,11 @@ router.post("/public/track/:trackingCode/verification/request", async (req, res)
   }
 
   const code = randomInt(100000, 1000000).toString();
-  const otpId = randomUUID();
-  const expiresAt = new Date(now.getTime() + OTP_TTL_MS);
-  await db.update(trackingOtpsTable)
-    .set({ usedAt: now })
-    .where(and(
-      eq(trackingOtpsTable.claimId, tracking.result.claimId),
-      isNull(trackingOtpsTable.usedAt),
-    ));
-  await db.insert(trackingOtpsTable).values({
-    id: otpId,
-    claimId: tracking.result.claimId,
-    codeHash: hashOtp(code),
-    expiresAt,
-  });
+  const { id: otpId } = await issueTrackingOtp(
+    tracking.result.claimId,
+    code,
+    now,
+  );
 
   try {
     await sendTrackingVerificationSms(account.contactPhone, code);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { randomUUID } from "node:crypto";
-import { inArray } from "drizzle-orm";
+import { createHash, randomUUID } from "node:crypto";
+import { and, eq, gt, inArray, isNull, lt, sql } from "drizzle-orm";
 import {
   claimsTable,
   db,
@@ -11,6 +11,7 @@ import {
   buildPublicImpactSummary,
   buildPublicTrackingResponse,
   cleanupExpiredTrackingOtps,
+  issueTrackingOtp,
   publicClaimStatusLabel,
   safeCategory,
   safeItemName,
@@ -222,6 +223,96 @@ test("tracking OTP cleanup retains active and recently consumed codes", async (t
       remaining.map(({ id }) => id).sort(),
       [ids.active, ids.recent, ids.recentlyExpired].sort(),
     );
+  } finally {
+    await db
+      .delete(trackingOtpsTable)
+      .where(inArray(trackingOtpsTable.id, Object.values(ids)));
+  }
+});
+
+test("a verification request racing cleanup leaves its new code usable", async (t) => {
+  const [claim] = await db
+    .select({ id: claimsTable.id })
+    .from(claimsTable)
+    .where(sql`
+      NOT EXISTS (
+        SELECT 1
+        FROM ${trackingOtpsTable}
+        WHERE ${trackingOtpsTable.claimId} = ${claimsTable.id}
+      )
+    `)
+    .limit(1);
+  if (!claim) {
+    t.skip("requires a seeded claim record without existing verification codes");
+    return;
+  }
+
+  const now = new Date();
+  const oldEnough = new Date(now.getTime() - TRACKING_OTP_RETENTION_MS - 1);
+  const code = "654321";
+  const ids = {
+    expired: randomUUID(),
+    consumed: randomUUID(),
+    requested: randomUUID(),
+  };
+
+  await db.insert(trackingOtpsTable).values([
+    {
+      id: ids.expired,
+      claimId: claim.id,
+      codeHash: "expired",
+      expiresAt: oldEnough,
+    },
+    {
+      id: ids.consumed,
+      claimId: claim.id,
+      codeHash: "consumed",
+      expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
+      usedAt: oldEnough,
+    },
+  ]);
+
+  try {
+    await Promise.all([
+      cleanupExpiredTrackingOtps(now, TRACKING_OTP_RETENTION_MS, 1),
+      issueTrackingOtp(claim.id, code, now, ids.requested),
+    ]);
+
+    const removableRows = await db
+      .select({ id: trackingOtpsTable.id })
+      .from(trackingOtpsTable)
+      .where(inArray(trackingOtpsTable.id, [ids.expired, ids.consumed]));
+    assert.deepEqual(removableRows, []);
+
+    const [usableOtp] = await db
+      .select()
+      .from(trackingOtpsTable)
+      .where(and(
+        eq(trackingOtpsTable.id, ids.requested),
+        eq(
+          trackingOtpsTable.codeHash,
+          createHash("sha256").update(code).digest("hex"),
+        ),
+        isNull(trackingOtpsTable.usedAt),
+        gt(trackingOtpsTable.expiresAt, now),
+        lt(trackingOtpsTable.attempts, 5),
+      ))
+      .limit(1);
+    assert.ok(usableOtp);
+
+    const [consumedOtp] = await db
+      .update(trackingOtpsTable)
+      .set({
+        attempts: sql`${trackingOtpsTable.attempts} + 1`,
+        usedAt: now,
+      })
+      .where(and(
+        eq(trackingOtpsTable.id, ids.requested),
+        isNull(trackingOtpsTable.usedAt),
+        lt(trackingOtpsTable.attempts, 5),
+      ))
+      .returning({ id: trackingOtpsTable.id });
+    assert.equal(consumedOtp?.id, ids.requested);
   } finally {
     await db
       .delete(trackingOtpsTable)
