@@ -5,9 +5,26 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { db, donationItemsTable, stageHistoryTable } from "@workspace/db";
+import { and, asc, eq } from "drizzle-orm";
 import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
+import { buildPublicResourceCatalog } from "../lib/publicItemLabels";
 
 const router: IRouter = Router();
+
+router.get("/public/resources", async (_req, res): Promise<void> => {
+  const available = await db.select({
+    name: donationItemsTable.name,
+    category: donationItemsTable.category,
+    condition: donationItemsTable.condition,
+  }).from(donationItemsTable)
+    .where(and(
+      eq(donationItemsTable.stage, "storage"),
+      eq(donationItemsTable.pendingReview, false),
+    ))
+    .orderBy(asc(donationItemsTable.category), asc(donationItemsTable.name));
+
+  res.json(buildPublicResourceCatalog(available));
+});
 
 function generateItemId(): string {
   const num = Math.floor(1000 + Math.random() * 9000);

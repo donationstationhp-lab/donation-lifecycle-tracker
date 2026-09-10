@@ -8,6 +8,7 @@ import {
   safeItemName,
 } from "../routes/publicTrack";
 import { buildPublicActivityTimeline } from "./publicServiceActivity";
+import { buildPublicResourceCatalog } from "./publicItemLabels";
 
 test("public item labels never echo unknown free-form content", () => {
   const privateName = "Donation for Jane Doe, 123 Main Street, jane@example.com";
@@ -27,6 +28,36 @@ test("known categories and items resolve only to curated labels", () => {
     safeItemName("Call 312-555-0100 about winter shirt", "Clothing"),
     "Shirt",
   );
+});
+
+test("public resource catalog aggregates only curated fields", () => {
+  const catalog = buildPublicResourceCatalog([
+    {
+      name: "Winter shirt for Jane Doe at 123 Main Street",
+      category: "Clothing",
+      condition: "good",
+    },
+    {
+      name: "Call 312-555-0100 about another shirt",
+      category: "Clothing",
+      condition: "good",
+    },
+  ]);
+
+  assert.deepEqual(catalog, [{
+    name: "Shirt",
+    category: "Clothing",
+    condition: "Good",
+    availableCount: 2,
+  }]);
+  assert.deepEqual(Object.keys(catalog[0]).sort(), [
+    "availableCount",
+    "category",
+    "condition",
+    "name",
+  ]);
+  assert.equal(JSON.stringify(catalog).includes("Jane Doe"), false);
+  assert.equal(JSON.stringify(catalog).includes("312-555-0100"), false);
 });
 
 test("public claim statuses use curated language", () => {

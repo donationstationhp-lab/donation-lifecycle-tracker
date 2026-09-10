@@ -30,7 +30,7 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
   });
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 sm:py-12">
+    <main className="flex-1 w-full bg-background px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl space-y-8 animate-fade-in">
         <header className="text-center">
           <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg">

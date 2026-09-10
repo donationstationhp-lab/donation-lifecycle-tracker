@@ -29,8 +29,9 @@ type Slot = {
   spotsAvailable: number;
 };
 
-export default function Schedule() {
-  const [type, setType] = useState<string>('');
+export default function Schedule({ mode = 'standard' }: { mode?: 'standard' | 'volunteer' }) {
+  const isVolunteer = mode === 'volunteer';
+  const [type, setType] = useState<string>(isVolunteer ? 'volunteer_shift' : '');
   const [slotId, setSlotId] = useState('');
   const [form, setForm] = useState({
     contactName: '',
@@ -65,7 +66,7 @@ export default function Schedule() {
 
   if (confirmation) {
     return (
-      <main className="min-h-[100dvh] bg-background flex items-center justify-center p-4 animate-fade-in">
+      <main className="w-full flex-1 bg-background flex items-center justify-center p-4 animate-fade-in py-12">
         <Card className="max-w-md w-full shadow-xl border-border">
           <CardContent className="pt-12 pb-10 text-center space-y-6">
             <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
@@ -92,11 +93,11 @@ export default function Schedule() {
               onClick={() => {
                 setConfirmation(null);
                 setSlotId('');
-                setType('');
+                setType(isVolunteer ? 'volunteer_shift' : '');
                 setForm({ contactName: '', contactEmail: '', contactPhone: '', pickupAddress: '', trackingCode: '' });
               }}
             >
-              Schedule Another
+              {isVolunteer ? 'Schedule Another Shift' : 'Schedule Another'}
             </Button>
           </CardContent>
         </Card>
@@ -105,55 +106,61 @@ export default function Schedule() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-background py-12 px-4 sm:px-6 lg:px-8">
+    <main className="w-full flex-1 bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-3xl space-y-10 animate-fade-in">
         <div className="text-center space-y-4">
           <div className="mx-auto mb-2 w-12 h-12 bg-primary text-primary-foreground rounded-lg flex items-center justify-center shadow-md">
-            <Globe className="h-6 w-6" />
+            {isVolunteer ? <User className="h-6 w-6" /> : <Globe className="h-6 w-6" />}
           </div>
           <p className="font-bold uppercase tracking-widest text-primary text-xs">W.O.W. Operating System</p>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground">Schedule a visit</h1>
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+            {isVolunteer ? 'Volunteer With Us' : 'Schedule a visit'}
+          </h1>
           <p className="text-base font-medium text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Find a time to drop off, pick up, or volunteer. We'll make sure everything is ready for your arrival.
+            {isVolunteer
+              ? 'Join our team for an operational shift. We rely on community volunteers to keep the station running smoothly.'
+              : "Find a time to drop off, pick up, or volunteer. We'll make sure everything is ready for your arrival."}
           </p>
         </div>
 
         <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-[2px] before:bg-gradient-to-b before:from-border/0 before:via-border before:to-border/0">
           
           {/* Step 1 */}
-          <div className="relative flex items-start gap-6 md:gap-8">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-primary bg-primary text-primary-foreground font-bold text-lg shrink-0 z-10 shadow-md">
-              1
+          {!isVolunteer && (
+            <div className="relative flex items-start gap-6 md:gap-8">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-primary bg-primary text-primary-foreground font-bold text-lg shrink-0 z-10 shadow-md">
+                1
+              </div>
+              <Card className="flex-1 shadow-md border-border transition-all">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl font-bold">What are you scheduling?</CardTitle>
+                  <CardDescription className="font-medium">Select the type of appointment you need.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Select value={type} onValueChange={(value) => { setType(value); setSlotId(''); }}>
+                    <SelectTrigger className="w-full text-base h-14 font-medium bg-card">
+                      <SelectValue placeholder="Select appointment type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value} className="py-3">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-foreground">{t.label}</span>
+                            <span className="text-xs font-medium text-muted-foreground mt-1">{t.desc}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
             </div>
-            <Card className="flex-1 shadow-md border-border transition-all">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold">What are you scheduling?</CardTitle>
-                <CardDescription className="font-medium">Select the type of appointment you need.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Select value={type} onValueChange={(value) => { setType(value); setSlotId(''); }}>
-                  <SelectTrigger className="w-full text-base h-14 font-medium bg-card">
-                    <SelectValue placeholder="Select appointment type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value} className="py-3">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-foreground">{t.label}</span>
-                          <span className="text-xs font-medium text-muted-foreground mt-1">{t.desc}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-          </div>
+          )}
 
           {/* Step 2 */}
           <div className={`relative flex items-start gap-6 md:gap-8 transition-opacity duration-300 ${!type ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
             <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-bold text-lg shrink-0 z-10 shadow-md transition-colors ${type ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/30 bg-muted text-muted-foreground'}`}>
-              2
+              {isVolunteer ? '1' : '2'}
             </div>
             <Card className="flex-1 shadow-md border-border">
               <CardHeader className="pb-4">
@@ -176,7 +183,11 @@ export default function Schedule() {
                   <div className="py-12 text-center bg-muted/20 rounded-xl border border-dashed border-border flex flex-col items-center">
                     <CalendarDays className="w-10 h-10 text-muted-foreground/40 mb-4" />
                     <p className="text-foreground font-bold text-lg">No open times available</p>
-                    <p className="text-sm font-medium text-muted-foreground mt-1">Please check back later or select another type.</p>
+                    <p className="text-sm font-medium text-muted-foreground mt-1">
+                      {isVolunteer
+                        ? 'Please check back later for a published volunteer shift.'
+                        : 'Please check back later or select another type.'}
+                    </p>
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -233,7 +244,7 @@ export default function Schedule() {
           {/* Step 3 */}
           <div className={`relative flex items-start gap-6 md:gap-8 transition-opacity duration-300 ${!slotId ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
             <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-bold text-lg shrink-0 z-10 shadow-md transition-colors ${slotId ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/30 bg-muted text-muted-foreground'}`}>
-              3
+              {isVolunteer ? '2' : '3'}
             </div>
             <Card className="flex-1 shadow-md border-border">
               <CardHeader className="pb-4">

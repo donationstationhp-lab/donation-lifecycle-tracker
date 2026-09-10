@@ -19,6 +19,10 @@ import {
 import { Shell } from '@/components/layout/Shell';
 import Dashboard from '@/pages/Dashboard';
 import Donate from '@/pages/Donate';
+import PublicResources from '@/pages/PublicResources';
+import PublicFAQ from '@/pages/PublicFAQ';
+import Schedule from '@/pages/Schedule';
+import { PublicLayout } from '@/components/layout/PublicLayout';
 import ItemsList from '@/pages/ItemsList';
 import IntakeForm from '@/pages/IntakeForm';
 import ItemDetail from '@/pages/ItemDetail';
@@ -91,13 +95,26 @@ function Router() {
   return (
     <Switch>
       <Route path="/track/:trackingCode">
-        {(params) => <PublicTrack trackingCode={params.trackingCode} />}
+        {(params) => <PublicLayout><PublicTrack trackingCode={params.trackingCode} /></PublicLayout>}
       </Route>
       <Route path="/public/track/:trackingCode">
         {(params) => <PublicTrackRedirect trackingCode={params.trackingCode} />}
       </Route>
-      {/* /donate is fully public — no Shell, no nav, no auth */}
-      <Route path="/donate" component={Donate} />
+      <Route path="/resources">
+        <PublicLayout><PublicResources /></PublicLayout>
+      </Route>
+      <Route path="/faq">
+        <PublicLayout><PublicFAQ /></PublicLayout>
+      </Route>
+      <Route path="/volunteer">
+        <PublicLayout><Schedule mode="volunteer" /></PublicLayout>
+      </Route>
+      <Route path="/schedule">
+        <PublicLayout><Schedule /></PublicLayout>
+      </Route>
+      <Route path="/donate">
+        <PublicLayout><Donate /></PublicLayout>
+      </Route>
       <Route path="/sign-in">
         <Show when="signed-in" fallback={<AuthCard mode="sign-in" />}>
           <StaffApp />

@@ -17,6 +17,7 @@ import {
   GetPublicTrackingResponse,
 } from "@workspace/api-zod";
 import { buildPublicActivityTimeline } from "../lib/publicServiceActivity";
+import { safeCategory, safeItemName } from "../lib/publicItemLabels";
 
 const router: IRouter = Router();
 const PUBLIC_TIME_ZONE = "America/Chicago";
@@ -43,42 +44,7 @@ function normalizedTrackingCode(value: string | string[]): string {
   return (Array.isArray(value) ? value[0] : value).trim().toUpperCase();
 }
 
-const publicCategories: Array<{ pattern: RegExp; label: string }> = [
-  { pattern: /\bfood\b/i, label: "Food" },
-  { pattern: /\bcloth(?:es|ing)?\b/i, label: "Clothing" },
-  { pattern: /\bfurniture\b/i, label: "Furniture" },
-  { pattern: /\belectronics?\b/i, label: "Electronics" },
-  { pattern: /\b(household|home)\b/i, label: "Household" },
-  { pattern: /\b(hygiene|toiletr(?:y|ies)|personal care)\b/i, label: "Hygiene" },
-  { pattern: /\b(medical|health)\b/i, label: "Medical supply" },
-  { pattern: /\b(school|education)\b/i, label: "School supply" },
-];
-
-const publicItemNames: Array<{ pattern: RegExp; label: string }> = [
-  { pattern: /\bfrozen\b.*\bchicken\b|\bchicken\b.*\bfrozen\b/i, label: "Frozen chicken" },
-  { pattern: /\bcanned\b.*\bsoup\b|\bsoup\b.*\bcanned\b/i, label: "Canned soup" },
-  { pattern: /\bcanned goods?\b/i, label: "Canned goods" },
-  { pattern: /\bproduce\b|\bvegetables?\b|\bfruit\b/i, label: "Fresh produce" },
-  { pattern: /\brice\b/i, label: "Rice" },
-  { pattern: /\bpasta\b/i, label: "Pasta" },
-  { pattern: /\bcoat\b|\bjacket\b/i, label: "Coat or jacket" },
-  { pattern: /\bshirt\b/i, label: "Shirt" },
-  { pattern: /\bpants?\b|\btrousers?\b/i, label: "Pants" },
-  { pattern: /\bshoes?\b|\bboots?\b/i, label: "Footwear" },
-  { pattern: /\bblankets?\b/i, label: "Blanket" },
-  { pattern: /\bsoap\b/i, label: "Soap" },
-  { pattern: /\bdiapers?\b/i, label: "Diapers" },
-];
-
-export function safeCategory(category: string): string {
-  return publicCategories.find(({ pattern }) => pattern.test(category))?.label
-    ?? "Donation";
-}
-
-export function safeItemName(name: string, category: string): string {
-  return publicItemNames.find(({ pattern }) => pattern.test(name))?.label
-    ?? `${safeCategory(category)} item`;
-}
+export { safeCategory, safeItemName } from "../lib/publicItemLabels";
 
 function approximateTimestamp(value: Date): string {
   const date = new Intl.DateTimeFormat("en-US", {
