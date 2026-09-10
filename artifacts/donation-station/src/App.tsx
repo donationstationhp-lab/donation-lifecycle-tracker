@@ -35,8 +35,6 @@ import ClaimsList from '@/pages/ClaimsList';
 import ClaimDetail from '@/pages/ClaimDetail';
 import TransfersList from '@/pages/TransfersList';
 import TransferDetail from '@/pages/TransferDetail';
-import Schedule from '@/pages/Schedule';
-import StaffCalendar from '@/pages/StaffCalendar';
 
 const queryClient = new QueryClient();
 // Temporary stopgap until Managed Auth Production role assignment is resolved via Pro dashboard access or Replit support.
@@ -46,27 +44,16 @@ function AuthCard({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   return (
     <div className="min-h-screen bg-background grid place-items-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="mx-auto w-12 h-12 bg-primary text-primary-foreground rounded-xl shadow-sm flex items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-globe"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">W.O.W. Operating System</h1>
-          <p className="text-xs text-muted-foreground mt-2 uppercase tracking-widest font-semibold">
-            War On Waste / We All Stop Trashing Earth
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold">Donation Station</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Staff access is required to view donor and operations records.
           </p>
         </div>
         {mode === 'sign-in' ? (
-          <SignIn
-            routing="hash"
-            signUpUrl="/sign-up"
-            appearance={{ elements: { headerTitle: 'hidden', headerSubtitle: 'hidden' } }}
-          />
+          <SignIn routing="hash" signUpUrl="/sign-up" />
         ) : (
-          <SignUp
-            routing="hash"
-            signInUrl="/sign-in"
-            appearance={{ elements: { headerTitle: 'hidden', headerSubtitle: 'hidden' } }}
-          />
+          <SignUp routing="hash" signInUrl="/sign-in" />
         )}
       </div>
     </div>
@@ -111,7 +98,6 @@ function Router() {
       </Route>
       {/* /donate is fully public — no Shell, no nav, no auth */}
       <Route path="/donate" component={Donate} />
-      <Route path="/schedule" component={Schedule} />
       <Route path="/sign-in">
         <Show when="signed-in" fallback={<AuthCard mode="sign-in" />}>
           <StaffApp />
@@ -150,10 +136,7 @@ function StaffApp() {
   if (!isLoaded || !authTransportReady) {
     return (
       <div className="min-h-screen grid place-items-center text-muted-foreground">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-          <span className="text-sm font-medium">Authenticating...</span>
-        </div>
+        Validating staff access...
       </div>
     );
   }
@@ -169,7 +152,7 @@ function StaffApp() {
           <h1 className="text-xl font-bold">Staff access not assigned</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Your account is signed in, but an administrator must assign the
-            staff or supervisor role before you can view W.O.W. operations records.
+            staff or supervisor role before you can view donor records.
           </p>
           <div className="mt-6 flex justify-center"><UserButton /></div>
         </div>
@@ -181,7 +164,6 @@ function StaffApp() {
       <RoutedErrorBoundary>
         <Switch>
           <Route path="/" component={Dashboard} />
-          <Route path="/dashboard" component={Dashboard} />
           <Route path="/items" component={ItemsList} />
           <Route path="/items/new" component={IntakeForm} />
           <Route path="/items/:id" component={ItemDetail} />
@@ -194,7 +176,6 @@ function StaffApp() {
           <Route path="/claims/:id" component={ClaimDetail} />
           <Route path="/transfers" component={TransfersList} />
           <Route path="/transfers/:id" component={TransferDetail} />
-          <Route path="/calendar" component={StaffCalendar} />
           <Route path="/routes" component={RoutesList} />
           <Route path="/routes/:id" component={RouteDetail} />
           <Route path="/accounts" component={AccountsList} />
