@@ -687,6 +687,45 @@ export interface StageCount {
   count: number;
 }
 
+export interface DashboardWowMetrics {
+  resourcesReceived: number;
+  requestsReceived: number;
+  claimsVerified: number;
+  resourcesVerified: number;
+  resourcesReserved: number;
+  appointmentsScheduled: number;
+  resourcesDistributed: number;
+  wasteDiverted: number;
+  appointmentsCompleted: number;
+  noShows: number;
+  acknowledgmentsReceived: number;
+  acknowledgmentsPending: number;
+  acknowledgmentsSent: number;
+  /** @nullable */
+  receiveToGiveHours: number | null;
+}
+
+export interface DashboardServiceMetrics {
+  receivedToday: number;
+  receivedThisWeek: number;
+  scheduledToday: number;
+  overdue: number;
+  pendingVerification: number;
+  reservedItems: number;
+  completedDistributions: number;
+  /** @nullable */
+  acknowledgmentOnTimeRate: number | null;
+  /** @nullable */
+  noShowRate: number | null;
+  /** @nullable */
+  receivedToServedHours: number | null;
+  /** @nullable */
+  requestToMatchedHours: number | null;
+  /** @nullable */
+  scheduledToCompletedHours: number | null;
+  wowMetrics: DashboardWowMetrics;
+}
+
 export interface DashboardSummary {
   totalActiveItems: number;
   byTier: TierCount[];
@@ -697,6 +736,7 @@ export interface DashboardSummary {
   pickupsPendingVerification: number;
   pickupsConfirmedThisWeek: number;
   flaggedPickupValues: number;
+  serviceMetrics: DashboardServiceMetrics;
 }
 
 export interface RouteStop {

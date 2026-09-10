@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
 import { db, donationItemsTable, pickupFlagsTable, pickupRequestsTable, serviceActivitiesTable } from "@workspace/db";
+import { GetDashboardResponse } from "@workspace/api-zod";
 import { isActiveItemStage, isExpiringSoon } from "../lib/dashboardMetrics";
 import { expireStaleReservations } from "./appointments";
 
@@ -144,7 +145,7 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
     return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 10) / 10 : null;
   }
 
-  res.json({
+  res.json(GetDashboardResponse.parse({
     totalActiveItems,
     byTier,
     byStage,
@@ -179,7 +180,7 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
         receiveToGiveHours: averageHours("received", "served"),
       },
     },
-  });
+  }));
 });
 
 export default router;

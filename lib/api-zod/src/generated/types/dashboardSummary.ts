@@ -5,6 +5,7 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+import type { DashboardServiceMetrics } from './dashboardServiceMetrics';
 import type { DonationItem } from './donationItem';
 import type { StageCount } from './stageCount';
 import type { TierCount } from './tierCount';
@@ -19,4 +20,5 @@ export interface DashboardSummary {
   pickupsPendingVerification: number;
   pickupsConfirmedThisWeek: number;
   flaggedPickupValues: number;
+  serviceMetrics: DashboardServiceMetrics;
 }

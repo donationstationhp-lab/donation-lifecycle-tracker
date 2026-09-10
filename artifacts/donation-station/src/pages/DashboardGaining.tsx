@@ -1,7 +1,7 @@
 import { useGetDashboard } from '@workspace/api-client-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShieldAlert, FileText, CheckCircle2, Clock } from 'lucide-react';
-import { MetricCard, ActionCard, PageHeader, ServiceMetrics } from '@/components/dashboard/shared';
+import { MetricCard, ActionCard, PageHeader } from '@/components/dashboard/shared';
 import { Link } from 'wouter';
 
 export default function DashboardGaining() {
@@ -10,8 +10,7 @@ export default function DashboardGaining() {
   if (isLoading) return <div className="space-y-6"><Skeleton className="h-32 w-full rounded-xl" /></div>;
   if (isError || !summary) return <div>Error loading data.</div>;
 
-  const dashboardData = summary as typeof summary & { serviceMetrics?: ServiceMetrics };
-  const wowMetrics = dashboardData?.serviceMetrics?.wowMetrics;
+  const wowMetrics = summary.serviceMetrics.wowMetrics;
   const pendingCount = summary.pendingReviewCount;
 
   return (

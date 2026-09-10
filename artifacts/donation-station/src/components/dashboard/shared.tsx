@@ -3,33 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'wouter';
 import { ArrowRight } from 'lucide-react';
 
-export type WowMetrics = {
-  resourcesReceived: number;
-  requestsReceived: number;
-  claimsVerified: number;
-  resourcesVerified: number;
-  resourcesReserved: number;
-  appointmentsScheduled: number;
-  resourcesDistributed: number;
-  wasteDiverted: number;
-  appointmentsCompleted: number;
-  noShows: number;
-  acknowledgmentsReceived: number;
-  acknowledgmentsPending: number;
-  acknowledgmentsSent: number;
-  receiveToGiveHours: number | null;
-};
-
-export type ServiceMetrics = {
-  receivedToday: number;
-  receivedThisWeek: number;
-  scheduledToday: number;
-  overdue: number;
-  pendingVerification: number;
-  reservedItems: number;
-  wowMetrics: WowMetrics;
-};
-
 export function MetricCard({
   title,
   value,

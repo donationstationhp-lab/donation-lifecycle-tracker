@@ -1719,6 +1719,70 @@ components:
         count:
           type: number
 
+    DashboardWowMetrics:
+      type: object
+      required:
+        - resourcesReceived
+        - requestsReceived
+        - claimsVerified
+        - resourcesVerified
+        - resourcesReserved
+        - appointmentsScheduled
+        - resourcesDistributed
+        - wasteDiverted
+        - appointmentsCompleted
+        - noShows
+        - acknowledgmentsReceived
+        - acknowledgmentsPending
+        - acknowledgmentsSent
+        - receiveToGiveHours
+      properties:
+        resourcesReceived: { type: number }
+        requestsReceived: { type: number }
+        claimsVerified: { type: number }
+        resourcesVerified: { type: number }
+        resourcesReserved: { type: number }
+        appointmentsScheduled: { type: number }
+        resourcesDistributed: { type: number }
+        wasteDiverted: { type: number }
+        appointmentsCompleted: { type: number }
+        noShows: { type: number }
+        acknowledgmentsReceived: { type: number }
+        acknowledgmentsPending: { type: number }
+        acknowledgmentsSent: { type: number }
+        receiveToGiveHours: { type: ["number", "null"] }
+
+    DashboardServiceMetrics:
+      type: object
+      required:
+        - receivedToday
+        - receivedThisWeek
+        - scheduledToday
+        - overdue
+        - pendingVerification
+        - reservedItems
+        - completedDistributions
+        - acknowledgmentOnTimeRate
+        - noShowRate
+        - receivedToServedHours
+        - requestToMatchedHours
+        - scheduledToCompletedHours
+        - wowMetrics
+      properties:
+        receivedToday: { type: number }
+        receivedThisWeek: { type: number }
+        scheduledToday: { type: number }
+        overdue: { type: number }
+        pendingVerification: { type: number }
+        reservedItems: { type: number }
+        completedDistributions: { type: number }
+        acknowledgmentOnTimeRate: { type: ["number", "null"] }
+        noShowRate: { type: ["number", "null"] }
+        receivedToServedHours: { type: ["number", "null"] }
+        requestToMatchedHours: { type: ["number", "null"] }
+        scheduledToCompletedHours: { type: ["number", "null"] }
+        wowMetrics: { $ref: "#/components/schemas/DashboardWowMetrics" }
+
     DashboardSummary:
       type: object
       required:
@@ -1731,6 +1795,7 @@ components:
         - pickupsPendingVerification
         - pickupsConfirmedThisWeek
         - flaggedPickupValues
+        - serviceMetrics
       properties:
         totalActiveItems:
           type: number
@@ -1756,6 +1821,8 @@ components:
           type: number
         flaggedPickupValues:
           type: number
+        serviceMetrics:
+          $ref: "#/components/schemas/DashboardServiceMetrics"
 
     RouteStop:
       type: object

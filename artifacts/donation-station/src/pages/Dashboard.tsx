@@ -16,7 +16,6 @@ import {
 import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { ServiceMetrics } from '@/components/dashboard/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
@@ -35,8 +34,7 @@ export default function Dashboard() {
   });
   const acknowledgeAlert = useAcknowledgeAttendDeliveryAlert();
 
-  const dashboardData = summary as typeof summary & { serviceMetrics?: ServiceMetrics };
-  const serviceMetrics = dashboardData?.serviceMetrics;
+  const serviceMetrics = summary?.serviceMetrics;
   const wowMetrics = serviceMetrics?.wowMetrics;
 
   const pendingCount = summary?.pendingReviewCount ?? 0;

@@ -1,7 +1,7 @@
 import { useGetDashboard } from '@workspace/api-client-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Recycle, ArrowRightLeft, TrendingUp, Clock, Leaf } from 'lucide-react';
-import { MetricCard, ActionCard, PageHeader, ServiceMetrics } from '@/components/dashboard/shared';
+import { MetricCard, ActionCard, PageHeader } from '@/components/dashboard/shared';
 
 export default function DashboardGiving() {
   const { data: summary, isLoading, isError } = useGetDashboard();
@@ -9,8 +9,7 @@ export default function DashboardGiving() {
   if (isLoading) return <div className="space-y-6"><Skeleton className="h-32 w-full rounded-xl" /></div>;
   if (isError || !summary) return <div>Error loading data.</div>;
 
-  const dashboardData = summary as typeof summary & { serviceMetrics?: ServiceMetrics };
-  const wowMetrics = dashboardData?.serviceMetrics?.wowMetrics;
+  const wowMetrics = summary.serviceMetrics.wowMetrics;
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">

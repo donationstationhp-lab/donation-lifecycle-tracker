@@ -469,7 +469,37 @@ export const GetDashboardResponse = zod.object({
   "pendingReviewCount": zod.number(),
   "pickupsPendingVerification": zod.number(),
   "pickupsConfirmedThisWeek": zod.number(),
-  "flaggedPickupValues": zod.number()
+  "flaggedPickupValues": zod.number(),
+  "serviceMetrics": zod.object({
+  "receivedToday": zod.number(),
+  "receivedThisWeek": zod.number(),
+  "scheduledToday": zod.number(),
+  "overdue": zod.number(),
+  "pendingVerification": zod.number(),
+  "reservedItems": zod.number(),
+  "completedDistributions": zod.number(),
+  "acknowledgmentOnTimeRate": zod.number().nullable(),
+  "noShowRate": zod.number().nullable(),
+  "receivedToServedHours": zod.number().nullable(),
+  "requestToMatchedHours": zod.number().nullable(),
+  "scheduledToCompletedHours": zod.number().nullable(),
+  "wowMetrics": zod.object({
+  "resourcesReceived": zod.number(),
+  "requestsReceived": zod.number(),
+  "claimsVerified": zod.number(),
+  "resourcesVerified": zod.number(),
+  "resourcesReserved": zod.number(),
+  "appointmentsScheduled": zod.number(),
+  "resourcesDistributed": zod.number(),
+  "wasteDiverted": zod.number(),
+  "appointmentsCompleted": zod.number(),
+  "noShows": zod.number(),
+  "acknowledgmentsReceived": zod.number(),
+  "acknowledgmentsPending": zod.number(),
+  "acknowledgmentsSent": zod.number(),
+  "receiveToGiveHours": zod.number().nullable()
+})
+})
 })
 
 
