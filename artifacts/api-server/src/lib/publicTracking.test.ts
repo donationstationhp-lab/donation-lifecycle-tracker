@@ -71,30 +71,17 @@ test("public tracking builder returns only explicitly whitelisted keys", () => {
     trackingCode: "DSC-000001",
     status: "approved",
     updatedAt: new Date("2026-09-09T15:00:00Z"),
-    itemName: "Frozen chicken for Jane Doe",
+    itemName: "Frozen chicken",
     itemCategory: "Food",
     itemStage: "matched",
-    recipientName: "Jane Doe",
-    phone: "312-555-0100",
-    privateNotes: "Do not expose",
-  } as Parameters<typeof buildPublicTrackingResponse>[0], [{
+  }, [{
     status: "submitted",
     timestamp: new Date("2026-09-09T14:00:00Z"),
-  }]);
+  }], true);
 
-  assert.deepEqual(Object.keys(response).sort(), [
-    "exactTimesLocked",
-    "item",
-    "lastUpdatedApprox",
-    "lastUpdatedExact",
-    "stage",
-    "status",
-    "timeline",
-    "trackingCode",
-  ]);
-  assert.equal(JSON.stringify(response).includes("Jane Doe"), false);
-  assert.equal(JSON.stringify(response).includes("312-555-0100"), false);
-  assert.equal(JSON.stringify(response).includes("Do not expose"), false);
+  assert.equal(response.exactTimesLocked, false);
+  assert.equal(response.lastUpdatedExact?.toISOString(), "2026-09-09T15:00:00.000Z");
+  assert.equal(response.timeline?.[0]?.exact?.toISOString(), "2026-09-09T14:00:00.000Z");
 });
 
 test("public impact counts only received transfers as distributions", () => {

@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PublicTrackingTimelineEntry {
-  label: string;
-  approx: string;
-  /** @nullable */
-  exact: Date | null;
+export interface PublicTrackingVerificationInput {
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
 }

@@ -65,6 +65,9 @@ import type {
   PickupRouteInput,
   PublicImpactSummary,
   PublicTrackingResponse,
+  PublicTrackingVerificationInput,
+  PublicTrackingVerificationRateLimitResponse,
+  PublicTrackingVerificationRequestResponse,
   RecipientAccount,
   RecipientAccountInput,
   StageAdvance,
@@ -3411,6 +3414,143 @@ export function useGetPublicTracking<TData = Awaited<ReturnType<typeof getPublic
 
 
 
+
+export const getRequestPublicTrackingVerificationUrl = (trackingCode: string,) => {
+
+
+
+
+  return `/api/public/track/${trackingCode}/verification/request`
+}
+
+/**
+ * @summary Send a one-time SMS code for public claim tracking
+ */
+export const requestPublicTrackingVerification = async (trackingCode: string, options?: Parameters<typeof customFetch>[1]): Promise<PublicTrackingVerificationRequestResponse> => {
+
+  return customFetch<PublicTrackingVerificationRequestResponse>(getRequestPublicTrackingVerificationUrl(trackingCode),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRequestPublicTrackingVerificationMutationOptions = <TError = ErrorType<ErrorResponse | PublicTrackingVerificationRateLimitResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPublicTrackingVerification>>, TError,{trackingCode: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestPublicTrackingVerification>>, TError,{trackingCode: string}, TContext> => {
+
+const mutationKey = ['requestPublicTrackingVerification'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestPublicTrackingVerification>>, {trackingCode: string}> = (props) => {
+          const {trackingCode} = props ?? {};
+
+          return  requestPublicTrackingVerification(trackingCode,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestPublicTrackingVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof requestPublicTrackingVerification>>>
+
+    export type RequestPublicTrackingVerificationMutationError = ErrorType<ErrorResponse | PublicTrackingVerificationRateLimitResponse>
+
+    /**
+ * @summary Send a one-time SMS code for public claim tracking
+ */
+export const useRequestPublicTrackingVerification = <TError = ErrorType<ErrorResponse | PublicTrackingVerificationRateLimitResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPublicTrackingVerification>>, TError,{trackingCode: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestPublicTrackingVerification>>,
+        TError,
+        {trackingCode: string},
+        TContext
+      > => {
+      return useMutation(getRequestPublicTrackingVerificationMutationOptions(options));
+    }
+
+export const getVerifyPublicTrackingUrl = (trackingCode: string,) => {
+
+
+
+
+  return `/api/public/track/${trackingCode}/verification/verify`
+}
+
+export const verifyPublicTracking = async (trackingCode: string,
+    publicTrackingVerificationInput: PublicTrackingVerificationInput, options?: Parameters<typeof customFetch>[1]): Promise<PublicTrackingResponse> => {
+
+  return customFetch<PublicTrackingResponse>(getVerifyPublicTrackingUrl(trackingCode),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(publicTrackingVerificationInput)
+  }
+);}
+
+
+
+
+
+export const getVerifyPublicTrackingMutationOptions = <TError = ErrorType<ErrorResponse | PublicTrackingVerificationRateLimitResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPublicTracking>>, TError,{trackingCode: string;data: BodyType<PublicTrackingVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyPublicTracking>>, TError,{trackingCode: string;data: BodyType<PublicTrackingVerificationInput>}, TContext> => {
+
+const mutationKey = ['verifyPublicTracking'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyPublicTracking>>, {trackingCode: string;data: BodyType<PublicTrackingVerificationInput>}> = (props) => {
+          const {trackingCode,data} = props ?? {};
+
+          return  verifyPublicTracking(trackingCode,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyPublicTrackingMutationResult = NonNullable<Awaited<ReturnType<typeof verifyPublicTracking>>>
+    export type VerifyPublicTrackingMutationBody = BodyType<PublicTrackingVerificationInput>
+    export type VerifyPublicTrackingMutationError = ErrorType<ErrorResponse | PublicTrackingVerificationRateLimitResponse>
+
+    export const useVerifyPublicTracking = <TError = ErrorType<ErrorResponse | PublicTrackingVerificationRateLimitResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyPublicTracking>>, TError,{trackingCode: string;data: BodyType<PublicTrackingVerificationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyPublicTracking>>,
+        TError,
+        {trackingCode: string;data: BodyType<PublicTrackingVerificationInput>},
+        TContext
+      > => {
+      return useMutation(getVerifyPublicTrackingMutationOptions(options));
+    }
 
 export const getGetPublicImpactSummaryUrl = () => {
 

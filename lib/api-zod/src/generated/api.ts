@@ -1677,13 +1677,69 @@ export const GetPublicTrackingResponse = zod.object({
   "stage": zod.string(),
   "status": zod.string(),
   "lastUpdatedApprox": zod.string(),
-  "lastUpdatedExact": zod.null(),
+  "lastUpdatedExact": zod.coerce.date().nullable(),
   "timeline": zod.array(zod.object({
   "label": zod.string(),
   "approx": zod.string(),
-  "exact": zod.null()
-})),
-  "exactTimesLocked": zod.literal(true)
+  "exact": zod.coerce.date().nullable()
+})).optional(),
+  "exactTimesLocked": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Send a one-time SMS code for public claim tracking
+ */
+export const requestPublicTrackingVerificationPathTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');
+
+
+export const RequestPublicTrackingVerificationParams = zod.object({
+  "trackingCode": zod.coerce.string().regex(requestPublicTrackingVerificationPathTrackingCodeRegExp)
+})
+
+export const requestPublicTrackingVerificationResponseExpiresInSecondsMultipleOf = 1;
+
+
+
+export const RequestPublicTrackingVerificationResponse = zod.object({
+  "message": zod.string(),
+  "expiresInSeconds": zod.number().min(1).multipleOf(requestPublicTrackingVerificationResponseExpiresInSecondsMultipleOf)
+})
+
+
+export const verifyPublicTrackingPathTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');
+
+
+export const VerifyPublicTrackingParams = zod.object({
+  "trackingCode": zod.coerce.string().regex(verifyPublicTrackingPathTrackingCodeRegExp)
+})
+
+export const verifyPublicTrackingBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+
+
+export const VerifyPublicTrackingBody = zod.object({
+  "code": zod.string().regex(verifyPublicTrackingBodyCodeRegExp)
+})
+
+export const verifyPublicTrackingResponseTrackingCodeRegExp = new RegExp('^DSC-[0-9]{6}$');
+
+
+export const VerifyPublicTrackingResponse = zod.object({
+  "trackingCode": zod.string().regex(verifyPublicTrackingResponseTrackingCodeRegExp),
+  "item": zod.object({
+  "categoryLabel": zod.string(),
+  "name": zod.string()
+}),
+  "stage": zod.string(),
+  "status": zod.string(),
+  "lastUpdatedApprox": zod.string(),
+  "lastUpdatedExact": zod.coerce.date().nullable(),
+  "timeline": zod.array(zod.object({
+  "label": zod.string(),
+  "approx": zod.string(),
+  "exact": zod.coerce.date().nullable()
+})).optional(),
+  "exactTimesLocked": zod.boolean().optional()
 })
 
 

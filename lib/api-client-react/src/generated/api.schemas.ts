@@ -111,7 +111,7 @@ export interface PublicTrackingTimelineEntry {
   label: string;
   approx: string;
   /** @nullable */
-  exact: null;
+  exact: string | null;
 }
 
 export interface PublicTrackingResponse {
@@ -122,9 +122,26 @@ export interface PublicTrackingResponse {
   status: string;
   lastUpdatedApprox: string;
   /** @nullable */
-  lastUpdatedExact: null;
-  timeline: PublicTrackingTimelineEntry[];
-  exactTimesLocked: true;
+  lastUpdatedExact: string | null;
+  timeline?: PublicTrackingTimelineEntry[];
+  exactTimesLocked?: boolean;
+}
+
+export interface PublicTrackingVerificationInput {
+  /** @pattern ^[0-9]{6}$ */
+  code: string;
+}
+
+export interface PublicTrackingVerificationRequestResponse {
+  message: string;
+  /** @minimum 1 */
+  expiresInSeconds: number;
+}
+
+export interface PublicTrackingVerificationRateLimitResponse {
+  error: string;
+  /** @minimum 1 */
+  retryAfterSeconds: number;
 }
 
 export interface PublicImpactCategory {

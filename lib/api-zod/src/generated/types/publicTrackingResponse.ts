@@ -16,7 +16,7 @@ export interface PublicTrackingResponse {
   status: string;
   lastUpdatedApprox: string;
   /** @nullable */
-  lastUpdatedExact: null;
-  timeline: PublicTrackingTimelineEntry[];
-  exactTimesLocked: true;
+  lastUpdatedExact: Date | null;
+  timeline?: PublicTrackingTimelineEntry[];
+  exactTimesLocked?: boolean;
 }

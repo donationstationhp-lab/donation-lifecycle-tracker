@@ -860,6 +860,91 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /public/track/{trackingCode}/verification/request:
+    post:
+      operationId: requestPublicTrackingVerification
+      tags: [attend]
+      summary: Send a one-time SMS code for public claim tracking
+      parameters:
+        - name: trackingCode
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^DSC-[0-9]{6}$"
+      responses:
+        "200":
+          description: Verification code sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicTrackingVerificationRequestResponse"
+        "400":
+          description: Verification is unavailable for this claim
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Tracking record not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Verification resend is temporarily limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicTrackingVerificationRateLimitResponse"
+        "503":
+          description: SMS delivery is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /public/track/{trackingCode}/verification/verify:
+    post:
+      operationId: verifyPublicTracking
+      tags: [attend]
+      parameters:
+        - name: trackingCode
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^DSC-[0-9]{6}$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicTrackingVerificationInput"
+      responses:
+        "200":
+          description: Public claim tracking with exact times after verification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicTrackingResponse"
+        "400":
+          description: Invalid verification code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Tracking record not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Verification attempts are temporarily limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicTrackingVerificationRateLimitResponse"
   /public/impact-summary:
     get:
       operationId: getPublicImpactSummary
@@ -957,7 +1042,7 @@ components:
       properties:
         label: { type: string }
         approx: { type: string }
-        exact: { type: "null" }
+        exact: { type: ["string", "null"], format: date-time }
     PublicTrackingResponse:
       type: object
       additionalProperties: false
@@ -969,19 +1054,39 @@ components:
         - lastUpdatedApprox
         - lastUpdatedExact
         - timeline
-        - exactTimesLocked
+         - exactTimesLocked
       properties:
         trackingCode: { type: string, pattern: "^DSC-[0-9]{6}$" }
         item: { $ref: "#/components/schemas/PublicTrackingItem" }
         stage: { type: string }
         status: { type: string }
         lastUpdatedApprox: { type: string }
-        lastUpdatedExact: { type: "null" }
+        lastUpdatedExact: { type: ["string", "null"], format: date-time }
         timeline:
           type: array
           items:
             $ref: "#/components/schemas/PublicTrackingTimelineEntry"
-        exactTimesLocked: { type: boolean, const: true }
+        exactTimesLocked: { type: boolean }
+    PublicTrackingVerificationInput:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code: { type: string, pattern: "^[0-9]{6}$" }
+    PublicTrackingVerificationRequestResponse:
+      type: object
+      additionalProperties: false
+      required: [message, expiresInSeconds]
+      properties:
+        message: { type: string }
+        expiresInSeconds: { type: number, minimum: 1, multipleOf: 1 }
+    PublicTrackingVerificationRateLimitResponse:
+      type: object
+      additionalProperties: false
+      required: [error, retryAfterSeconds]
+      properties:
+        error: { type: string }
+        retryAfterSeconds: { type: number, minimum: 1, multipleOf: 1 }
     PublicImpactCategory:
       type: object
       additionalProperties: false
