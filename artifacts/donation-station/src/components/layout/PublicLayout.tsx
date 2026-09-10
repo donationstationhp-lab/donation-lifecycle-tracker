@@ -112,6 +112,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
           <div className="mt-6 flex items-center justify-center gap-6 text-xs font-medium text-muted-foreground">
             <Link href="/resources" className="hover:text-foreground">Resources</Link>
             <Link href="/faq" className="hover:text-foreground">FAQ</Link>
+            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+            <Link href="/terms" className="hover:text-foreground">Terms</Link>
             <Link href="/sign-in" className="hover:text-foreground">Staff Access</Link>
           </div>
         </div>
