@@ -1650,9 +1650,31 @@ export const ListAttendDeliveryAlertsResponseItem = zod.object({
   "aggregateType": zod.string(),
   "aggregateId": zod.string(),
   "lastError": zod.string(),
+  "acknowledgedAt": zod.coerce.date().nullable(),
+  "acknowledgedBy": zod.string().nullable(),
   "createdAt": zod.coerce.date()
 })
 export const ListAttendDeliveryAlertsResponse = zod.array(ListAttendDeliveryAlertsResponseItem)
+
+
+/**
+ * @summary Acknowledge a supervisor ATTEND delivery alert
+ */
+export const AcknowledgeAttendDeliveryAlertParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const AcknowledgeAttendDeliveryAlertResponse = zod.object({
+  "id": zod.string(),
+  "outboxId": zod.string(),
+  "eventType": zod.string(),
+  "aggregateType": zod.string(),
+  "aggregateId": zod.string(),
+  "lastError": zod.string(),
+  "acknowledgedAt": zod.coerce.date().nullable(),
+  "acknowledgedBy": zod.string().nullable(),
+  "createdAt": zod.coerce.date()
+})
 
 
 /**

@@ -181,6 +181,8 @@ export const attendDeliveryAlertsTable = pgTable(
     aggregateId: text("aggregate_id").notNull(),
     lastError: text("last_error").notNull(),
     dedupeKey: text("dedupe_key").notNull(),
+    acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+    acknowledgedBy: text("acknowledged_by"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({

@@ -3338,6 +3338,77 @@ export function useListAttendDeliveryAlerts<TData = Awaited<ReturnType<typeof li
 
 
 
+export const getAcknowledgeAttendDeliveryAlertUrl = (id: string,) => {
+
+
+
+
+  return `/api/attend/alerts/${id}`
+}
+
+/**
+ * @summary Acknowledge a supervisor ATTEND delivery alert
+ */
+export const acknowledgeAttendDeliveryAlert = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<AttendDeliveryAlert> => {
+
+  return customFetch<AttendDeliveryAlert>(getAcknowledgeAttendDeliveryAlertUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+
+export const getAcknowledgeAttendDeliveryAlertMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acknowledgeAttendDeliveryAlert>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acknowledgeAttendDeliveryAlert>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['acknowledgeAttendDeliveryAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acknowledgeAttendDeliveryAlert>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  acknowledgeAttendDeliveryAlert(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcknowledgeAttendDeliveryAlertMutationResult = NonNullable<Awaited<ReturnType<typeof acknowledgeAttendDeliveryAlert>>>
+
+    export type AcknowledgeAttendDeliveryAlertMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Acknowledge a supervisor ATTEND delivery alert
+ */
+export const useAcknowledgeAttendDeliveryAlert = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acknowledgeAttendDeliveryAlert>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acknowledgeAttendDeliveryAlert>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getAcknowledgeAttendDeliveryAlertMutationOptions(options));
+    }
+
 export const getGetPublicTrackingUrl = (trackingCode: string,) => {
 
 

@@ -1,4 +1,10 @@
-import { useGetDashboard } from '@workspace/api-client-react';
+import { useUser } from '@clerk/react';
+import {
+  getListAttendDeliveryAlertsQueryKey,
+  useAcknowledgeAttendDeliveryAlert,
+  useGetDashboard,
+  useListAttendDeliveryAlerts,
+} from '@workspace/api-client-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'wouter';
@@ -11,9 +17,23 @@ import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ServiceMetrics } from '@/components/dashboard/shared';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Dashboard() {
+  const { user } = useUser();
   const { data: summary, isLoading, isError } = useGetDashboard();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const isSupervisor = user?.publicMetadata.role === 'supervisor';
+  const attendAlerts = useListAttendDeliveryAlerts({
+    query: {
+      enabled: isSupervisor,
+      queryKey: getListAttendDeliveryAlertsQueryKey(),
+      staleTime: 15_000,
+    },
+  });
+  const acknowledgeAlert = useAcknowledgeAttendDeliveryAlert();
 
   const dashboardData = summary as typeof summary & { serviceMetrics?: ServiceMetrics };
   const serviceMetrics = dashboardData?.serviceMetrics;
@@ -78,6 +98,106 @@ export default function Dashboard() {
           Receive &rarr; Gain &rarr; Give &rarr; Build &rarr; Focus &rarr; Create &rarr; Master Build &rarr; Construct Bridging &rarr; Form Relationships &rarr; Universally Service
         </p>
       </div>
+
+      {isSupervisor && (
+        <section aria-labelledby="attend-alerts-heading">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h2 id="attend-alerts-heading" className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+                ATTEND delivery alerts
+              </h2>
+              <p className="text-sm text-muted-foreground font-medium mt-1">
+                Supervisor-only alerts for delivery attempts that need review.
+              </p>
+            </div>
+            {attendAlerts.data && attendAlerts.data.some((alert) => !alert.acknowledgedAt) && (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                {attendAlerts.data.filter((alert) => !alert.acknowledgedAt).length} open
+              </span>
+            )}
+          </div>
+
+          <Card className="border-amber-200 bg-amber-50/40 shadow-sm">
+            <CardContent className="p-5">
+              {attendAlerts.isLoading && (
+                <div className="space-y-3">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              )}
+              {attendAlerts.isError && (
+                <p className="text-sm font-medium text-destructive" role="alert">
+                  Failed to load ATTEND delivery alerts. Please try again.
+                </p>
+              )}
+              {!attendAlerts.isLoading && !attendAlerts.isError && attendAlerts.data?.length === 0 && (
+                <p className="text-sm font-medium text-muted-foreground">
+                  No recent ATTEND delivery alerts.
+                </p>
+              )}
+              {!attendAlerts.isLoading && !attendAlerts.isError && attendAlerts.data && attendAlerts.data.length > 0 && (
+                <div className="divide-y divide-amber-200/70">
+                  {attendAlerts.data.map((alert) => {
+                    const acknowledged = Boolean(alert.acknowledgedAt);
+                    return (
+                      <div key={alert.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-foreground">
+                            ATTEND delivery attempt exhausted
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Recorded {format(alert.createdAt, 'MMM d, yyyy h:mm a')}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {acknowledged
+                              ? `Acknowledged ${format(alert.acknowledgedAt!, 'MMM d, yyyy h:mm a')}`
+                              : 'Review the related record through the normal operations workflow.'}
+                          </p>
+                        </div>
+                        {acknowledged ? (
+                          <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                            Acknowledged
+                          </span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={acknowledgeAlert.isPending}
+                            onClick={() => {
+                              acknowledgeAlert.mutate(
+                                { id: alert.id },
+                                {
+                                  onSuccess: () => {
+                                    queryClient.invalidateQueries({
+                                      queryKey: getListAttendDeliveryAlertsQueryKey(),
+                                    });
+                                    toast({ title: 'ATTEND alert acknowledged' });
+                                  },
+                                  onError: () => {
+                                    toast({
+                                      title: 'Could not acknowledge ATTEND alert',
+                                      description: 'Please try again.',
+                                      variant: 'destructive',
+                                    });
+                                  },
+                                },
+                              );
+                            }}
+                          >
+                            Acknowledge
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Receiving */}
       <section>

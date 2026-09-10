@@ -41,6 +41,10 @@ export interface AttendDeliveryAlert {
   aggregateType: string;
   aggregateId: string;
   lastError: string;
+  /** @nullable */
+  acknowledgedAt: string | null;
+  /** @nullable */
+  acknowledgedBy: string | null;
   createdAt: string;
 }
 

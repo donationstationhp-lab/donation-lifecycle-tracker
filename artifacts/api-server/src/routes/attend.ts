@@ -13,6 +13,7 @@ import {
   TransitionClaimResponse, TransitionTransferBody, TransitionTransferParams, TransitionTransferResponse,
   GetClaimParams, GetClaimResponse, GetTransferParams, GetTransferResponse,
   ListAttendDeliveryAlertsResponse, ListAttendOutboxResponse,
+  AcknowledgeAttendDeliveryAlertParams, AcknowledgeAttendDeliveryAlertResponse,
 } from "@workspace/api-zod";
 import { requireSupervisor } from "../middlewares/apiKeyAuth";
 import { canCollectEvidence, validateClaimTransition, validateTransferTransition, type ClaimStatus, type TransferStatus } from "../lib/attendTransitions";
@@ -58,12 +59,67 @@ router.get("/attend/alerts", requireSupervisor, async (_req, res): Promise<void>
       aggregateType: attendDeliveryAlertsTable.aggregateType,
       aggregateId: attendDeliveryAlertsTable.aggregateId,
       lastError: attendDeliveryAlertsTable.lastError,
+      acknowledgedAt: attendDeliveryAlertsTable.acknowledgedAt,
+      acknowledgedBy: attendDeliveryAlertsTable.acknowledgedBy,
       createdAt: attendDeliveryAlertsTable.createdAt,
     })
     .from(attendDeliveryAlertsTable)
     .orderBy(desc(attendDeliveryAlertsTable.createdAt))
     .limit(100);
   res.json(ListAttendDeliveryAlertsResponse.parse(rows));
+});
+
+router.patch("/attend/alerts/:id", requireSupervisor, async (req, res): Promise<void> => {
+  const parsed = AcknowledgeAttendDeliveryAlertParams.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [existing] = await db
+    .select({
+      id: attendDeliveryAlertsTable.id,
+      outboxId: attendDeliveryAlertsTable.outboxId,
+      eventType: attendDeliveryAlertsTable.eventType,
+      aggregateType: attendDeliveryAlertsTable.aggregateType,
+      aggregateId: attendDeliveryAlertsTable.aggregateId,
+      lastError: attendDeliveryAlertsTable.lastError,
+      acknowledgedAt: attendDeliveryAlertsTable.acknowledgedAt,
+      acknowledgedBy: attendDeliveryAlertsTable.acknowledgedBy,
+      createdAt: attendDeliveryAlertsTable.createdAt,
+    })
+    .from(attendDeliveryAlertsTable)
+    .where(eq(attendDeliveryAlertsTable.id, parsed.data.id));
+
+  if (!existing) {
+    res.status(404).json({ error: "ATTEND delivery alert not found" });
+    return;
+  }
+
+  if (!existing.acknowledgedAt) {
+    const [acknowledged] = await db
+      .update(attendDeliveryAlertsTable)
+      .set({
+        acknowledgedAt: new Date(),
+        acknowledgedBy: actor(res),
+      })
+      .where(eq(attendDeliveryAlertsTable.id, parsed.data.id))
+      .returning({
+        id: attendDeliveryAlertsTable.id,
+        outboxId: attendDeliveryAlertsTable.outboxId,
+        eventType: attendDeliveryAlertsTable.eventType,
+        aggregateType: attendDeliveryAlertsTable.aggregateType,
+        aggregateId: attendDeliveryAlertsTable.aggregateId,
+        lastError: attendDeliveryAlertsTable.lastError,
+        acknowledgedAt: attendDeliveryAlertsTable.acknowledgedAt,
+        acknowledgedBy: attendDeliveryAlertsTable.acknowledgedBy,
+        createdAt: attendDeliveryAlertsTable.createdAt,
+      });
+    res.json(AcknowledgeAttendDeliveryAlertResponse.parse(acknowledged));
+    return;
+  }
+
+  res.json(AcknowledgeAttendDeliveryAlertResponse.parse(existing));
 });
 
 router.get("/accounts", async (req, res): Promise<void> => {

@@ -835,6 +835,29 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AttendDeliveryAlert"
+  /attend/alerts/{id}:
+    patch:
+      operationId: acknowledgeAttendDeliveryAlert
+      tags: [attend]
+      summary: Acknowledge a supervisor ATTEND delivery alert
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Acknowledged ATTEND delivery alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendDeliveryAlert"
+        "404":
+          description: ATTEND delivery alert not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /public/track/{trackingCode}:
     get:
       operationId: getPublicTracking
@@ -977,7 +1000,7 @@ components:
         createdAt: { type: string, format: date-time }
     AttendDeliveryAlert:
       type: object
-      required: [id, outboxId, eventType, aggregateType, aggregateId, lastError, createdAt]
+      required: [id, outboxId, eventType, aggregateType, aggregateId, lastError, acknowledgedAt, acknowledgedBy, createdAt]
       properties:
         id: { type: string }
         outboxId: { type: string }
@@ -985,6 +1008,8 @@ components:
         aggregateType: { type: string }
         aggregateId: { type: string }
         lastError: { type: string }
+        acknowledgedAt: { type: ["string", "null"], format: date-time }
+        acknowledgedBy: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
     RecipientAccount:
       type: object
