@@ -207,7 +207,11 @@ test("tracking OTP cleanup retains active and recently consumed codes", async (t
   ]);
 
   try {
-    const deletedCount = await cleanupExpiredTrackingOtps(now);
+    const deletedCount = await cleanupExpiredTrackingOtps(
+      now,
+      TRACKING_OTP_RETENTION_MS,
+      1,
+    );
     assert.ok(deletedCount >= 2);
 
     const remaining = await db

@@ -76,8 +76,8 @@ export const trackingOtpsTable = pgTable(
   },
   (table) => ({
     claimIndex: index("tracking_otps_claim_idx").on(table.claimId),
-    expiryIndex: index("tracking_otps_expiry_idx").on(table.expiresAt),
-    usedIndex: index("tracking_otps_used_idx").on(table.usedAt),
+    expiryIndex: index("tracking_otps_expiry_idx").on(table.expiresAt, table.id),
+    usedIndex: index("tracking_otps_used_idx").on(table.usedAt, table.id),
   }),
 );
 

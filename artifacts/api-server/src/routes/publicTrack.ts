@@ -35,6 +35,7 @@ const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 export const TRACKING_OTP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 export const TRACKING_OTP_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+export const TRACKING_OTP_CLEANUP_BATCH_SIZE = 500;
 // Keep public SMS verification off until Trust Hub approval and an explicit
 // rollout decision are both recorded in deployment configuration.
 const PUBLIC_TRACKING_OTP_ENABLED =
@@ -268,27 +269,49 @@ function hashOtp(code: string): string {
 export async function cleanupExpiredTrackingOtps(
   now = new Date(),
   retentionMs = TRACKING_OTP_RETENTION_MS,
+  batchSize = TRACKING_OTP_CLEANUP_BATCH_SIZE,
 ): Promise<number> {
   const retentionCutoff = new Date(now.getTime() - Math.max(0, retentionMs));
-  const deleted = await db
-    .delete(trackingOtpsTable)
-    .where(or(
-      lt(trackingOtpsTable.expiresAt, retentionCutoff),
-      and(
-        isNotNull(trackingOtpsTable.usedAt),
-        lt(trackingOtpsTable.usedAt, retentionCutoff),
-      ),
-    ))
-    .returning({ id: trackingOtpsTable.id });
+  const boundedBatchSize = Math.max(1, Math.floor(batchSize));
+  let totalDeletedCount = 0;
 
-  logger.info(
-    {
-      deletedCount: deleted.length,
-      retentionCutoff: retentionCutoff.toISOString(),
-    },
-    "Public tracking verification cleanup completed",
-  );
-  return deleted.length;
+  while (true) {
+    const deleted = await db.execute<{ id: string }>(sql`
+      WITH expired AS (
+        SELECT ${trackingOtpsTable.id}
+        FROM ${trackingOtpsTable}
+        WHERE ${or(
+          lt(trackingOtpsTable.expiresAt, retentionCutoff),
+          and(
+            isNotNull(trackingOtpsTable.usedAt),
+            lt(trackingOtpsTable.usedAt, retentionCutoff),
+          ),
+        )}
+        LIMIT ${boundedBatchSize}
+        FOR UPDATE SKIP LOCKED
+      )
+      DELETE FROM ${trackingOtpsTable}
+      USING expired
+      WHERE ${trackingOtpsTable.id} = expired.id
+      RETURNING ${trackingOtpsTable.id}
+    `);
+    const deletedCount = deleted.rows.length;
+    totalDeletedCount += deletedCount;
+    const moreWorkRemaining = deletedCount === boundedBatchSize;
+
+    logger.info(
+      {
+        batchSize: boundedBatchSize,
+        deletedCount,
+        moreWorkRemaining,
+        retentionCutoff: retentionCutoff.toISOString(),
+        totalDeletedCount,
+      },
+      "Public tracking verification cleanup batch completed",
+    );
+
+    if (!moreWorkRemaining) return totalDeletedCount;
+  }
 }
 
 export interface TrackingOtpCleanupWorker {
@@ -300,6 +323,7 @@ export function startTrackingOtpCleanupWorker(
   options: {
     intervalMs?: number;
     retentionMs?: number;
+    batchSize?: number;
     now?: () => Date;
   } = {},
 ): TrackingOtpCleanupWorker {
@@ -312,6 +336,7 @@ export function startTrackingOtpCleanupWorker(
       await cleanupExpiredTrackingOtps(
         options.now?.() ?? new Date(),
         options.retentionMs ?? TRACKING_OTP_RETENTION_MS,
+        options.batchSize ?? TRACKING_OTP_CLEANUP_BATCH_SIZE,
       );
     } catch (error) {
       logger.error(
