@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, count, desc, eq, gte, inArray, isNotNull, isNull, like, lte } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
-  allocateClaimTrackingCode, ensureClaimTrackingCodes, attendDeliveryAlertsTable, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
+  allocateClaimTrackingCode, ensureClaimTrackingCodes, getClaimTrackingCapacityWarning, attendDeliveryAlertsTable, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
   notificationOutboxTable, recipientAccountsTable, stageHistoryTable, transferHistoryTable, transfersTable,
 } from "@workspace/db";
 import {
@@ -205,6 +205,16 @@ router.post("/claims", async (req, res): Promise<void> => {
     });
     return created;
   });
+  const capacityWarning = getClaimTrackingCapacityWarning(claim.trackingCode);
+  if (capacityWarning) {
+    res.setHeader("X-Claim-Tracking-Capacity-Warning", capacityWarning.message);
+    res.setHeader("X-Claim-Tracking-Codes-Remaining", capacityWarning.remaining.toString());
+    req.log.warn({
+      event: "claim_tracking_capacity_low",
+      allocatedNumber: capacityWarning.allocatedNumber,
+      remaining: capacityWarning.remaining,
+    }, capacityWarning.message);
+  }
   res.status(201).json(CreateClaimResponse.parse(claim));
   void deliverAttendOutboxByDedupeKey(`claim:${id}:submitted`);
 });

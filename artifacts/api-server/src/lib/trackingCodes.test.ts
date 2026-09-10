@@ -7,6 +7,7 @@ import {
   claimsTable,
   db,
   donationItemsTable,
+  getClaimTrackingCapacityWarning,
   initializeClaimTrackingCodes,
   recipientAccountsTable,
   trackingCountersTable,
@@ -14,6 +15,24 @@ import {
 import { eq, sql } from "drizzle-orm";
 
 const rollback = Symbol("rollback");
+
+test("tracking capacity warning starts with 10,000 six-digit codes remaining", () => {
+  assert.equal(getClaimTrackingCapacityWarning("DSC-989998"), null);
+  assert.deepEqual(getClaimTrackingCapacityWarning("DSC-989999"), {
+    allocatedNumber: 989_999,
+    remaining: 10_000,
+    message: "Claim tracking number capacity is low: 10,000 six-digit codes remain. Expand the tracking code format before allocation reaches DSC-999999.",
+  });
+});
+
+test("tracking capacity warning reports the final allocation clearly", () => {
+  assert.deepEqual(getClaimTrackingCapacityWarning("DSC-999999"), {
+    allocatedNumber: 999_999,
+    remaining: 0,
+    message: "Claim tracking number capacity is low: 0 six-digit codes remain. Expand the tracking code format before allocation reaches DSC-999999.",
+  });
+  assert.equal(getClaimTrackingCapacityWarning("DS-LEGACY123456"), null);
+});
 
 function isImmutableTrackingCodeError(error: unknown): boolean {
   let current: unknown = error;

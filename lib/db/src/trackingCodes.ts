@@ -5,7 +5,31 @@ import { claimsTable } from "./schema/attendLifecycle";
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const CLAIM_COUNTER_NAME = "claim";
-const MAX_CLAIM_TRACKING_NUMBER = 999_999;
+export const MAX_CLAIM_TRACKING_NUMBER = 999_999;
+export const CLAIM_TRACKING_WARNING_REMAINING = 10_000;
+
+export type ClaimTrackingCapacityWarning = {
+  allocatedNumber: number;
+  remaining: number;
+  message: string;
+};
+
+export function getClaimTrackingCapacityWarning(
+  trackingCode: string,
+): ClaimTrackingCapacityWarning | null {
+  const match = /^DSC-([0-9]{6})$/.exec(trackingCode);
+  if (!match) return null;
+
+  const allocatedNumber = Number(match[1]);
+  const remaining = MAX_CLAIM_TRACKING_NUMBER - allocatedNumber;
+  if (remaining > CLAIM_TRACKING_WARNING_REMAINING) return null;
+
+  return {
+    allocatedNumber,
+    remaining,
+    message: `Claim tracking number capacity is low: ${remaining.toLocaleString("en-US")} six-digit codes remain. Expand the tracking code format before allocation reaches DSC-999999.`,
+  };
+}
 
 export function formatClaimTrackingCode(number: number): string {
   if (!Number.isInteger(number) || number < 1 || number > MAX_CLAIM_TRACKING_NUMBER) {
