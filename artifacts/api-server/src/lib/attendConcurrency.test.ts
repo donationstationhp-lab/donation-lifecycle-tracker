@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import express from "express";
 import test, { after } from "node:test";
 import { randomUUID } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import {
+  allocateClaimTrackingCode,
+  backfillClaimTrackingCodes,
   claimHistoryTable,
   claimsTable,
   db,
@@ -12,6 +14,7 @@ import {
   pool,
   recipientAccountsTable,
   stageHistoryTable,
+  trackingCountersTable,
   transferHistoryTable,
   transfersTable,
 } from "@workspace/db";
@@ -140,6 +143,152 @@ async function insertReleasedTransfer(fixture: Fixture): Promise<string> {
   });
   return transferId;
 }
+
+function trackingNumber(code: string): number {
+  assert.match(code, /^DSC-\d{6}$/);
+  return Number(code.slice(4));
+}
+
+test("parallel claim creation allocates unique monotonic tracking codes", async () => {
+  const fixtureCount = 12;
+  const suffix = randomUUID();
+  const accountId = randomUUID();
+  const itemIds = Array.from({ length: fixtureCount }, () => randomUUID());
+  const claimIds = Array.from({ length: fixtureCount }, () => randomUUID());
+
+  await db.insert(recipientAccountsTable).values({
+    id: accountId,
+    name: `Tracking concurrency account ${suffix}`,
+    type: "household",
+  });
+  await db.insert(donationItemsTable).values(
+    itemIds.map((id, index) => ({
+      id,
+      itemId: `TRACKING-CONCURRENCY-${suffix}-${index}`,
+      name: "Tracking concurrency test item",
+      category: "equipment",
+      tier: "T",
+      condition: "good",
+      donor: "Tracking concurrency test donor",
+      lotNumber: `TRACKING-LOT-${suffix}-${index}`,
+      stage: "matched",
+    })),
+  );
+
+  try {
+    // Counter increments intentionally remain reserved after fixture cleanup:
+    // public tracking numbers must never be rewound or reused.
+    const codes = await Promise.all(
+      claimIds.map((id, index) =>
+        db.transaction(async (tx) => {
+          const trackingCode = await allocateClaimTrackingCode(tx);
+          await tx.insert(claimsTable).values({
+            id,
+            trackingCode,
+            accountId,
+            itemId: itemIds[index],
+            status: "cancelled",
+            submittedBy: "tracking-concurrency-test",
+          });
+          return trackingCode;
+        }),
+      ),
+    );
+
+    assert.equal(new Set(codes).size, fixtureCount);
+    const allocatedNumbers = codes.map(trackingNumber).sort((a, b) => a - b);
+    assert.equal(
+      allocatedNumbers.every((number, index) =>
+        index === 0 || number > allocatedNumbers[index - 1]),
+      true,
+    );
+  } finally {
+    await db.delete(claimsTable).where(inArray(claimsTable.id, claimIds));
+    await db.delete(donationItemsTable).where(inArray(donationItemsTable.id, itemIds));
+    await db.delete(recipientAccountsTable).where(eq(recipientAccountsTable.id, accountId));
+  }
+});
+
+test("re-running tracking-code backfill leaves assigned codes unchanged", async () => {
+  const fixture = await createFixture();
+  const rollback = Symbol("rollback");
+
+  try {
+    try {
+      await db.transaction(async (tx) => {
+        const first = await backfillClaimTrackingCodes(tx);
+        const firstAssignment = first.find(({ id }) => id === fixture.claimId);
+        assert.ok(firstAssignment);
+
+        const second = await backfillClaimTrackingCodes(tx);
+        assert.equal(second.some(({ id }) => id === fixture.claimId), false);
+
+        const [claim] = await tx
+          .select({ trackingCode: claimsTable.trackingCode })
+          .from(claimsTable)
+          .where(eq(claimsTable.id, fixture.claimId));
+        assert.equal(claim?.trackingCode, firstAssignment.trackingCode);
+        throw rollback;
+      });
+      assert.fail("test transaction should roll back");
+    } catch (error) {
+      assert.equal(error, rollback);
+    }
+  } finally {
+    await removeFixture(fixture);
+  }
+});
+
+test("counter recovery resumes after the highest existing valid tracking code", async (t) => {
+  const [[account], [item]] = await Promise.all([
+    db.select({ id: recipientAccountsTable.id }).from(recipientAccountsTable).limit(1),
+    db.select({ id: donationItemsTable.id }).from(donationItemsTable).limit(1),
+  ]);
+  if (!account || !item) {
+    t.skip("requires seeded account and item records");
+    return;
+  }
+
+  const rollback = Symbol("rollback");
+  try {
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`LOCK TABLE tracking_counters, claims IN SHARE ROW EXCLUSIVE MODE`);
+      const result = await tx.execute<{ highest: number }>(sql`
+        SELECT COALESCE(
+          MAX(substring(tracking_code FROM 5)::integer),
+          0
+        ) AS highest
+        FROM claims
+        WHERE tracking_code ~ '^DSC-[0-9]{6}$'
+      `);
+      const highest = Number(result.rows[0]?.highest ?? 0);
+      if (highest >= 999_998) {
+        t.skip("tracking-code range is too close to exhaustion");
+        throw rollback;
+      }
+
+      const seededNumber = highest + 1;
+      await tx.insert(claimsTable).values({
+        id: randomUUID(),
+        trackingCode: `DSC-${seededNumber.toString().padStart(6, "0")}`,
+        accountId: account.id,
+        itemId: item.id,
+        status: "cancelled",
+        submittedBy: "tracking-counter-recovery-test",
+      });
+      await tx
+        .delete(trackingCountersTable)
+        .where(eq(trackingCountersTable.name, "claim"));
+
+      const allocated = await allocateClaimTrackingCode(tx);
+      assert.equal(trackingNumber(allocated), seededNumber + 1);
+      throw rollback;
+    });
+    assert.fail("test transaction should roll back");
+  } catch (error) {
+    assert.equal(error, rollback);
+  }
+});
 
 test("parallel transfer creation permits one active transfer and one event", async () => {
   const fixture = await createFixture();
