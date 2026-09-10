@@ -3,17 +3,53 @@ import {
   Clock3,
   LockKeyhole,
   Package,
-  Search,
   Globe,
+  Loader2,
 } from "lucide-react";
 import {
   getGetPublicTrackingQueryKey,
+  useRequestPublicTrackingVerification,
+  useVerifyPublicTracking,
   useGetPublicTracking,
   type PublicTrackingResponse,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect, useState } from "react";
+
+type VerificationPhase = "request" | "verify";
+
+function verificationErrorMessage(
+  error: unknown,
+  phase: VerificationPhase,
+): string {
+  const status =
+    error && typeof error === "object" && "status" in error
+      ? (error as { status?: unknown }).status
+      : undefined;
+
+  if (status === 503) {
+      return "Verification SMS is temporarily unavailable. Please try again later.";
+  }
+  if (status === 429) {
+    return phase === "request"
+      ? "Please wait before requesting another code."
+      : "This code has expired or reached its attempt limit. Request a new code.";
+  }
+  if (status === 400) {
+    if (phase === "request") {
+      return "SMS verification is unavailable for this claim.";
+    }
+    return "That verification code is not valid.";
+  }
+
+  return phase === "request"
+    ? "We could not send a verification code. Please try again later."
+    : "We could not verify that code. Please try again.";
+}
 
 export default function PublicTrack({ trackingCode }: { trackingCode: string }) {
   const {
@@ -27,7 +63,44 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
       staleTime: 30_000,
     },
   });
-  const visibleData = data!;
+  const requestVerification = useRequestPublicTrackingVerification();
+  const verifyTracking = useVerifyPublicTracking();
+  const [verificationCode, setVerificationCode] = useState("");
+  const [codeRequested, setCodeRequested] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
+  const [verifiedData, setVerifiedData] = useState<PublicTrackingResponse | null>(null);
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
+  const [secondsUntilResend, setSecondsUntilResend] = useState(0);
+
+  useEffect(() => {
+    setVerificationCode("");
+    setCodeRequested(false);
+    setVerificationMessage(null);
+    setVerifiedData(null);
+    setResendAvailableAt(null);
+  }, [trackingCode]);
+
+  useEffect(() => {
+    if (!resendAvailableAt) {
+      setSecondsUntilResend(0);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((resendAvailableAt - Date.now()) / 1000),
+      );
+      setSecondsUntilResend(remaining);
+      if (remaining === 0) setResendAvailableAt(null);
+    };
+
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendAvailableAt]);
+
+  const visibleData = verifiedData ?? data!;
 
   return (
     <main className="flex-1 w-full bg-background px-4 py-8 sm:py-12">
@@ -201,16 +274,177 @@ export default function PublicTrack({ trackingCode }: { trackingCode: string }) 
               </CardContent>
             </Card>
 
-              {visibleData.exactTimesLocked && (
+                  {visibleData.exactTimesLocked && (
+                    <Card className="border-primary/20 bg-primary/5">
+                      <CardContent className="p-5">
+                        <p className="font-bold text-foreground">Verify by text message</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          We will send a six-digit code to the phone number on file for this claim.
+                          Your phone number is never shown on this page.
+                        </p>
+
+                        {verificationMessage && (
+                          <p className="mt-3 text-sm font-medium text-destructive" role="alert">
+                            {verificationMessage}
+                          </p>
+                        )}
+
+                        {!codeRequested ? (
+                          <Button
+                            type="button"
+                            className="mt-4 w-full sm:w-auto"
+                            disabled={
+                              requestVerification.isPending ||
+                              secondsUntilResend > 0
+                            }
+                            onClick={() => {
+                              setVerificationMessage(null);
+                              requestVerification.mutate(
+                                { trackingCode },
+                                {
+                                  onSuccess: (response) => {
+                                    setCodeRequested(true);
+                                    setVerificationCode("");
+                                    setResendAvailableAt(Date.now() + 60_000);
+                                    setVerificationMessage(
+                                      `A code was sent. It expires in ${Math.round(response.expiresInSeconds / 60)} minutes.`,
+                                    );
+                                  },
+                                  onError: (error) => {
+                                    setVerificationMessage(
+                                      verificationErrorMessage(error, "request"),
+                                    );
+                                  },
+                                },
+                              );
+                            }}
+                          >
+                            {requestVerification.isPending && (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            )}
+                            {secondsUntilResend > 0
+                              ? `Resend in ${secondsUntilResend}s`
+                              : "Send verification code"}
+                          </Button>
+                        ) : (
+                          <form
+                            className="mt-4 space-y-3"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              setVerificationMessage(null);
+                              verifyTracking.mutate(
+                                {
+                                  trackingCode,
+                                  data: { code: verificationCode },
+                                },
+                                {
+                                  onSuccess: (response) => {
+                                    setVerifiedData(response);
+                                    setCodeRequested(false);
+                                    setVerificationMessage(null);
+                                  },
+                                  onError: (error) => {
+                                    setVerificationMessage(
+                                      verificationErrorMessage(error, "verify"),
+                                    );
+                                  },
+                                },
+                              );
+                            }}
+                          >
+                            <label
+                              htmlFor="tracking-verification-code"
+                              className="text-sm font-semibold text-foreground"
+                            >
+                              Enter the six-digit code
+                            </label>
+                            <Input
+                              id="tracking-verification-code"
+                              inputMode="numeric"
+                              autoComplete="one-time-code"
+                              pattern="[0-9]{6}"
+                              maxLength={6}
+                              placeholder="000000"
+                              value={verificationCode}
+                              onChange={(event) =>
+                                setVerificationCode(
+                                  event.target.value.replace(/\D/g, "").slice(0, 6),
+                                )
+                              }
+                              disabled={verifyTracking.isPending}
+                              aria-describedby="tracking-verification-help"
+                            />
+                            <p
+                              id="tracking-verification-help"
+                              className="text-xs text-muted-foreground"
+                            >
+                              The code expires in 10 minutes and can only be used once.
+                            </p>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <Button
+                                type="submit"
+                                disabled={
+                                  verificationCode.length !== 6 ||
+                                  verifyTracking.isPending
+                                }
+                              >
+                                {verifyTracking.isPending && (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                )}
+                                Verify code
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="link"
+                                className="px-0"
+                                disabled={
+                                  requestVerification.isPending ||
+                                  secondsUntilResend > 0
+                                }
+                                onClick={() => {
+                                  setCodeRequested(false);
+                                  setVerificationMessage(null);
+                                  requestVerification.mutate(
+                                    { trackingCode },
+                                    {
+                                      onSuccess: (response) => {
+                                        setCodeRequested(true);
+                                        setVerificationCode("");
+                                        setResendAvailableAt(Date.now() + 60_000);
+                                        setVerificationMessage(
+                                          `A new code was sent. It expires in ${Math.round(response.expiresInSeconds / 60)} minutes.`,
+                                        );
+                                      },
+                                      onError: (error) => {
+                                        setCodeRequested(true);
+                                        setVerificationMessage(
+                                          verificationErrorMessage(error, "request"),
+                                        );
+                                      },
+                                    },
+                                  );
+                                }}
+                              >
+                                {secondsUntilResend > 0
+                                  ? `Resend in ${secondsUntilResend}s`
+                                  : "Resend code"}
+                              </Button>
+                            </div>
+                          </form>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {visibleData.exactTimesLocked && (
                 <Card className="border-primary/20 bg-primary/5">
                   <CardContent className="p-5">
-                    <p className="font-bold text-foreground">Exact time verification is not currently available</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Public tracking stays approximate until SMS verification is approved. Sign in for your private
-                      history or ask staff to help verify a record.
-                    </p>
-                  </CardContent>
-                </Card>
+                        <p className="font-bold text-foreground">Exact time verification is protected</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Exact service times stay hidden until the recipient verifies the phone number on file.
+                        </p>
+                      </CardContent>
+                    </Card>
               )}
           </>
         )}
