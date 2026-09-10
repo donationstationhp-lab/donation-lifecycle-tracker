@@ -19,6 +19,7 @@ export default function DashboardGaining() {
         title="Gaining Operations"
         description="Detailed view for claim verification and matching. Gain what it means."
         icon={ShieldAlert}
+        refreshedAt={summary.refreshedAt}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

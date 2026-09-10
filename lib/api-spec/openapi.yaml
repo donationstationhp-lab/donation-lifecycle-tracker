@@ -1896,6 +1896,7 @@ components:
     DashboardSummary:
       type: object
       required:
+        - refreshedAt
         - totalActiveItems
         - byTier
         - byStage
@@ -1907,6 +1908,9 @@ components:
         - flaggedPickupValues
         - serviceMetrics
       properties:
+        refreshedAt:
+          type: string
+          format: date-time
         totalActiveItems:
           type: number
         byTier:

@@ -22,6 +22,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DashboardRefreshTime } from '@/components/dashboard/shared';
 
 const dateBoundary = (value: string, endOfDay = false) => {
   if (!value) return undefined;
@@ -102,6 +103,7 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground font-medium mt-2">
             Acknowledgement received. Appreciation gained. Gratitude given.
           </p>
+          <DashboardRefreshTime refreshedAt={summary.refreshedAt} />
         </div>
         <div className="text-left md:text-right">
           <p className="text-xs font-mono font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full inline-flex items-center gap-2 border border-primary/20 shadow-sm">

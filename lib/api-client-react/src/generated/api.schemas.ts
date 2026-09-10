@@ -751,6 +751,7 @@ export interface DashboardServiceMetrics {
 }
 
 export interface DashboardSummary {
+  refreshedAt: string;
   totalActiveItems: number;
   byTier: TierCount[];
   byStage: StageCount[];

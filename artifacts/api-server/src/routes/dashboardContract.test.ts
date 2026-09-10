@@ -17,6 +17,7 @@ import {
 import dashboardRouter from "./dashboard";
 
 const dashboardResponse = {
+  refreshedAt: "2026-09-10T12:00:00.000Z",
   totalActiveItems: 10,
   byTier: [{ tier: "T", count: 10 }],
   byStage: [{ stage: "storage", count: 10 }],
@@ -238,10 +239,15 @@ test("GET /dashboard calculates staff-facing metrics from service records", asyn
       },
     ]);
 
+    const requestStartedAt = Date.now();
     const response = await fetch(`http://127.0.0.1:${address.port}/dashboard`);
     assert.equal(response.status, 200);
     const body = await response.json() as typeof dashboardResponse;
     assert.equal(GetDashboardResponse.safeParse(body).success, true);
+    const refreshedAt = Date.parse(body.refreshedAt);
+    assert.equal(Number.isNaN(refreshedAt), false);
+    assert.ok(refreshedAt >= requestStartedAt);
+    assert.ok(refreshedAt <= Date.now());
 
     assert.deepEqual(
       {

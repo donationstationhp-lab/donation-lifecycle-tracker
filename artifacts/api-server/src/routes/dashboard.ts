@@ -146,6 +146,7 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
   }
 
   res.json(GetDashboardResponse.parse({
+    refreshedAt: now.toISOString(),
     totalActiveItems,
     byTier,
     byStage,

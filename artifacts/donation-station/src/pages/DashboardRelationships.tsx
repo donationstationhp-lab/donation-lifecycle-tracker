@@ -17,6 +17,7 @@ export default function DashboardRelationships() {
         title="Relationship Management"
         description="Detailed view for donor, account, and volunteer connections. Form relationships with dignity."
         icon={Heart}
+        refreshedAt={summary.refreshedAt}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -17,6 +17,7 @@ export default function DashboardGiving() {
         title="Giving Operations"
         description="Detailed view for transfer and distribution work. Give what completes."
         icon={Recycle}
+        refreshedAt={summary.refreshedAt}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'wouter';
 import { ArrowRight } from 'lucide-react';
+import { format } from 'date-fns';
 
 export function MetricCard({
   title,
@@ -85,7 +86,28 @@ export function ActionCard({
   );
 }
 
-export function PageHeader({ title, description, icon: Icon }: { title: string, description: string, icon: any }) {
+export function DashboardRefreshTime({ refreshedAt }: { refreshedAt: string }) {
+  const date = new Date(refreshedAt);
+  const label = format(date, 'MMM d, yyyy h:mm a');
+
+  return (
+    <p className="mt-2 text-xs font-medium text-muted-foreground" data-testid="text-dashboard-refreshed-at">
+      Updated <time dateTime={refreshedAt}>{label}</time>
+    </p>
+  );
+}
+
+export function PageHeader({
+  title,
+  description,
+  icon: Icon,
+  refreshedAt,
+}: {
+  title: string;
+  description: string;
+  icon: any;
+  refreshedAt: string;
+}) {
   return (
     <div className="mb-8 border-b border-border/50 pb-6">
       <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
@@ -93,6 +115,7 @@ export function PageHeader({ title, description, icon: Icon }: { title: string, 
         {title}
       </h1>
       <p className="text-sm text-muted-foreground font-medium mt-1">{description}</p>
+      <DashboardRefreshTime refreshedAt={refreshedAt} />
     </div>
   );
 }

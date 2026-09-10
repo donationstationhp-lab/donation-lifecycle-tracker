@@ -18,6 +18,7 @@ export default function DashboardBridging() {
         title="Bridging Logistics"
         description="Detailed view for appointments, calendar, and routes. Bridging time and movement."
         icon={Truck}
+        refreshedAt={summary.refreshedAt}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

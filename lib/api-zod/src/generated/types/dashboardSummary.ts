@@ -11,6 +11,7 @@ import type { StageCount } from './stageCount';
 import type { TierCount } from './tierCount';
 
 export interface DashboardSummary {
+  refreshedAt: Date;
   totalActiveItems: number;
   byTier: TierCount[];
   byStage: StageCount[];

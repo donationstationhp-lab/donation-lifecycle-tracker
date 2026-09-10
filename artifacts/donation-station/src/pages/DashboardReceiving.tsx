@@ -22,6 +22,7 @@ export default function DashboardReceiving() {
         title="Receiving Operations"
         description="Detailed view for intake, review, and pickup operations. Receive what is."
         icon={Package}
+        refreshedAt={summary.refreshedAt}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
