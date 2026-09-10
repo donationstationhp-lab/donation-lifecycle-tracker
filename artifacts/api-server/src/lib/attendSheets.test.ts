@@ -448,11 +448,15 @@ test("operator status exposes retry details without exposing event payload", asy
   }
 });
 
-test("ATTEND delivery alerts are visible only to supervisors", async () => {
-  const id = randomUUID();
+test("ATTEND delivery alert listing and acknowledgement are supervisor-only and return safe audit data", async () => {
+  const outboxId = randomUUID();
+  const alertId = randomUUID();
   const app = express();
-  app.use((_req, res, next) => {
-    res.locals.staffRole = "staff";
+  app.use((req, res, next) => {
+    const role = req.headers["x-test-role"];
+    res.locals.staffRole = role === "supervisor" ? "supervisor" : "staff";
+    res.locals.staffUserId = role === "supervisor" ? "supervisor-user-123" : "staff-user-123";
+    res.locals.authMethod = "clerk";
     next();
   });
   app.use(attendRouter);
@@ -461,28 +465,76 @@ test("ATTEND delivery alerts are visible only to supervisors", async () => {
   const address = server.address();
   if (!address || typeof address === "string") throw new Error("Test server did not expose a TCP address");
   await db.insert(notificationOutboxTable).values({
-    id,
+    id: outboxId,
     eventType: "claim.submitted",
     aggregateType: "claim",
-    aggregateId: id,
-    dedupeKey: `attend-test:${id}`,
-    payload: JSON.stringify({ privateEventDetail: "not-for-alert-response" }),
+    aggregateId: outboxId,
+    dedupeKey: `attend-test:${outboxId}`,
+    payload: JSON.stringify({
+      privateEventDetail: "not-for-alert-response",
+      accessToken: "credential-not-for-alert-response",
+    }),
   });
   await db.insert(attendDeliveryAlertsTable).values({
-    id: randomUUID(),
-    outboxId: id,
+    id: alertId,
+    outboxId,
     eventType: "claim.submitted",
     aggregateType: "claim",
-    aggregateId: id,
+    aggregateId: outboxId,
     lastError: "Delivery failed",
-    dedupeKey: `attend-delivery-failed:${id}`,
+    dedupeKey: `attend-delivery-failed:${outboxId}`,
   });
 
   try {
-    const response = await fetch(`http://127.0.0.1:${address.port}/attend/alerts`);
-    assert.equal(response.status, 403);
+    const baseUrl = `http://127.0.0.1:${address.port}/attend/alerts`;
+    const staffListResponse = await fetch(baseUrl, {
+      headers: { "x-test-role": "staff" },
+    });
+    assert.equal(staffListResponse.status, 403);
+
+    const staffAcknowledgeResponse = await fetch(`${baseUrl}/${alertId}`, {
+      method: "PATCH",
+      headers: { "x-test-role": "staff" },
+    });
+    assert.equal(staffAcknowledgeResponse.status, 403);
+
+    const supervisorListResponse = await fetch(baseUrl, {
+      headers: { "x-test-role": "supervisor" },
+    });
+    assert.equal(supervisorListResponse.status, 200);
+    const alerts = await supervisorListResponse.json() as Array<Record<string, unknown>>;
+    const listedAlert = alerts.find((entry) => entry.id === alertId);
+    assert.ok(listedAlert);
+    assert.equal(listedAlert.acknowledgedAt, null);
+    assert.equal(listedAlert.acknowledgedBy, null);
+    assert.equal("payload" in listedAlert, false);
+    assert.equal("accessToken" in listedAlert, false);
+    assert.doesNotMatch(JSON.stringify(listedAlert), /not-for-alert-response|credential-not-for-alert-response/);
+
+    const supervisorAcknowledgeResponse = await fetch(`${baseUrl}/${alertId}`, {
+      method: "PATCH",
+      headers: { "x-test-role": "supervisor" },
+    });
+    assert.equal(supervisorAcknowledgeResponse.status, 200);
+    const acknowledged = await supervisorAcknowledgeResponse.json() as Record<string, unknown>;
+    assert.equal(acknowledged.id, alertId);
+    assert.equal(acknowledged.acknowledgedBy, "supervisor-user-123");
+    assert.equal(typeof acknowledged.acknowledgedAt, "string");
+    assert.equal("payload" in acknowledged, false);
+    assert.equal("accessToken" in acknowledged, false);
+    assert.doesNotMatch(JSON.stringify(acknowledged), /not-for-alert-response|credential-not-for-alert-response/);
+
+    const storedAlerts = await db
+      .select()
+      .from(attendDeliveryAlertsTable)
+      .where(eq(attendDeliveryAlertsTable.id, alertId));
+    assert.equal(storedAlerts.length, 1);
+    assert.equal(storedAlerts[0].id, alertId);
+    assert.equal(storedAlerts[0].outboxId, outboxId);
+    assert.equal(storedAlerts[0].acknowledgedBy, "supervisor-user-123");
+    assert.ok(storedAlerts[0].acknowledgedAt);
   } finally {
-    await db.delete(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
+    await db.delete(notificationOutboxTable).where(eq(notificationOutboxTable.id, outboxId));
     await new Promise<void>((resolve, reject) => {
       server.close((error) => error ? reject(error) : resolve());
     });
