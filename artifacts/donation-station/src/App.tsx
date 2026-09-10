@@ -18,6 +18,12 @@ import {
 
 import { Shell } from '@/components/layout/Shell';
 import Dashboard from '@/pages/Dashboard';
+import DashboardReceiving from '@/pages/DashboardReceiving';
+import DashboardGaining from '@/pages/DashboardGaining';
+import DashboardGiving from '@/pages/DashboardGiving';
+import DashboardBridging from '@/pages/DashboardBridging';
+import DashboardRelationships from '@/pages/DashboardRelationships';
+
 import Donate from '@/pages/Donate';
 import PublicResources from '@/pages/PublicResources';
 import PublicFAQ from '@/pages/PublicFAQ';
@@ -168,6 +174,13 @@ function StaffApp() {
       <RoutedErrorBoundary>
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/dashboard/receiving" component={DashboardReceiving} />
+          <Route path="/dashboard/gaining" component={DashboardGaining} />
+          <Route path="/dashboard/giving" component={DashboardGiving} />
+          <Route path="/dashboard/bridging" component={DashboardBridging} />
+          <Route path="/dashboard/relationships" component={DashboardRelationships} />
+
           <Route path="/items" component={ItemsList} />
           <Route path="/items/new" component={IntakeForm} />
           <Route path="/items/:id" component={ItemDetail} />
@@ -184,6 +197,7 @@ function StaffApp() {
           <Route path="/routes/:id" component={RouteDetail} />
           <Route path="/accounts" component={AccountsList} />
           <Route path="/pending" component={PendingReview} />
+          <Route path="/calendar"><Schedule /></Route>
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>

@@ -31,3 +31,17 @@ credential or donor-contact details in an authorization error.
 unassigned, staff, supervisor, valid-key, and invalid-key cases independently;
 assert both status/role behavior and that sensitive values are absent from
 responses.
+
+Layered W.O.W. operational dashboards are staff views, including the shared
+universal overview and the Receiving, Gaining, Giving, Bridging, and
+Relationships domains. A future community-member dashboard must use a separate
+server-enforced ownership boundary rather than reusing public tracking codes or
+the staff dashboard response.
+
+**Why:** The staff dashboard projects internal operational records, while public
+tracking codes are intentionally privacy-safe identifiers and do not prove that
+the viewer owns a claim, appointment, donation, or account.
+
+**How to apply:** Keep all operational dashboard routes behind the staff gate.
+Before exposing an individual's private history, establish verified identity,
+explicit record ownership, and server-side filtering for every returned record.

@@ -4,39 +4,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'wouter';
 import {
   AlertTriangle, ArrowRight, TrendingUp, Clock, Heart, ExternalLink,
-  ClipboardCheck, CalendarCheck, ShieldAlert, Globe, Zap, Recycle, Leaf,
+  CalendarCheck, ShieldAlert, Globe, Zap, Recycle, Leaf,
   CheckCircle2, Package
 } from 'lucide-react';
 import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-
-type WowMetrics = {
-  resourcesReceived: number;
-  requestsReceived: number;
-  claimsVerified: number;
-  resourcesVerified: number;
-  resourcesReserved: number;
-  appointmentsScheduled: number;
-  resourcesDistributed: number;
-  wasteDiverted: number;
-  appointmentsCompleted: number;
-  noShows: number;
-  acknowledgmentsReceived: number;
-  acknowledgmentsPending: number;
-  acknowledgmentsSent: number;
-  receiveToGiveHours: number | null;
-};
-
-type ServiceMetrics = {
-  receivedToday: number;
-  receivedThisWeek: number;
-  scheduledToday: number;
-  overdue: number;
-  pendingVerification: number;
-  reservedItems: number;
-  wowMetrics: WowMetrics;
-};
+import { ServiceMetrics } from '@/components/dashboard/shared';
 
 export default function Dashboard() {
   const { data: summary, isLoading, isError } = useGetDashboard();
@@ -107,12 +81,17 @@ export default function Dashboard() {
 
       {/* Receiving */}
       <section>
-        <div className="mb-4">
-          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary" />
-            Receiving
-          </h2>
-          <p className="text-sm text-muted-foreground font-medium mt-1">Receive what is.</p>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary" />
+              Receiving
+            </h2>
+            <p className="text-sm text-muted-foreground font-medium mt-1">Receive what is.</p>
+          </div>
+          <Link href="/dashboard/receiving" className="inline-flex items-center justify-center rounded-md text-sm font-semibold transition-colors hover:bg-primary/10 text-primary h-8 px-3">
+            Detailed View <ArrowRight className="w-4 h-4 ml-1" />
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
@@ -251,12 +230,17 @@ export default function Dashboard() {
 
       {/* Gaining */}
       <section>
-        <div className="mb-4">
-          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-primary" />
-            Gaining
-          </h2>
-          <p className="text-sm text-muted-foreground font-medium mt-1">Gain what it means.</p>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-primary" />
+              Gaining
+            </h2>
+            <p className="text-sm text-muted-foreground font-medium mt-1">Gain what it means.</p>
+          </div>
+          <Link href="/dashboard/gaining" className="inline-flex items-center justify-center rounded-md text-sm font-semibold transition-colors hover:bg-primary/10 text-primary h-8 px-3">
+            Detailed View <ArrowRight className="w-4 h-4 ml-1" />
+          </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className={`shadow-sm transition-all hover-elevate cursor-pointer ${pendingCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-card border-border'}`}>
@@ -304,12 +288,17 @@ export default function Dashboard() {
 
       {/* Giving */}
       <section>
-        <div className="mb-4">
-          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Recycle className="w-5 h-5 text-primary" />
-            Giving
-          </h2>
-          <p className="text-sm text-muted-foreground font-medium mt-1">Give what completes.</p>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <Recycle className="w-5 h-5 text-primary" />
+              Giving
+            </h2>
+            <p className="text-sm text-muted-foreground font-medium mt-1">Give what completes.</p>
+          </div>
+          <Link href="/dashboard/giving" className="inline-flex items-center justify-center rounded-md text-sm font-semibold transition-colors hover:bg-primary/10 text-primary h-8 px-3">
+            Detailed View <ArrowRight className="w-4 h-4 ml-1" />
+          </Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="shadow-sm border-emerald-500/20 bg-emerald-500/5 col-span-2">
@@ -351,12 +340,17 @@ export default function Dashboard() {
 
       {/* Bridging */}
       <section>
-        <div className="mb-4">
-          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <CalendarCheck className="w-5 h-5 text-primary" />
-            Bridging
-          </h2>
-          <p className="text-sm text-muted-foreground font-medium mt-1">Bridging time and movement.</p>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <CalendarCheck className="w-5 h-5 text-primary" />
+              Bridging
+            </h2>
+            <p className="text-sm text-muted-foreground font-medium mt-1">Bridging time and movement.</p>
+          </div>
+          <Link href="/dashboard/bridging" className="inline-flex items-center justify-center rounded-md text-sm font-semibold transition-colors hover:bg-primary/10 text-primary h-8 px-3">
+            Detailed View <ArrowRight className="w-4 h-4 ml-1" />
+          </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="shadow-sm border-border bg-card">
@@ -403,12 +397,17 @@ export default function Dashboard() {
 
       {/* Relationships */}
       <section>
-        <div className="mb-4">
-          <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Heart className="w-5 h-5 text-primary" />
-            Relationships
-          </h2>
-          <p className="text-sm text-muted-foreground font-medium mt-1">Form relationships with dignity.</p>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <Heart className="w-5 h-5 text-primary" />
+              Relationships
+            </h2>
+            <p className="text-sm text-muted-foreground font-medium mt-1">Form relationships with dignity.</p>
+          </div>
+          <Link href="/dashboard/relationships" className="inline-flex items-center justify-center rounded-md text-sm font-semibold transition-colors hover:bg-primary/10 text-primary h-8 px-3">
+            Detailed View <ArrowRight className="w-4 h-4 ml-1" />
+          </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="shadow-sm border-border bg-card">

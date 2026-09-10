@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag, FileText, ArrowRightLeft, Users, Heart, CalendarDays, Globe } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag, FileText, ArrowRightLeft, Users, Heart, CalendarDays, Globe, ShieldAlert, Recycle, Menu, X, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { UserButton } from '@clerk/react';
@@ -19,30 +19,68 @@ function usePendingCount() {
   return Array.isArray(data) ? data.length : 0;
 }
 
+type NavItem = {
+  href: string;
+  alias?: string;
+  label: string;
+  icon: LucideIcon;
+  badge?: number;
+};
+
+type NavGroup = {
+  title: string;
+  items: NavItem[];
+};
+
 export function Shell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const pendingCount = usePendingCount();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navItems = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/items', label: 'Items', desktopLabel: 'Items — Received Resources', icon: Package },
-    { href: '/donors', label: 'Donors', icon: Heart },
-    { href: '/accounts', label: 'Accounts', icon: Users },
-    { href: '/claims', label: 'Claims', desktopLabel: 'Claims — Service Requests / Gaining Verification', icon: FileText },
-    { href: '/transfers', label: 'Transfers', desktopLabel: 'Transfers — Giving / Distribution', icon: ArrowRightLeft },
-    { href: '/calendar', label: 'Calendar', desktopLabel: 'Calendar — Bridging Time', icon: CalendarDays },
-    { href: '/pickups', label: 'Pickups', icon: ClipboardCheck },
-    { href: '/pickup-flags', label: 'Flags', icon: Flag },
-    { href: '/expiring', label: 'Expiring', icon: AlertTriangle },
-    { href: '/routes', label: 'Routes', desktopLabel: 'Routes — Bridging Movement', icon: Truck },
-    { href: '/pending', label: 'Review', desktopLabel: 'Review — Due Diligence', icon: Clock, badge: pendingCount },
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location]);
+
+  const navGroups: NavGroup[] = [
+    {
+      title: "Network Overview",
+      items: [
+        { href: '/', alias: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { href: '/dashboard/receiving', label: 'Receiving', icon: Package },
+        { href: '/dashboard/gaining', label: 'Gaining', icon: ShieldAlert },
+        { href: '/dashboard/giving', label: 'Giving', icon: Recycle },
+        { href: '/dashboard/bridging', label: 'Bridging', icon: Truck },
+        { href: '/dashboard/relationships', label: 'Relationships', icon: Heart },
+      ]
+    },
+    {
+      title: "Direct Access",
+      items: [
+        { href: '/items', label: 'Items Directory', icon: Package },
+        { href: '/pending', label: 'Review Queue', icon: Clock, badge: pendingCount },
+        { href: '/claims', label: 'Claims', icon: FileText },
+        { href: '/transfers', label: 'Transfers', icon: ArrowRightLeft },
+        { href: '/pickups', label: 'Pickups', icon: ClipboardCheck },
+        { href: '/pickup-flags', label: 'Pickup Flags', icon: Flag },
+        { href: '/routes', label: 'Routes', icon: Truck },
+        { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+        { href: '/expiring', label: 'Expiring', icon: AlertTriangle },
+      ]
+    },
+    {
+      title: "Records",
+      items: [
+        { href: '/donors', label: 'Donors', icon: Heart },
+        { href: '/accounts', label: 'Accounts', icon: Users },
+      ]
+    }
   ];
 
   return (
     <div className="flex h-screen bg-background text-foreground flex-col md:flex-row overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-[300px] flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xl z-10">
-        <div className="p-6 border-b border-sidebar-border/50">
+      <aside className="hidden md:flex w-[260px] flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xl z-10 shrink-0">
+        <div className="p-5 border-b border-sidebar-border/50">
           <div className="flex items-center gap-3">
             <div className="bg-primary/20 p-2 rounded-lg text-primary">
               <Globe className="w-6 h-6" />
@@ -54,51 +92,52 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = item.href === '/'
-              ? location === '/' || location === '/dashboard'
-              : location.startsWith(item.href);
+        <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto custom-scrollbar">
+          {navGroups.map((group, i) => (
+            <div key={i} className="space-y-1">
+              <h3 className="px-3 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider mb-2">
+                {group.title}
+              </h3>
+              {group.items.map((item) => {
+                const isActive = item.href === '/'
+                  ? location === '/' || location === '/dashboard'
+                  : location === item.href || location.startsWith(item.href + '/');
 
-            return (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant="ghost"
-                  className={`w-full justify-start transition-all duration-200 ${
+                return (
+                  <Link key={item.href} href={item.href} className={`flex items-center w-full px-3 py-2 text-sm rounded-md transition-all duration-200 ${
                     isActive
                       ? 'bg-primary/20 hover:bg-primary/30 text-primary-foreground font-semibold shadow-sm'
                       : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground font-medium'
-                  }`}
-                >
-                  <item.icon className={`mr-3 w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-primary' : ''}`} />
-                  <span className="flex-1 text-left whitespace-normal text-xs md:text-sm">{item.desktopLabel || item.label}</span>
-                  {item.badge != null && item.badge > 0 && (
-                    <span className="ml-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold px-1.5 shadow-sm">
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
-                  )}
-                </Button>
-              </Link>
-            );
-          })}
+                  }`}>
+                    <item.icon className={`mr-3 w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-primary' : ''}`} />
+                    <span className="flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
+                    {item.badge != null && item.badge > 0 && (
+                      <span className="ml-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1.5 shadow-sm">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="p-4 border-t border-sidebar-border/50 space-y-3 bg-sidebar/50">
           <Link href="/items/new">
-            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md">
+            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md h-9 text-sm">
               <Plus className="mr-2 w-4 h-4" /> Intake Item
             </Button>
           </Link>
-          {/* Quick link to public donor form */}
-          <a
-            href={`${import.meta.env.BASE_URL}donate`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors py-2"
-          >
-            <span>↗</span> Donor Form
-          </a>
-          <div className="flex items-center justify-center pt-2">
+          <div className="flex items-center justify-between pt-2 px-1">
+            <a
+              href={`${import.meta.env.BASE_URL}donate`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors"
+            >
+              <span>↗</span> Donor Form
+            </a>
             <UserButton />
           </div>
         </div>
@@ -136,31 +175,87 @@ export function Shell({ children }: { children: ReactNode }) {
         </div>
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex justify-around p-2 pb-safe z-50 overflow-x-auto shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        {navItems.map((item) => {
-          const isActive = location === item.href || location.startsWith(item.href + '/');
-          return (
-            <Link key={item.href} href={item.href} className="flex-1 min-w-[60px]">
-              <div
-                className={`relative flex flex-col items-center p-2 rounded-lg transition-colors ${
-                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <item.icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
-                {item.badge != null && item.badge > 0 && (
-                  <span className="absolute top-1 right-2 min-w-[1rem] h-4 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold px-0.5 shadow-sm">
-                    {item.badge > 9 ? '9+' : item.badge}
-                  </span>
-                )}
-                <span className={`text-[10px] font-medium mt-1 truncate max-w-full ${isActive ? 'font-bold' : ''}`}>
-                  {item.label}
-                </span>
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-sidebar flex flex-col animate-fade-in">
+          <div className="flex items-center justify-between p-4 border-b border-sidebar-border/50 shadow-sm bg-sidebar">
+            <h1 className="text-lg font-bold flex items-center gap-2 text-sidebar-foreground">
+              <Globe className="w-5 h-5 text-primary" />
+              W.O.W. OS Menu
+            </h1>
+            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="text-sidebar-foreground hover:bg-sidebar-accent">
+              <X className="w-6 h-6" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-6 pb-24 space-y-8 bg-sidebar">
+            {navGroups.map((group, i) => (
+              <div key={i} className="space-y-2">
+                <h3 className="px-2 text-[11px] font-semibold text-sidebar-foreground/50 uppercase tracking-wider mb-3">
+                  {group.title}
+                </h3>
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const isActive = item.href === '/'
+                      ? location === '/' || location === '/dashboard'
+                      : location === item.href || location.startsWith(item.href + '/');
+
+                    return (
+                      <Link key={item.href} href={item.href} className={`flex items-center w-full px-3 py-3 text-sm rounded-md transition-all duration-200 ${
+                        isActive
+                          ? 'bg-primary/20 text-primary-foreground font-semibold border border-primary/20'
+                          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50'
+                      }`}>
+                        <item.icon className={`mr-4 w-5 h-5 shrink-0 ${isActive ? 'text-primary' : ''}`} />
+                        <span className="flex-1">{item.label}</span>
+                        {item.badge != null && item.badge > 0 && (
+                          <span className="ml-2 min-w-[1.25rem] h-5 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold px-1.5 shadow-sm">
+                            {item.badge > 99 ? '99+' : item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
-            </Link>
-          );
-        })}
-      </nav>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Bottom Nav */}
+      {!mobileMenuOpen && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex justify-around p-2 pb-safe z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+          {navGroups[0].items.slice(0, 4).map((item) => {
+            const isActive = item.href === '/'
+              ? location === '/' || location === '/dashboard'
+              : location === item.href || location.startsWith(item.href + '/');
+
+            return (
+              <Link key={item.href} href={item.href} className="flex-1 min-w-[60px]">
+                <div
+                  className={`relative flex flex-col items-center p-2 rounded-lg transition-colors ${
+                    isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
+                  <span className={`text-[10px] font-medium mt-1 truncate max-w-full ${isActive ? 'font-bold' : ''}`}>
+                    {item.label}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex-1 min-w-[60px] flex flex-col items-center p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg"
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1 truncate max-w-full">
+              Menu
+            </span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
