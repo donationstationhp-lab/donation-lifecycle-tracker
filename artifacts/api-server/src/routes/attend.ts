@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, inArray, like } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, like, lte } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
   allocateClaimTrackingCode, ensureClaimTrackingCodes, attendDeliveryAlertsTable, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
@@ -12,7 +12,7 @@ import {
   ListTransfersQueryParams, ListTransfersResponse, TransitionClaimBody, TransitionClaimParams,
   TransitionClaimResponse, TransitionTransferBody, TransitionTransferParams, TransitionTransferResponse,
   GetClaimParams, GetClaimResponse, GetTransferParams, GetTransferResponse,
-  ListAttendDeliveryAlertsResponse, ListAttendOutboxResponse,
+  ListAttendDeliveryAlertsQueryParams, ListAttendDeliveryAlertsResponse, ListAttendOutboxResponse,
   AcknowledgeAttendDeliveryAlertParams, AcknowledgeAttendDeliveryAlertResponse,
 } from "@workspace/api-zod";
 import { requireSupervisor } from "../middlewares/apiKeyAuth";
@@ -50,23 +50,55 @@ router.get("/attend/outbox", async (_req, res): Promise<void> => {
   res.json(ListAttendOutboxResponse.parse(rows));
 });
 
-router.get("/attend/alerts", requireSupervisor, async (_req, res): Promise<void> => {
+router.get("/attend/alerts", requireSupervisor, async (req, res): Promise<void> => {
+  const parsed = ListAttendDeliveryAlertsQueryParams.safeParse({
+    ...req.query,
+    createdFrom: typeof req.query.createdFrom === "string" ? new Date(req.query.createdFrom) : req.query.createdFrom,
+    createdTo: typeof req.query.createdTo === "string" ? new Date(req.query.createdTo) : req.query.createdTo,
+  });
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { acknowledgement, createdFrom, createdTo, page, pageSize } = parsed.data;
+  if (createdFrom && createdTo && createdFrom > createdTo) {
+    res.status(400).json({ error: "createdFrom must be before or equal to createdTo" });
+    return;
+  }
+
+  const conditions = [
+    acknowledgement === "open" ? isNull(attendDeliveryAlertsTable.acknowledgedAt) : undefined,
+    acknowledgement === "acknowledged" ? isNotNull(attendDeliveryAlertsTable.acknowledgedAt) : undefined,
+    createdFrom ? gte(attendDeliveryAlertsTable.createdAt, createdFrom) : undefined,
+    createdTo ? lte(attendDeliveryAlertsTable.createdAt, createdTo) : undefined,
+  ].filter((condition) => condition !== undefined);
+  const where = conditions.length ? and(...conditions) : undefined;
+  const [{ totalItems }] = await db
+    .select({ totalItems: count() })
+    .from(attendDeliveryAlertsTable)
+    .where(where);
   const rows = await db
     .select({
       id: attendDeliveryAlertsTable.id,
-      outboxId: attendDeliveryAlertsTable.outboxId,
-      eventType: attendDeliveryAlertsTable.eventType,
-      aggregateType: attendDeliveryAlertsTable.aggregateType,
-      aggregateId: attendDeliveryAlertsTable.aggregateId,
-      lastError: attendDeliveryAlertsTable.lastError,
       acknowledgedAt: attendDeliveryAlertsTable.acknowledgedAt,
-      acknowledgedBy: attendDeliveryAlertsTable.acknowledgedBy,
       createdAt: attendDeliveryAlertsTable.createdAt,
     })
     .from(attendDeliveryAlertsTable)
-    .orderBy(desc(attendDeliveryAlertsTable.createdAt))
-    .limit(100);
-  res.json(ListAttendDeliveryAlertsResponse.parse(rows));
+    .where(where)
+    .orderBy(desc(attendDeliveryAlertsTable.createdAt), desc(attendDeliveryAlertsTable.id))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+  const totalPages = Math.ceil(totalItems / pageSize);
+  res.json(ListAttendDeliveryAlertsResponse.parse({
+    items: rows,
+    page,
+    pageSize,
+    totalItems,
+    totalPages,
+    hasPreviousPage: page > 1,
+    hasNextPage: page < totalPages,
+  }));
 });
 
 router.patch("/attend/alerts/:id", requireSupervisor, async (req, res): Promise<void> => {

@@ -906,15 +906,34 @@ paths:
       operationId: listAttendDeliveryAlerts
       tags: [attend]
       summary: List supervisor alerts for exhausted ATTEND deliveries
+      parameters:
+        - name: acknowledgement
+          in: query
+          schema:
+            type: string
+            enum: [all, open, acknowledged]
+            default: all
+        - name: createdFrom
+          in: query
+          description: Include alerts created at or after this timestamp
+          schema: { type: string, format: date-time }
+        - name: createdTo
+          in: query
+          description: Include alerts created at or before this timestamp
+          schema: { type: string, format: date-time }
+        - name: page
+          in: query
+          schema: { type: number, minimum: 1, multipleOf: 1, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: number, minimum: 1, maximum: 100, multipleOf: 1, default: 20 }
       responses:
         "200":
-          description: Recent ATTEND delivery alerts without event payloads or connector details
+          description: Filtered ATTEND delivery alert history without event payloads, provider details, errors, or credentials
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AttendDeliveryAlert"
+                $ref: "#/components/schemas/AttendDeliveryAlertPage"
   /attend/alerts/{id}:
     patch:
       operationId: acknowledgeAttendDeliveryAlert
@@ -1091,6 +1110,27 @@ components:
         acknowledgedAt: { type: ["string", "null"], format: date-time }
         acknowledgedBy: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
+    AttendDeliveryAlertSummary:
+      type: object
+      required: [id, acknowledgedAt, createdAt]
+      properties:
+        id: { type: string }
+        acknowledgedAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    AttendDeliveryAlertPage:
+      type: object
+      required: [items, page, pageSize, totalItems, totalPages, hasPreviousPage, hasNextPage]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendDeliveryAlertSummary"
+        page: { type: number, multipleOf: 1 }
+        pageSize: { type: number, multipleOf: 1 }
+        totalItems: { type: number, multipleOf: 1 }
+        totalPages: { type: number, multipleOf: 1 }
+        hasPreviousPage: { type: boolean }
+        hasNextPage: { type: boolean }
     RecipientAccount:
       type: object
       required: [id, name, type, createdAt, updatedAt]

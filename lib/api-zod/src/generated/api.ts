@@ -1733,18 +1733,47 @@ export const ListAttendOutboxResponse = zod.array(ListAttendOutboxResponseItem)
 /**
  * @summary List supervisor alerts for exhausted ATTEND deliveries
  */
-export const ListAttendDeliveryAlertsResponseItem = zod.object({
-  "id": zod.string(),
-  "outboxId": zod.string(),
-  "eventType": zod.string(),
-  "aggregateType": zod.string(),
-  "aggregateId": zod.string(),
-  "lastError": zod.string(),
-  "acknowledgedAt": zod.coerce.date().nullable(),
-  "acknowledgedBy": zod.string().nullable(),
-  "createdAt": zod.coerce.date()
+export const listAttendDeliveryAlertsQueryAcknowledgementDefault = `all`;
+export const listAttendDeliveryAlertsQueryPageDefault = 1;
+export const listAttendDeliveryAlertsQueryPageMultipleOf = 1;
+
+export const listAttendDeliveryAlertsQueryPageSizeDefault = 20;
+export const listAttendDeliveryAlertsQueryPageSizeMax = 100;
+export const listAttendDeliveryAlertsQueryPageSizeMultipleOf = 1;
+
+
+
+export const ListAttendDeliveryAlertsQueryParams = zod.object({
+  "acknowledgement": zod.enum(['all', 'open', 'acknowledged']).default(listAttendDeliveryAlertsQueryAcknowledgementDefault),
+  "createdFrom": zod.date().optional().describe('Include alerts created at or after this timestamp'),
+  "createdTo": zod.date().optional().describe('Include alerts created at or before this timestamp'),
+  "page": zod.coerce.number().min(1).multipleOf(listAttendDeliveryAlertsQueryPageMultipleOf).default(listAttendDeliveryAlertsQueryPageDefault),
+  "pageSize": zod.coerce.number().min(1).max(listAttendDeliveryAlertsQueryPageSizeMax).multipleOf(listAttendDeliveryAlertsQueryPageSizeMultipleOf).default(listAttendDeliveryAlertsQueryPageSizeDefault)
 })
-export const ListAttendDeliveryAlertsResponse = zod.array(ListAttendDeliveryAlertsResponseItem)
+
+export const listAttendDeliveryAlertsResponsePageMultipleOf = 1;
+
+export const listAttendDeliveryAlertsResponsePageSizeMultipleOf = 1;
+
+export const listAttendDeliveryAlertsResponseTotalItemsMultipleOf = 1;
+
+export const listAttendDeliveryAlertsResponseTotalPagesMultipleOf = 1;
+
+
+
+export const ListAttendDeliveryAlertsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "acknowledgedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})),
+  "page": zod.number().multipleOf(listAttendDeliveryAlertsResponsePageMultipleOf),
+  "pageSize": zod.number().multipleOf(listAttendDeliveryAlertsResponsePageSizeMultipleOf),
+  "totalItems": zod.number().multipleOf(listAttendDeliveryAlertsResponseTotalItemsMultipleOf),
+  "totalPages": zod.number().multipleOf(listAttendDeliveryAlertsResponseTotalPagesMultipleOf),
+  "hasPreviousPage": zod.boolean(),
+  "hasNextPage": zod.boolean()
+})
 
 
 /**

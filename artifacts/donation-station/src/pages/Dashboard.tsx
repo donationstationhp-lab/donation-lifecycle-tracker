@@ -18,6 +18,16 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const dateBoundary = (value: string, endOfDay = false) => {
+  if (!value) return undefined;
+  const date = new Date(`${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}`);
+  return date.toISOString();
+};
 
 export default function Dashboard() {
   const { user } = useUser();
@@ -25,10 +35,21 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isSupervisor = user?.publicMetadata.role === 'supervisor';
-  const attendAlerts = useListAttendDeliveryAlerts({
+  const [alertAcknowledgement, setAlertAcknowledgement] = useState<'all' | 'open' | 'acknowledged'>('all');
+  const [alertCreatedFrom, setAlertCreatedFrom] = useState('');
+  const [alertCreatedTo, setAlertCreatedTo] = useState('');
+  const [alertPage, setAlertPage] = useState(1);
+  const alertParams = {
+    acknowledgement: alertAcknowledgement,
+    createdFrom: dateBoundary(alertCreatedFrom),
+    createdTo: dateBoundary(alertCreatedTo, true),
+    page: alertPage,
+    pageSize: 20,
+  };
+  const attendAlerts = useListAttendDeliveryAlerts(alertParams, {
     query: {
       enabled: isSupervisor,
-      queryKey: getListAttendDeliveryAlertsQueryKey(),
+      queryKey: getListAttendDeliveryAlertsQueryKey(alertParams),
       staleTime: 15_000,
     },
   });
@@ -109,15 +130,62 @@ export default function Dashboard() {
                 Supervisor-only alerts for delivery attempts that need review.
               </p>
             </div>
-            {attendAlerts.data && attendAlerts.data.some((alert) => !alert.acknowledgedAt) && (
+            {attendAlerts.data && attendAlerts.data.totalItems > 0 && (
               <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
-                {attendAlerts.data.filter((alert) => !alert.acknowledgedAt).length} open
+                {attendAlerts.data.totalItems} matching
               </span>
             )}
           </div>
 
           <Card className="border-amber-200 bg-amber-50/40 shadow-sm">
             <CardContent className="p-5">
+              <div className="mb-5 grid gap-4 border-b border-amber-200/70 pb-5 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="attend-alert-state">Acknowledgement</Label>
+                  <Select
+                    value={alertAcknowledgement}
+                    onValueChange={(value: 'all' | 'open' | 'acknowledged') => {
+                      setAlertAcknowledgement(value);
+                      setAlertPage(1);
+                    }}
+                  >
+                    <SelectTrigger id="attend-alert-state">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All alerts</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="acknowledged">Acknowledged</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="attend-alert-from">From date</Label>
+                  <Input
+                    id="attend-alert-from"
+                    type="date"
+                    value={alertCreatedFrom}
+                    max={alertCreatedTo || undefined}
+                    onChange={(event) => {
+                      setAlertCreatedFrom(event.target.value);
+                      setAlertPage(1);
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="attend-alert-to">To date</Label>
+                  <Input
+                    id="attend-alert-to"
+                    type="date"
+                    value={alertCreatedTo}
+                    min={alertCreatedFrom || undefined}
+                    onChange={(event) => {
+                      setAlertCreatedTo(event.target.value);
+                      setAlertPage(1);
+                    }}
+                  />
+                </div>
+              </div>
               {attendAlerts.isLoading && (
                 <div className="space-y-3">
                   <Skeleton className="h-12 w-full" />
@@ -129,14 +197,14 @@ export default function Dashboard() {
                   Failed to load ATTEND delivery alerts. Please try again.
                 </p>
               )}
-              {!attendAlerts.isLoading && !attendAlerts.isError && attendAlerts.data?.length === 0 && (
+              {!attendAlerts.isLoading && !attendAlerts.isError && attendAlerts.data?.items.length === 0 && (
                 <p className="text-sm font-medium text-muted-foreground">
-                  No recent ATTEND delivery alerts.
+                  No ATTEND delivery alerts match these filters.
                 </p>
               )}
-              {!attendAlerts.isLoading && !attendAlerts.isError && attendAlerts.data && attendAlerts.data.length > 0 && (
+              {!attendAlerts.isLoading && !attendAlerts.isError && attendAlerts.data && attendAlerts.data.items.length > 0 && (
                 <div className="divide-y divide-amber-200/70">
-                  {attendAlerts.data.map((alert) => {
+                  {attendAlerts.data.items.map((alert) => {
                     const acknowledged = Boolean(alert.acknowledgedAt);
                     return (
                       <div key={alert.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
@@ -190,6 +258,33 @@ export default function Dashboard() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+              {attendAlerts.data && attendAlerts.data.totalPages > 0 && (
+                <div className="mt-5 flex flex-col gap-3 border-t border-amber-200/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Page {attendAlerts.data.page} of {attendAlerts.data.totalPages}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!attendAlerts.data.hasPreviousPage || attendAlerts.isFetching}
+                      onClick={() => setAlertPage((page) => Math.max(1, page - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!attendAlerts.data.hasNextPage || attendAlerts.isFetching}
+                      onClick={() => setAlertPage((page) => page + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>

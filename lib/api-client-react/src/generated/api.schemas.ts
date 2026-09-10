@@ -48,6 +48,23 @@ export interface AttendDeliveryAlert {
   createdAt: string;
 }
 
+export interface AttendDeliveryAlertSummary {
+  id: string;
+  /** @nullable */
+  acknowledgedAt: string | null;
+  createdAt: string;
+}
+
+export interface AttendDeliveryAlertPage {
+  items: AttendDeliveryAlertSummary[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
 export interface RecipientAccount {
   id: string;
   name: string;
@@ -1158,5 +1175,35 @@ export const ListTransfersStatus = {
   released: 'released',
   received: 'received',
   cancelled: 'cancelled',
+} as const;
+
+export type ListAttendDeliveryAlertsParams = {
+acknowledgement?: ListAttendDeliveryAlertsAcknowledgement;
+/**
+ * Include alerts created at or after this timestamp
+ */
+createdFrom?: string;
+/**
+ * Include alerts created at or before this timestamp
+ */
+createdTo?: string;
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: number;
+};
+
+export type ListAttendDeliveryAlertsAcknowledgement = typeof ListAttendDeliveryAlertsAcknowledgement[keyof typeof ListAttendDeliveryAlertsAcknowledgement];
+
+
+export const ListAttendDeliveryAlertsAcknowledgement = {
+  all: 'all',
+  open: 'open',
+  acknowledged: 'acknowledged',
 } as const;
 

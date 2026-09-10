@@ -502,14 +502,35 @@ test("ATTEND delivery alert listing and acknowledgement are supervisor-only and 
       headers: { "x-test-role": "supervisor" },
     });
     assert.equal(supervisorListResponse.status, 200);
-    const alerts = await supervisorListResponse.json() as Array<Record<string, unknown>>;
-    const listedAlert = alerts.find((entry) => entry.id === alertId);
+    const alertPage = await supervisorListResponse.json() as {
+      items: Array<Record<string, unknown>>;
+      page: number;
+      pageSize: number;
+      totalItems: number;
+      totalPages: number;
+      hasPreviousPage: boolean;
+      hasNextPage: boolean;
+    };
+    assert.equal(alertPage.page, 1);
+    assert.equal(alertPage.pageSize, 20);
+    assert.equal(alertPage.hasPreviousPage, false);
+    const listedAlert = alertPage.items.find((entry) => entry.id === alertId);
     assert.ok(listedAlert);
     assert.equal(listedAlert.acknowledgedAt, null);
-    assert.equal(listedAlert.acknowledgedBy, null);
+    assert.deepEqual(Object.keys(listedAlert).sort(), ["acknowledgedAt", "createdAt", "id"]);
     assert.equal("payload" in listedAlert, false);
     assert.equal("accessToken" in listedAlert, false);
+    assert.equal("lastError" in listedAlert, false);
+    assert.equal("outboxId" in listedAlert, false);
     assert.doesNotMatch(JSON.stringify(listedAlert), /not-for-alert-response|credential-not-for-alert-response/);
+
+    const openResponse = await fetch(`${baseUrl}?acknowledgement=open&page=1&pageSize=1`, {
+      headers: { "x-test-role": "supervisor" },
+    });
+    assert.equal(openResponse.status, 200);
+    const openPage = await openResponse.json() as { items: Array<Record<string, unknown>>; pageSize: number };
+    assert.equal(openPage.pageSize, 1);
+    assert.ok(openPage.items.some((entry) => entry.id === alertId));
 
     const supervisorAcknowledgeResponse = await fetch(`${baseUrl}/${alertId}`, {
       method: "PATCH",
@@ -523,6 +544,20 @@ test("ATTEND delivery alert listing and acknowledgement are supervisor-only and 
     assert.equal("payload" in acknowledged, false);
     assert.equal("accessToken" in acknowledged, false);
     assert.doesNotMatch(JSON.stringify(acknowledged), /not-for-alert-response|credential-not-for-alert-response/);
+
+    const acknowledgedResponse = await fetch(
+      `${baseUrl}?acknowledgement=acknowledged&createdFrom=2020-01-01T00:00:00.000Z&createdTo=2030-01-01T00:00:00.000Z`,
+      { headers: { "x-test-role": "supervisor" } },
+    );
+    assert.equal(acknowledgedResponse.status, 200);
+    const acknowledgedPage = await acknowledgedResponse.json() as { items: Array<Record<string, unknown>> };
+    assert.ok(acknowledgedPage.items.some((entry) => entry.id === alertId));
+
+    const invalidRangeResponse = await fetch(
+      `${baseUrl}?createdFrom=2030-01-01T00:00:00.000Z&createdTo=2020-01-01T00:00:00.000Z`,
+      { headers: { "x-test-role": "supervisor" } },
+    );
+    assert.equal(invalidRangeResponse.status, 400);
 
     const storedAlerts = await db
       .select()

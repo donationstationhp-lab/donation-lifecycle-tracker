@@ -7,6 +7,8 @@
  */
 
 export * from './attendDeliveryAlert';
+export * from './attendDeliveryAlertPage';
+export * from './attendDeliveryAlertSummary';
 export * from './attendOutboxEntry';
 export * from './attendOutboxEntryStatus';
 export * from './claim';
@@ -71,6 +73,8 @@ export * from './itemClaimSummary';
 export * from './itemSummary';
 export * from './itemTransferSummary';
 export * from './listAccountsParams';
+export * from './listAttendDeliveryAlertsAcknowledgement';
+export * from './listAttendDeliveryAlertsParams';
 export * from './listClaimsItemStage';
 export * from './listClaimsParams';
 export * from './listClaimsStatus';

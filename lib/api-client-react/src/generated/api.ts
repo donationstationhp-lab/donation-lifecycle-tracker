@@ -21,6 +21,7 @@ import type {
 
 import type {
   AttendDeliveryAlert,
+  AttendDeliveryAlertPage,
   AttendOutboxEntry,
   Claim,
   ClaimDetail,
@@ -49,6 +50,7 @@ import type {
   ExpiringItemsResponse,
   HealthStatus,
   ListAccountsParams,
+  ListAttendDeliveryAlertsParams,
   ListClaimsParams,
   ListDonorsParams,
   ListItemsParams,
@@ -3485,20 +3487,27 @@ export function useListAttendOutbox<TData = Awaited<ReturnType<typeof listAttend
 
 
 
-export const getListAttendDeliveryAlertsUrl = () => {
+export const getListAttendDeliveryAlertsUrl = (params?: ListAttendDeliveryAlertsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/attend/alerts`
+  return stringifiedParams.length > 0 ? `/api/attend/alerts?${stringifiedParams}` : `/api/attend/alerts`
 }
 
 /**
  * @summary List supervisor alerts for exhausted ATTEND deliveries
  */
-export const listAttendDeliveryAlerts = async ( options?: Parameters<typeof customFetch>[1]): Promise<AttendDeliveryAlert[]> => {
+export const listAttendDeliveryAlerts = async (params?: ListAttendDeliveryAlertsParams, options?: Parameters<typeof customFetch>[1]): Promise<AttendDeliveryAlertPage> => {
 
-  return customFetch<AttendDeliveryAlert[]>(getListAttendDeliveryAlertsUrl(),
+  return customFetch<AttendDeliveryAlertPage>(getListAttendDeliveryAlertsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -3511,23 +3520,23 @@ export const listAttendDeliveryAlerts = async ( options?: Parameters<typeof cust
 
 
 
-export const getListAttendDeliveryAlertsQueryKey = () => {
+export const getListAttendDeliveryAlertsQueryKey = (params?: ListAttendDeliveryAlertsParams,) => {
     return [
-    `/api/attend/alerts`
+    `/api/attend/alerts`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAttendDeliveryAlertsQueryOptions = <TData = Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAttendDeliveryAlertsQueryOptions = <TData = Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError = ErrorType<unknown>>(params?: ListAttendDeliveryAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAttendDeliveryAlertsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAttendDeliveryAlertsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>> = ({ signal }) => listAttendDeliveryAlerts({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>> = ({ signal }) => listAttendDeliveryAlerts(params, { signal, ...requestOptions });
 
 
 
@@ -3545,11 +3554,11 @@ export type ListAttendDeliveryAlertsQueryError = ErrorType<unknown>
  */
 
 export function useListAttendDeliveryAlerts<TData = Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListAttendDeliveryAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAttendDeliveryAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAttendDeliveryAlertsQueryOptions(options)
+  const queryOptions = getListAttendDeliveryAlertsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
