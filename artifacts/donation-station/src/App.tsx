@@ -95,26 +95,13 @@ function Router() {
   return (
     <Switch>
       <Route path="/track/:trackingCode">
-        {(params) => <PublicLayout><PublicTrack trackingCode={params.trackingCode} /></PublicLayout>}
+        {(params) => <PublicTrack trackingCode={params.trackingCode} />}
       </Route>
       <Route path="/public/track/:trackingCode">
         {(params) => <PublicTrackRedirect trackingCode={params.trackingCode} />}
       </Route>
-      <Route path="/resources">
-        <PublicLayout><PublicResources /></PublicLayout>
-      </Route>
-      <Route path="/faq">
-        <PublicLayout><PublicFAQ /></PublicLayout>
-      </Route>
-      <Route path="/volunteer">
-        <PublicLayout><Schedule mode="volunteer" /></PublicLayout>
-      </Route>
-      <Route path="/schedule">
-        <PublicLayout><Schedule /></PublicLayout>
-      </Route>
-      <Route path="/donate">
-        <PublicLayout><Donate /></PublicLayout>
-      </Route>
+      {/* /donate is fully public — no Shell, no nav, no auth */}
+      <Route path="/donate" component={Donate} />
       <Route path="/sign-in">
         <Show when="signed-in" fallback={<AuthCard mode="sign-in" />}>
           <StaffApp />
