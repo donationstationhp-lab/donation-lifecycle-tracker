@@ -30,6 +30,7 @@ import type {
   ClaimInput,
   CommunityHistory,
   CommunityOwnership,
+  CommunityOwnershipCandidate,
   CommunityOwnershipInput,
   ConfirmationTemplate,
   ConfirmationTemplateInput,
@@ -52,6 +53,8 @@ import type {
   ListAccountsParams,
   ListAttendDeliveryAlertsParams,
   ListClaimsParams,
+  ListCommunityOwnershipCandidatesParams,
+  ListCommunityOwnershipsParams,
   ListDonorsParams,
   ListItemsParams,
   ListPickupsParams,
@@ -1098,6 +1101,91 @@ export function useGetCommunityHistory<TData = Awaited<ReturnType<typeof getComm
 
 
 
+export const getListCommunityOwnershipsUrl = (params: ListCommunityOwnershipsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/community/ownership?${stringifiedParams}` : `/api/community/ownership`
+}
+
+/**
+ * Staff-only lookup by verified Clerk user ID.
+ * @summary List verified ownership links for a community member
+ */
+export const listCommunityOwnerships = async (params: ListCommunityOwnershipsParams, options?: Parameters<typeof customFetch>[1]): Promise<CommunityOwnership[]> => {
+
+  return customFetch<CommunityOwnership[]>(getListCommunityOwnershipsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCommunityOwnershipsQueryKey = (params?: ListCommunityOwnershipsParams,) => {
+    return [
+    `/api/community/ownership`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListCommunityOwnershipsQueryOptions = <TData = Awaited<ReturnType<typeof listCommunityOwnerships>>, TError = ErrorType<ErrorResponse>>(params: ListCommunityOwnershipsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCommunityOwnerships>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCommunityOwnershipsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCommunityOwnerships>>> = ({ signal }) => listCommunityOwnerships(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCommunityOwnerships>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCommunityOwnershipsQueryResult = NonNullable<Awaited<ReturnType<typeof listCommunityOwnerships>>>
+export type ListCommunityOwnershipsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List verified ownership links for a community member
+ */
+
+export function useListCommunityOwnerships<TData = Awaited<ReturnType<typeof listCommunityOwnerships>>, TError = ErrorType<ErrorResponse>>(
+ params: ListCommunityOwnershipsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCommunityOwnerships>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCommunityOwnershipsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getLinkCommunityOwnershipUrl = () => {
 
 
@@ -1169,6 +1257,91 @@ export const useLinkCommunityOwnership = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getLinkCommunityOwnershipMutationOptions(options));
     }
+
+export const getListCommunityOwnershipCandidatesUrl = (params: ListCommunityOwnershipCandidatesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/community/ownership/candidates?${stringifiedParams}` : `/api/community/ownership/candidates`
+}
+
+/**
+ * Staff-only record picker for community ownership mediation.
+ * @summary Search records available for verified ownership linking
+ */
+export const listCommunityOwnershipCandidates = async (params: ListCommunityOwnershipCandidatesParams, options?: Parameters<typeof customFetch>[1]): Promise<CommunityOwnershipCandidate[]> => {
+
+  return customFetch<CommunityOwnershipCandidate[]>(getListCommunityOwnershipCandidatesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCommunityOwnershipCandidatesQueryKey = (params?: ListCommunityOwnershipCandidatesParams,) => {
+    return [
+    `/api/community/ownership/candidates`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListCommunityOwnershipCandidatesQueryOptions = <TData = Awaited<ReturnType<typeof listCommunityOwnershipCandidates>>, TError = ErrorType<ErrorResponse>>(params: ListCommunityOwnershipCandidatesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCommunityOwnershipCandidates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCommunityOwnershipCandidatesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCommunityOwnershipCandidates>>> = ({ signal }) => listCommunityOwnershipCandidates(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCommunityOwnershipCandidates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCommunityOwnershipCandidatesQueryResult = NonNullable<Awaited<ReturnType<typeof listCommunityOwnershipCandidates>>>
+export type ListCommunityOwnershipCandidatesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Search records available for verified ownership linking
+ */
+
+export function useListCommunityOwnershipCandidates<TData = Awaited<ReturnType<typeof listCommunityOwnershipCandidates>>, TError = ErrorType<ErrorResponse>>(
+ params: ListCommunityOwnershipCandidatesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCommunityOwnershipCandidates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCommunityOwnershipCandidatesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getUnlinkCommunityOwnershipUrl = (id: string,) => {
 

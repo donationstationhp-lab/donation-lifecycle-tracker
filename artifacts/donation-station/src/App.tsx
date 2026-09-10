@@ -40,6 +40,7 @@ import PublicPrivacy from "@/pages/PublicPrivacy";
 import PublicTerms from "@/pages/PublicTerms";
 import Schedule from "@/pages/Schedule";
 import CommunityHistory from "@/pages/CommunityHistory";
+import CommunityOwnershipPage from "@/pages/CommunityOwnership";
 
 const queryClient = new QueryClient();
 const STAFF_EMAIL_ALLOWLIST = ["dewaynelogan79@gmail.com"];
@@ -218,6 +219,7 @@ function AuthenticatedApp() {
           <Route path="/routes" component={RoutesList} />
           <Route path="/routes/:id" component={RouteDetail} />
           <Route path="/accounts" component={AccountsList} />
+          <Route path="/community-ownership" component={CommunityOwnershipPage} />
           <Route path="/pending" component={PendingReview} />
           <Route path="/calendar"><Schedule /></Route>
           <Route component={NotFound} />

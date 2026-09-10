@@ -323,6 +323,31 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /community/ownership:
+    get:
+      operationId: listCommunityOwnerships
+      tags: [community]
+      summary: List verified ownership links for a community member
+      description: Staff-only lookup by verified Clerk user ID.
+      parameters:
+        - name: clerkUserId
+          in: query
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        "200":
+          description: Existing ownership links
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommunityOwnership"
+        "400":
+          description: Clerk user ID is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       operationId: linkCommunityOwnership
       tags: [community]
@@ -347,8 +372,46 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Clerk user or target record was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Record is already linked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /community/ownership/candidates:
+    get:
+      operationId: listCommunityOwnershipCandidates
+      tags: [community]
+      summary: Search records available for verified ownership linking
+      description: Staff-only record picker for community ownership mediation.
+      parameters:
+        - name: recordType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [account, donation, claim, appointment, pickup_request, service_activity]
+        - name: search
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Matching records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommunityOwnershipCandidate"
+        "400":
+          description: Valid record type is required
           content:
             application/json:
               schema:
@@ -1382,6 +1445,13 @@ components:
         verifiedBy: { type: string }
         verifiedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
+    CommunityOwnershipCandidate:
+      type: object
+      required: [id, label]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        detail: { type: ["string", "null"] }
     CommunityHistory:
       type: object
       required: [donations, claims, appointments, reservations, volunteerRequests, pickups, acknowledgments, history, ownership]

@@ -343,6 +343,13 @@ export interface CommunityOwnership {
   createdAt: string;
 }
 
+export interface CommunityOwnershipCandidate {
+  id: string;
+  label: string;
+  /** @nullable */
+  detail?: string | null;
+}
+
 export type CommunityHistoryDonationsItem = { [key: string]: unknown };
 
 export type CommunityHistoryClaimsItem = { [key: string]: unknown };
@@ -1099,6 +1106,30 @@ export const ListDonorsStage = {
   lapsing: 'lapsing',
   lapsed: 'lapsed',
   reactivated: 'reactivated',
+} as const;
+
+export type ListCommunityOwnershipsParams = {
+/**
+ * @minLength 1
+ */
+clerkUserId: string;
+};
+
+export type ListCommunityOwnershipCandidatesParams = {
+recordType: ListCommunityOwnershipCandidatesRecordType;
+search?: string;
+};
+
+export type ListCommunityOwnershipCandidatesRecordType = typeof ListCommunityOwnershipCandidatesRecordType[keyof typeof ListCommunityOwnershipCandidatesRecordType];
+
+
+export const ListCommunityOwnershipCandidatesRecordType = {
+  account: 'account',
+  donation: 'donation',
+  claim: 'claim',
+  appointment: 'appointment',
+  pickup_request: 'pickup_request',
+  service_activity: 'service_activity',
 } as const;
 
 export type ListPickupsParams = {

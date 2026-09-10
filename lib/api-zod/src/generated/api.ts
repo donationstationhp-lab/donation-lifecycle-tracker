@@ -529,6 +529,29 @@ export const GetCommunityHistoryResponse = zod.object({
 
 
 /**
+ * Staff-only lookup by verified Clerk user ID.
+ * @summary List verified ownership links for a community member
+ */
+
+
+
+export const ListCommunityOwnershipsQueryParams = zod.object({
+  "clerkUserId": zod.coerce.string().min(1)
+})
+
+export const ListCommunityOwnershipsResponseItem = zod.object({
+  "id": zod.string(),
+  "clerkUserId": zod.string(),
+  "recordType": zod.string(),
+  "recordId": zod.string(),
+  "verifiedBy": zod.string(),
+  "verifiedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date()
+})
+export const ListCommunityOwnershipsResponse = zod.array(ListCommunityOwnershipsResponseItem)
+
+
+/**
  * Staff-only mediation endpoint. Never infer ownership from public tracking codes.
  * @summary Link a verified record to a community member
  */
@@ -551,6 +574,23 @@ export const LinkCommunityOwnershipResponse = zod.object({
   "verifiedAt": zod.coerce.date(),
   "createdAt": zod.coerce.date()
 })
+
+
+/**
+ * Staff-only record picker for community ownership mediation.
+ * @summary Search records available for verified ownership linking
+ */
+export const ListCommunityOwnershipCandidatesQueryParams = zod.object({
+  "recordType": zod.enum(['account', 'donation', 'claim', 'appointment', 'pickup_request', 'service_activity']),
+  "search": zod.coerce.string().optional()
+})
+
+export const ListCommunityOwnershipCandidatesResponseItem = zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "detail": zod.string().nullish()
+})
+export const ListCommunityOwnershipCandidatesResponse = zod.array(ListCommunityOwnershipCandidatesResponseItem)
 
 
 /**

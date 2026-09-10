@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, inArray, or } from "drizzle-orm";
+import { clerkClient } from "@clerk/express";
+import { and, asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import {
   appointmentHistoryTable,
   appointmentsTable,
@@ -298,6 +299,78 @@ router.get("/community/history", requireCommunity, async (req, res): Promise<voi
   res.json(await getCommunityHistory(userId));
 });
 
+router.get("/community/ownership", requireStaff, async (req, res): Promise<void> => {
+  const clerkUserId = String(req.query.clerkUserId ?? "").trim();
+  if (!clerkUserId) {
+    res.status(400).json({ error: "Clerk user ID is required" });
+    return;
+  }
+  const links = await db.select().from(communityOwnershipTable)
+    .where(eq(communityOwnershipTable.clerkUserId, clerkUserId))
+    .orderBy(desc(communityOwnershipTable.verifiedAt));
+  res.json(links);
+});
+
+router.get("/community/ownership/candidates", requireStaff, async (req, res): Promise<void> => {
+  const recordType = req.query.recordType;
+  const search = String(req.query.search ?? "").trim();
+  if (!isOwnershipType(recordType)) {
+    res.status(400).json({ error: "A valid record type is required" });
+    return;
+  }
+  const pattern = `%${search}%`;
+  switch (recordType) {
+    case "account": {
+      const rows = await db.select({ id: recipientAccountsTable.id, label: recipientAccountsTable.name, detail: recipientAccountsTable.type })
+        .from(recipientAccountsTable)
+        .where(search ? or(ilike(recipientAccountsTable.id, pattern), ilike(recipientAccountsTable.name, pattern)) : undefined)
+        .orderBy(asc(recipientAccountsTable.name)).limit(50);
+      res.json(rows);
+      return;
+    }
+    case "donation": {
+      const rows = await db.select({ id: donationItemsTable.id, label: donationItemsTable.name, detail: donationItemsTable.itemId })
+        .from(donationItemsTable)
+        .where(search ? or(ilike(donationItemsTable.id, pattern), ilike(donationItemsTable.name, pattern), ilike(donationItemsTable.itemId, pattern)) : undefined)
+        .orderBy(desc(donationItemsTable.createdAt)).limit(50);
+      res.json(rows);
+      return;
+    }
+    case "claim": {
+      const rows = await db.select({ id: claimsTable.id, label: claimsTable.trackingCode, detail: claimsTable.status })
+        .from(claimsTable)
+        .where(search ? or(ilike(claimsTable.id, pattern), ilike(claimsTable.trackingCode, pattern)) : undefined)
+        .orderBy(desc(claimsTable.createdAt)).limit(50);
+      res.json(rows.map((row) => ({ ...row, label: row.label ?? `Claim ${row.id.slice(0, 8)}` })));
+      return;
+    }
+    case "appointment": {
+      const rows = await db.select({ id: appointmentsTable.id, label: appointmentsTable.contactName, detail: appointmentsTable.status })
+        .from(appointmentsTable)
+        .where(search ? or(ilike(appointmentsTable.id, pattern), ilike(appointmentsTable.contactName, pattern)) : undefined)
+        .orderBy(desc(appointmentsTable.createdAt)).limit(50);
+      res.json(rows.map((row) => ({ ...row, label: row.label ?? `Appointment ${row.id.slice(0, 8)}` })));
+      return;
+    }
+    case "pickup_request": {
+      const rows = await db.select({ id: pickupRequestsTable.id, label: pickupRequestsTable.name, detail: pickupRequestsTable.status })
+        .from(pickupRequestsTable)
+        .where(search ? or(ilike(pickupRequestsTable.id, pattern), ilike(pickupRequestsTable.name, pattern)) : undefined)
+        .orderBy(desc(pickupRequestsTable.createdAt)).limit(50);
+      res.json(rows.map((row) => ({ ...row, label: row.label ?? `Pickup ${row.id.slice(0, 8)}` })));
+      return;
+    }
+    case "service_activity": {
+      const rows = await db.select({ id: serviceActivitiesTable.id, label: serviceActivitiesTable.activityType, detail: serviceActivitiesTable.status })
+        .from(serviceActivitiesTable)
+        .where(search ? or(ilike(serviceActivitiesTable.id, pattern), ilike(serviceActivitiesTable.activityType, pattern)) : undefined)
+        .orderBy(desc(serviceActivitiesTable.createdAt)).limit(50);
+      res.json(rows);
+      return;
+    }
+  }
+});
+
 /**
  * Staff can establish ownership only after identity verification outside the
  * public tracking flow. Community users cannot create or alter these links.
@@ -312,6 +385,16 @@ router.post("/community/ownership", requireStaff, async (req, res): Promise<void
   }
   if (!(await ownershipRecordExists(recordType, recordId))) {
     res.status(404).json({ error: "The record to link was not found" });
+    return;
+  }
+  try {
+    const user = await clerkClient.users.getUser(clerkUserId);
+    if (user.publicMetadata.role !== "community") {
+      res.status(400).json({ error: "The Clerk user is not a community account" });
+      return;
+    }
+  } catch {
+    res.status(404).json({ error: "The Clerk user was not found" });
     return;
   }
 
