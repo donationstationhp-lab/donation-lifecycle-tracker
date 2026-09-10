@@ -18,6 +18,219 @@ import {
 
 import { Shell } from '@/components/layout/Shell';
 import Dashboard from '@/pages/Dashboard';
+import Donate from '@/pages/Donate';
+import PublicResources from '@/pages/PublicResources';
+import PublicFAQ from '@/pages/PublicFAQ';
+import Schedule from '@/pages/Schedule';
+import { PublicLayout } from '@/components/layout/PublicLayout';
+import ItemsList from '@/pages/ItemsList';
+import IntakeForm from '@/pages/IntakeForm';
+import ItemDetail from '@/pages/ItemDetail';
+import Donors from '@/pages/Donors';
+import DonorDetail from '@/pages/DonorDetail';
+import ExpiringItems from '@/pages/ExpiringItems';
+import RoutesList from '@/pages/RoutesList';
+import RouteDetail from '@/pages/RouteDetail';
+import PendingReview from '@/pages/PendingReview';
+import Pickups from '@/pages/Pickups';
+import PickupFlags from '@/pages/PickupFlags';
+import AccountsList from '@/pages/AccountsList';
+import ClaimsList from '@/pages/ClaimsList';
+import ClaimDetail from '@/pages/ClaimDetail';
+import TransfersList from '@/pages/TransfersList';
+import TransferDetail from '@/pages/TransferDetail';
+
+const queryClient = new QueryClient();
+// Temporary stopgap until Managed Auth Production role assignment is resolved via Pro dashboard access or Replit support.
+const STAFF_EMAIL_ALLOWLIST = ['dewaynelogan79@gmail.com'];
+
+function AuthCard({ mode }: { mode: 'sign-in' | 'sign-up' }) {
+  return (
+    <div className="min-h-screen bg-background grid place-items-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold">Donation Station</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Staff access is required to view donor and operations records.
+          </p>
+        </div>
+        {mode === 'sign-in' ? (
+          <SignIn routing="hash" signUpUrl="/sign-up" />
+        ) : (
+          <SignUp routing="hash" signInUrl="/sign-in" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PublicTrackRedirect({ trackingCode }: { trackingCode: string }) {
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    setLocation(`/track/${trackingCode}`);
+  }, [trackingCode, setLocation]);
+
+  return null;
+}
+
+function SessionCacheReset() {
+  const { user, isLoaded } = useUser();
+  const previousUserId = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!isLoaded) return;
+    const currentUserId = user?.id ?? null;
+    if (
+      previousUserId.current !== undefined &&
+      previousUserId.current !== currentUserId
+    ) {
+      queryClient.clear();
+    }
+    previousUserId.current = currentUserId;
+  }, [isLoaded, user?.id]);
+  return null;
+}
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/track/:trackingCode">
+        {(params) => <PublicTrack trackingCode={params.trackingCode} />}
+      </Route>
+      <Route path="/public/track/:trackingCode">
+        {(params) => <PublicTrackRedirect trackingCode={params.trackingCode} />}
+      </Route>
+      {/* /donate is fully public — no Shell, no nav, no auth */}
+      <Route path="/donate" component={Donate} />
+      <Route path="/sign-in">
+        <Show when="signed-in" fallback={<AuthCard mode="sign-in" />}>
+          <StaffApp />
+        </Show>
+      </Route>
+      <Route path="/sign-up">
+        <Show when="signed-in" fallback={<AuthCard mode="sign-up" />}>
+          <StaffApp />
+        </Show>
+      </Route>
+
+      <Route>
+        <Show when="signed-in" fallback={<AuthCard mode="sign-in" />}>
+          <StaffApp />
+        </Show>
+      </Route>
+    </Switch>
+  );
+}
+
+function StaffApp() {
+  const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
+  const [authTransportReady, setAuthTransportReady] = useState(false);
+  useEffect(() => {
+    if (!isLoaded || !user) {
+      setAuthTokenGetter(null);
+      setAuthTransportReady(false);
+      return;
+    }
+    setAuthTokenGetter(() => getToken());
+    setAuthTransportReady(true);
+    return () => setAuthTokenGetter(null);
+  }, [getToken, isLoaded, user?.id]);
+
+  if (!isLoaded || !authTransportReady) {
+    return (
+      <div className="min-h-screen grid place-items-center text-muted-foreground">
+        Validating staff access...
+      </div>
+    );
+  }
+  const role = user?.publicMetadata.role;
+  const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+  const isAllowlisted = email
+    ? STAFF_EMAIL_ALLOWLIST.includes(email)
+    : false;
+  if (role !== 'staff' && role !== 'supervisor' && !isAllowlisted) {
+    return (
+      <div className="min-h-screen bg-background grid place-items-center p-4">
+        <div className="max-w-md rounded-xl border bg-card p-8 text-center shadow-sm">
+          <h1 className="text-xl font-bold">Staff access not assigned</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your account is signed in, but an administrator must assign the
+            staff or supervisor role before you can view donor records.
+          </p>
+          <div className="mt-6 flex justify-center"><UserButton /></div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <Shell>
+      <RoutedErrorBoundary>
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/items" component={ItemsList} />
+          <Route path="/items/new" component={IntakeForm} />
+          <Route path="/items/:id" component={ItemDetail} />
+          <Route path="/donors" component={Donors} />
+          <Route path="/donors/:id" component={DonorDetail} />
+          <Route path="/pickups" component={Pickups} />
+          <Route path="/pickup-flags" component={PickupFlags} />
+          <Route path="/expiring" component={ExpiringItems} />
+          <Route path="/claims" component={ClaimsList} />
+          <Route path="/claims/:id" component={ClaimDetail} />
+          <Route path="/transfers" component={TransfersList} />
+          <Route path="/transfers/:id" component={TransferDetail} />
+          <Route path="/routes" component={RoutesList} />
+          <Route path="/routes/:id" component={RouteDetail} />
+          <Route path="/accounts" component={AccountsList} />
+          <Route path="/pending" component={PendingReview} />
+          <Route component={NotFound} />
+        </Switch>
+      </RoutedErrorBoundary>
+    </Shell>
+  );
+}
+
+function RoutedErrorBoundary({ children }: { children: ReactNode }) {
+  const [location] = useLocation();
+  return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SessionCacheReset />
+      <TooltipProvider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+          <Router />
+        </WouterRouter>
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
+import PublicTrack from "@/pages/PublicTrack";
+
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Show, SignIn, SignUp, UserButton, useAuth, useUser } from '@clerk/react';
+import { setAuthTokenGetter } from '@workspace/api-client-react';
+
+import { ErrorBoundary } from '@/components/error-boundary';
+import { Toaster } from '@/components/ui/toaster';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import NotFound from '@/pages/not-found';
+import {
+  Route,
+  Switch,
+  useLocation,
+  Router as WouterRouter,
+} from 'wouter';
+
+import { Shell } from '@/components/layout/Shell';
+import Dashboard from '@/pages/Dashboard';
 import DashboardReceiving from '@/pages/DashboardReceiving';
 import DashboardGaining from '@/pages/DashboardGaining';
 import DashboardGiving from '@/pages/DashboardGiving';
