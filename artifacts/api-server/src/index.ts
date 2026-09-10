@@ -2,6 +2,7 @@ import "dotenv/config";
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startAttendOutboxRetryWorker } from "./lib/attendSheets";
+import { startTrackingOtpCleanupWorker } from "./routes/publicTrack";
 import { initializeClaimTrackingCodes } from "@workspace/db";
 
 const rawPort = process.env["PORT"];
@@ -40,6 +41,7 @@ async function start(): Promise<void> {
 
     logger.info({ port }, "Server listening");
     startAttendOutboxRetryWorker();
+    startTrackingOtpCleanupWorker();
   });
 }
 

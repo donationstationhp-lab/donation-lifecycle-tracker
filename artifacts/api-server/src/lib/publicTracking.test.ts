@@ -1,11 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { randomUUID } from "node:crypto";
+import { inArray } from "drizzle-orm";
+import {
+  claimsTable,
+  db,
+  trackingOtpsTable,
+} from "@workspace/db";
 import {
   buildPublicImpactSummary,
   buildPublicTrackingResponse,
+  cleanupExpiredTrackingOtps,
   publicClaimStatusLabel,
   safeCategory,
   safeItemName,
+  TRACKING_OTP_RETENTION_MS,
 } from "../routes/publicTrack";
 import { buildPublicActivityTimeline } from "./publicServiceActivity";
 import { buildPublicResourceCatalog } from "./publicItemLabels";
@@ -140,4 +149,78 @@ test("public service activity timeline whitelists labels and excludes private fi
   }]);
   assert.equal(JSON.stringify(timeline).includes("Jane Doe"), false);
   assert.equal(JSON.stringify(timeline).includes("private-staff-id"), false);
+});
+
+test("tracking OTP cleanup retains active and recently consumed codes", async (t) => {
+  const [claim] = await db
+    .select({ id: claimsTable.id })
+    .from(claimsTable)
+    .limit(1);
+  if (!claim) {
+    t.skip("requires a seeded claim record");
+    return;
+  }
+
+  const now = new Date("2026-09-10T12:00:00.000Z");
+  const ids = {
+    expired: randomUUID(),
+    consumed: randomUUID(),
+    active: randomUUID(),
+    recent: randomUUID(),
+    recentlyExpired: randomUUID(),
+  };
+  const retentionBoundary = now.getTime() - TRACKING_OTP_RETENTION_MS;
+
+  await db.insert(trackingOtpsTable).values([
+    {
+      id: ids.expired,
+      claimId: claim.id,
+      codeHash: "expired",
+      expiresAt: new Date(retentionBoundary - 1),
+    },
+    {
+      id: ids.consumed,
+      claimId: claim.id,
+      codeHash: "consumed",
+      expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
+      usedAt: new Date(retentionBoundary - 1),
+    },
+    {
+      id: ids.active,
+      claimId: claim.id,
+      codeHash: "active",
+      expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
+    },
+    {
+      id: ids.recent,
+      claimId: claim.id,
+      codeHash: "recent",
+      expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
+      usedAt: new Date(now.getTime() - 1),
+    },
+    {
+      id: ids.recentlyExpired,
+      claimId: claim.id,
+      codeHash: "recently-expired",
+      expiresAt: new Date(now.getTime() - 1),
+    },
+  ]);
+
+  try {
+    const deletedCount = await cleanupExpiredTrackingOtps(now);
+    assert.ok(deletedCount >= 2);
+
+    const remaining = await db
+      .select({ id: trackingOtpsTable.id })
+      .from(trackingOtpsTable)
+      .where(inArray(trackingOtpsTable.id, Object.values(ids)));
+    assert.deepEqual(
+      remaining.map(({ id }) => id).sort(),
+      [ids.active, ids.recent, ids.recentlyExpired].sort(),
+    );
+  } finally {
+    await db
+      .delete(trackingOtpsTable)
+      .where(inArray(trackingOtpsTable.id, Object.values(ids)));
+  }
 });

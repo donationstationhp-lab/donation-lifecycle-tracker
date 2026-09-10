@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { createHash, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { and, asc, desc, eq, gt, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import {
   claimHistoryTable,
   claimsTable,
@@ -26,12 +26,15 @@ import {
 import { buildPublicActivityTimeline } from "../lib/publicServiceActivity";
 import { safeCategory, safeItemName } from "../lib/publicItemLabels";
 import { sendTrackingVerificationSms } from "../lib/twilio";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 const PUBLIC_TIME_ZONE = "America/Chicago";
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
+export const TRACKING_OTP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+export const TRACKING_OTP_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 // Keep public SMS verification off until Trust Hub approval and an explicit
 // rollout decision are both recorded in deployment configuration.
 const PUBLIC_TRACKING_OTP_ENABLED =
@@ -260,6 +263,83 @@ async function findPublicTracking(trackingCode: string) {
 
 function hashOtp(code: string): string {
   return createHash("sha256").update(code).digest("hex");
+}
+
+export async function cleanupExpiredTrackingOtps(
+  now = new Date(),
+  retentionMs = TRACKING_OTP_RETENTION_MS,
+): Promise<number> {
+  const retentionCutoff = new Date(now.getTime() - Math.max(0, retentionMs));
+  const deleted = await db
+    .delete(trackingOtpsTable)
+    .where(or(
+      lt(trackingOtpsTable.expiresAt, retentionCutoff),
+      and(
+        isNotNull(trackingOtpsTable.usedAt),
+        lt(trackingOtpsTable.usedAt, retentionCutoff),
+      ),
+    ))
+    .returning({ id: trackingOtpsTable.id });
+
+  logger.info(
+    {
+      deletedCount: deleted.length,
+      retentionCutoff: retentionCutoff.toISOString(),
+    },
+    "Public tracking verification cleanup completed",
+  );
+  return deleted.length;
+}
+
+export interface TrackingOtpCleanupWorker {
+  stop(): void;
+  runNow(): Promise<void>;
+}
+
+export function startTrackingOtpCleanupWorker(
+  options: {
+    intervalMs?: number;
+    retentionMs?: number;
+    now?: () => Date;
+  } = {},
+): TrackingOtpCleanupWorker {
+  let running = false;
+  let stopped = false;
+  const runNow = async (): Promise<void> => {
+    if (stopped || running) return;
+    running = true;
+    try {
+      await cleanupExpiredTrackingOtps(
+        options.now?.() ?? new Date(),
+        options.retentionMs ?? TRACKING_OTP_RETENTION_MS,
+      );
+    } catch (error) {
+      logger.error(
+        {
+          error: error instanceof Error ? error.message : "Unknown verification cleanup error",
+        },
+        "Public tracking verification cleanup failed",
+      );
+    } finally {
+      running = false;
+    }
+  };
+
+  const interval = Math.max(
+    1,
+    options.intervalMs ?? TRACKING_OTP_CLEANUP_INTERVAL_MS,
+  );
+  const timer = setInterval(() => void runNow(), interval);
+  timer.unref();
+  void runNow();
+
+  return {
+    stop() {
+      stopped = true;
+      clearInterval(timer);
+    },
+    runNow,
+  };
 }
 
 function secondsUntil(date: Date, now = Date.now()): number {
