@@ -1,3 +1,5 @@
+import { getStartupSecret } from "./startupSecrets";
+
 type NotionEnv = {
   apiKey: string;
   itemsDataSourceUrl: string;
@@ -5,7 +7,7 @@ type NotionEnv = {
 };
 
 export function getNotionEnv(): NotionEnv {
-  const apiKey = process.env["NOTION_API_KEY"];
+  const apiKey = getStartupSecret("NOTION_API_KEY");
   const itemsDataSourceUrl = process.env["NOTION_ITEMS_DATA_SOURCE_URL"];
   const routesDataSourceUrl = process.env["NOTION_ROUTES_DATA_SOURCE_URL"];
 

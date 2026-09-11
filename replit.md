@@ -1,6 +1,6 @@
-# [Project name]
+# Donation Lifecycle Tracker
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Donation Station tracks resources through receiving, verification, matching, and documented delivery.
 
 ## Run & Operate
 
@@ -38,7 +38,7 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- `NOTION_API_KEY` and `DONATION_STATION_API_KEY` are resolved once during API startup from Secret Key Api, cached for the instance lifetime, and fall back to same-named local environment variables. `VAULT_SERVICE_TOKEN`, `DATABASE_URL`, and `CLERK_SECRET_KEY` remain Replit Secrets.
 
 ## Product
 
@@ -52,6 +52,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 - The root `pnpm run build` must work without artifact-specific environment variables. The mockup build defaults to port `8081` and base path `/__mockup`; Donation Station defaults to port `23423` and base path `/`. Managed workflow values are defined in each artifact's `.replit-artifact/artifact.toml` and take precedence when present.
 - `pnpm run preview:smoke` targets the shared `REPLIT_DEV_DOMAIN` by default. Set `PREVIEW_BASE_URL` to use another shared origin; the managed Donation Station and Canvas workflows must be running before the check.
+- Vault lookups must complete during API startup. Never fetch a vault secret inside the ATTEND Google Sheets append path or while holding its PostgreSQL advisory lock.
 
 ## Pointers
 

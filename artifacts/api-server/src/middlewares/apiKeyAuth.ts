@@ -1,6 +1,7 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { clerkClient, getAuth } from "@clerk/express";
 import { timingSafeEqual } from "node:crypto";
+import { getStartupSecret } from "../lib/startupSecrets";
 
 export type StaffRole = "staff" | "supervisor";
 export type AppRole = StaffRole | "community";
@@ -49,7 +50,7 @@ async function getClerkRole(req: Request): Promise<AppRole | null> {
 export function createApiKeyAuth({
   getRole = getClerkRole,
   getUserId = (req) => getAuth(req).userId,
-  getExpectedApiKey = () => process.env.DONATION_STATION_API_KEY,
+  getExpectedApiKey = () => getStartupSecret("DONATION_STATION_API_KEY"),
 }: ApiKeyAuthDependencies = {}) {
   return async function apiKeyAuth(
     req: Request,

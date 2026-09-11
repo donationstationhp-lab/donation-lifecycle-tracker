@@ -1,9 +1,9 @@
 import "dotenv/config";
-import app from "./app";
 import { logger } from "./lib/logger";
-import { startAttendOutboxRetryWorker } from "./lib/attendSheets";
-import { startTrackingOtpCleanupWorker } from "./routes/publicTrack";
-import { initializeClaimTrackingCodes } from "@workspace/db";
+import {
+  initializeStartupSecrets,
+  STARTUP_SECRET_NAMES,
+} from "./lib/startupSecrets";
 
 const rawPort = process.env["PORT"];
 
@@ -21,6 +21,26 @@ if (Number.isNaN(port) || port <= 0) {
 
 async function start(): Promise<void> {
   try {
+    const secretSources = await initializeStartupSecrets();
+    for (const name of STARTUP_SECRET_NAMES) {
+      logger.info(
+        { secretName: name, source: secretSources[name] },
+        "Resolved startup secret",
+      );
+    }
+
+    const [
+      { default: app },
+      { startAttendOutboxRetryWorker },
+      { startTrackingOtpCleanupWorker },
+      { initializeClaimTrackingCodes },
+    ] = await Promise.all([
+      import("./app"),
+      import("./lib/attendSheets"),
+      import("./routes/publicTrack"),
+      import("@workspace/db"),
+    ]);
+
     const assigned = await initializeClaimTrackingCodes();
     if (assigned.length > 0) {
       logger.info(
@@ -28,21 +48,21 @@ async function start(): Promise<void> {
         "Assigned missing claim tracking codes",
       );
     }
+
+    app.listen(port, (err) => {
+      if (err) {
+        logger.error({ err }, "Error listening on port");
+        process.exit(1);
+      }
+
+      logger.info({ port }, "Server listening");
+      startAttendOutboxRetryWorker();
+      startTrackingOtpCleanupWorker();
+    });
   } catch (err) {
-    logger.error({ err }, "Failed to initialize claim tracking codes");
+    logger.error({ err }, "API startup failed");
     process.exit(1);
   }
-
-  app.listen(port, (err) => {
-    if (err) {
-      logger.error({ err }, "Error listening on port");
-      process.exit(1);
-    }
-
-    logger.info({ port }, "Server listening");
-    startAttendOutboxRetryWorker();
-    startTrackingOtpCleanupWorker();
-  });
 }
 
 void start();
