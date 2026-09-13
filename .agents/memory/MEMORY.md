@@ -13,3 +13,4 @@
 - [Service activity projections](service-activity-projections.md) — append immutable events, serialize aggregate transitions, and filter only after latest-state projection.
 - [Public resource catalog privacy](public-resource-catalog-privacy.md) — expose grouped, curated availability only; never raw inventory identifiers or free-form details.
 - [Community ownership links](community-ownership-links.md) — private history requires explicit staff-mediated identity links, never public-code or contact-field inference.
+- [Vault service-token registration](vault-service-token-registration.md) — deployment sync must register the environment token hash and grant every required secret key.
