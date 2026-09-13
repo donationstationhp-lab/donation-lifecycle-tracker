@@ -7,13 +7,13 @@ import {
   capacitySlotsTable,
   claimsTable,
   db,
-  donationItemsTable,
   locationsTable,
   stageHistoryTable,
   transferHistoryTable,
   transfersTable,
 } from "@workspace/db";
 import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
+import { itemRepository } from "../lib/itemRepository";
 
 export const APPOINTMENT_TYPES = [
   "donation_dropoff",
@@ -105,8 +105,12 @@ export async function expireStaleReservations(): Promise<number> {
           internalNotes: "Reservation expired",
           idempotencyKey: `transfer:${transfer.id}:cancelled`,
         });
-        const [restored] = await tx.update(donationItemsTable).set({ stage: "matched", updatedAt: new Date() })
-          .where(and(eq(donationItemsTable.id, transfer.itemId), eq(donationItemsTable.stage, "scheduled"))).returning();
+        const restored = await itemRepository.forTransaction(tx).updateStage(
+          transfer.itemId,
+          "scheduled",
+          "matched",
+          { updatedAt: new Date() },
+        );
         if (!restored) throw new Error("Expired reservation item stage changed");
         await tx.insert(stageHistoryTable).values({
           id: randomUUID(), itemId: transfer.itemId, fromStage: "scheduled",
@@ -297,8 +301,10 @@ appointmentsRouter.patch("/appointments/:id/status", async (req, res): Promise<v
       }
       const [claim] = await tx.select().from(claimsTable)
         .where(eq(claimsTable.id, current.relatedClaimId)).for("update");
-      const [item] = await tx.select().from(donationItemsTable)
-        .where(eq(donationItemsTable.id, current.relatedItemId)).for("update");
+      const item = await itemRepository.forTransaction(tx).getById(
+        current.relatedItemId!,
+        { forUpdate: true },
+      );
       if (!claim || claim.status !== "approved" || !item || item.stage !== "matched") {
         throw new Error("Reserve pickup requires an approved claim and matched item");
       }
@@ -311,8 +317,10 @@ appointmentsRouter.patch("/appointments/:id/status", async (req, res): Promise<v
         id: randomUUID(), transferId: relatedTransferId, fromStatus: null,
         toStatus: "planned", by: "appointment-confirmation",
       });
-      await tx.update(donationItemsTable).set({ stage: "scheduled", updatedAt: new Date() })
-        .where(eq(donationItemsTable.id, item.id));
+      await itemRepository.forTransaction(tx).updateById(item.id, {
+        stage: "scheduled",
+        updatedAt: new Date(),
+      });
       await tx.insert(stageHistoryTable).values({
         id: randomUUID(), itemId: item.id, fromStage: "matched",
         toStage: "scheduled", notes: `Reserve pickup appointment ${current.id} confirmed`,
@@ -341,8 +349,12 @@ appointmentsRouter.patch("/appointments/:id/status", async (req, res): Promise<v
           id: randomUUID(), transferId: transfer.id, fromStatus: "planned",
           toStatus: "cancelled", by: "appointment-cancellation", notes: reason.trim(),
         });
-        const [restored] = await tx.update(donationItemsTable).set({ stage: "matched", updatedAt: new Date() })
-          .where(and(eq(donationItemsTable.id, transfer.itemId), eq(donationItemsTable.stage, "scheduled"))).returning();
+        const restored = await itemRepository.forTransaction(tx).updateStage(
+          transfer.itemId,
+          "scheduled",
+          "matched",
+          { updatedAt: new Date() },
+        );
         if (!restored) throw new Error("Item stage changed before reservation release");
         await tx.insert(stageHistoryTable).values({
           id: randomUUID(), itemId: transfer.itemId, fromStage: "scheduled",
@@ -448,8 +460,7 @@ appointmentsRouter.patch("/appointments/:id/link-claim", async (req, res): Promi
     const [claim] = await tx.select().from(claimsTable)
       .where(and(eq(claimsTable.trackingCode, trackingCode), eq(claimsTable.status, "approved"))).limit(1);
     if (!claim) throw new Error("An approved claim is required");
-    const [item] = await tx.select().from(donationItemsTable)
-      .where(eq(donationItemsTable.id, claim.itemId));
+    const item = await itemRepository.forTransaction(tx).getById(claim.itemId);
     if (!item || item.stage !== "matched") throw new Error("Claim item must be matched");
     const [updated] = await tx.update(appointmentsTable).set({
       relatedClaimId: claim.id,

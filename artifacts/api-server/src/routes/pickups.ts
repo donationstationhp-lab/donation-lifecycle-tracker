@@ -28,13 +28,13 @@ import {
   confirmationTemplatesTable,
   db,
   deliveryRoutesTable,
-  donationItemsTable,
   pickupContactAttemptsTable,
   pickupFlagsTable,
   pickupRequestsTable,
   routeStopsTable,
   stageHistoryTable,
 } from "@workspace/db";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 
@@ -636,10 +636,8 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
 
   const now = new Date();
   const completion = await db.transaction(async (tx) => {
-    const [existingItem] = await tx
-      .select()
-      .from(donationItemsTable)
-      .where(eq(donationItemsTable.sourcePickupId, pickup.id));
+    const repository = itemRepository.forTransaction(tx);
+    const existingItem = await repository.findBySourcePickupId(pickup.id);
     if (existingItem) {
       return { pickup, item: existingItem };
     }
@@ -662,9 +660,7 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
       .returning();
     if (!completed) return null;
 
-    const [item] = await tx
-      .insert(donationItemsTable)
-      .values({
+    const item = await repository.insert({
         id: randomUUID(),
         itemId: generateItemId(),
         name: body.data.itemsReceived,
@@ -677,8 +673,7 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
         powerConnectionReading: computeNumerology(now),
         sourcePickupId: completed.id,
         stage: "intake",
-      })
-      .returning();
+      });
 
     await tx.insert(stageHistoryTable).values({
       id: randomUUID(),
@@ -723,10 +718,7 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
   if (!completion) {
     const current = await getPickup(pickup.id);
     if (current?.status === "completed") {
-      const [existingItem] = await db
-        .select()
-        .from(donationItemsTable)
-        .where(eq(donationItemsTable.sourcePickupId, pickup.id));
+      const existingItem = await itemRepository.findBySourcePickupId(pickup.id);
       if (existingItem) {
         res.json({ pickup: await pickupDetail(current), item: existingItem });
         return;

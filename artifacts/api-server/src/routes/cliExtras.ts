@@ -12,23 +12,20 @@ import { eq, desc, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
   db,
-  donationItemsTable,
   stageHistoryTable,
   deliveryRoutesTable,
   routeStopsTable,
   pickupRequestsTable,
 } from "@workspace/db";
 import { isItemStage } from "../lib/itemLifecycle";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 
 // ── Export ────────────────────────────────────────────────────────────────────
 // GET /export — all items as JSON
 router.get("/export", async (_req, res): Promise<void> => {
-  const items = await db
-    .select()
-    .from(donationItemsTable)
-    .orderBy(desc(donationItemsTable.createdAt));
+  const items = await itemRepository.list({}, { order: "createdAtDesc" });
   res.setHeader("Content-Type", "application/json");
   res.json(items);
 });
@@ -70,10 +67,7 @@ router.post("/import", async (req, res): Promise<void> => {
       res.status(400).json({ error: `Imported item ${String(id)} has an invalid lifecycle stage` });
       return;
     }
-    const [existingBeforeImport] = await db
-      .select({ id: donationItemsTable.id })
-      .from(donationItemsTable)
-      .where(eq(donationItemsTable.id, String(id)));
+    const existingBeforeImport = await itemRepository.getById(String(id));
     if (!existingBeforeImport && requestedStage !== "intake") {
       res.status(400).json({
         error: `New imported item ${String(id)} must start at intake; use a logged staff override after import`,
@@ -110,30 +104,7 @@ router.post("/import", async (req, res): Promise<void> => {
     };
 
     await db.transaction(async (tx) => {
-      await tx
-        .insert(donationItemsTable)
-        .values(values)
-        .onConflictDoUpdate({
-          target: donationItemsTable.id,
-          set: {
-            itemId: values.itemId,
-            name: values.name,
-            category: values.category,
-            tier: values.tier,
-            condition: values.condition,
-            donor: values.donor,
-            recipient: values.recipient,
-            location: values.location,
-            expiryDate: values.expiryDate,
-            temperatureZone: values.temperatureZone,
-            weight: values.weight,
-            origin: values.origin,
-            lotNumber: values.lotNumber,
-            powerConnectionReading: values.powerConnectionReading,
-            pendingReview: values.pendingReview,
-            updatedAt: now,
-          },
-        });
+      await itemRepository.forTransaction(tx).upsertImported(values, now);
 
       if (!existingBeforeImport) {
         await tx.insert(stageHistoryTable).values({
@@ -177,12 +148,9 @@ router.get("/manifest/:routeName", async (req, res): Promise<void> => {
 
   const stopsWithItems = await Promise.all(
     stops.map(async (stop) => {
-      const [item] = stop.itemId
-        ? await db
-            .select()
-            .from(donationItemsTable)
-            .where(eq(donationItemsTable.id, stop.itemId))
-        : [];
+      const item = stop.itemId
+        ? await itemRepository.getById(stop.itemId!)
+        : undefined;
       const [pickup] = stop.pickupRequestId
         ? await db
             .select()
@@ -191,7 +159,7 @@ router.get("/manifest/:routeName", async (req, res): Promise<void> => {
         : [];
       return {
         stop: stop.stopOrder,
-        item_id: item?.itemId ?? pickup?.id ?? stop.itemId ?? stop.pickupRequestId,
+         item_id: item?.itemId ?? pickup?.id ?? stop.itemId ?? stop.pickupRequestId,
         name: item?.name ?? pickup?.name ?? `(pickup ${pickup?.id ?? "unknown"})`,
         tier: item?.tier,
         condition: item?.condition,
@@ -247,10 +215,7 @@ router.post("/routes/:name/stops", async (req, res): Promise<void> => {
   // Resolve itemId — can be provided directly or we look up by recipient name
   let resolvedItemId = itemId ?? item_id;
   if (!resolvedItemId && recipient) {
-    const [found] = await db
-      .select({ id: donationItemsTable.id })
-      .from(donationItemsTable)
-      .where(eq(donationItemsTable.recipient, String(recipient)));
+    const found = await itemRepository.findByRecipient(String(recipient));
     resolvedItemId = found?.id;
   }
 
@@ -281,7 +246,7 @@ router.post("/routes/:name/stops", async (req, res): Promise<void> => {
 // ── Metrics ───────────────────────────────────────────────────────────────────
 // GET /metrics
 router.get("/metrics", async (_req, res): Promise<void> => {
-  const allItems = await db.select().from(donationItemsTable);
+  const allItems = await itemRepository.list();
   const allHistory = await db.select().from(stageHistoryTable);
 
   const total = allItems.length;
@@ -359,10 +324,7 @@ router.get("/metrics", async (_req, res): Promise<void> => {
 // ── Report ────────────────────────────────────────────────────────────────────
 // GET /report
 router.get("/report", async (_req, res): Promise<void> => {
-  const allItems = await db
-    .select()
-    .from(donationItemsTable)
-    .orderBy(desc(donationItemsTable.createdAt));
+  const allItems = await itemRepository.list({}, { order: "createdAtDesc" });
 
   const now = new Date();
 

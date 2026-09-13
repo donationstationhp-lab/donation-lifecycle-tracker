@@ -4,24 +4,15 @@
  */
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
-import { db, donationItemsTable, stageHistoryTable } from "@workspace/db";
-import { and, asc, eq } from "drizzle-orm";
+import { db, stageHistoryTable } from "@workspace/db";
 import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
 import { buildPublicResourceCatalog } from "../lib/publicItemLabels";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 
 router.get("/public/resources", async (_req, res): Promise<void> => {
-  const available = await db.select({
-    name: donationItemsTable.name,
-    category: donationItemsTable.category,
-    condition: donationItemsTable.condition,
-  }).from(donationItemsTable)
-    .where(and(
-      eq(donationItemsTable.stage, "storage"),
-      eq(donationItemsTable.pendingReview, false),
-    ))
-    .orderBy(asc(donationItemsTable.category), asc(donationItemsTable.name));
+  const available = await itemRepository.listAvailableResources();
 
   res.json(buildPublicResourceCatalog(available));
 });
@@ -99,9 +90,7 @@ router.post("/public/donate", async (req, res): Promise<void> => {
     .join(" | ");
 
   const item = await db.transaction(async (tx) => {
-    const [created] = await tx
-      .insert(donationItemsTable)
-      .values({
+      const created = await itemRepository.forTransaction(tx).insert({
         id,
         itemId,
         name: itemName,
@@ -117,8 +106,7 @@ router.post("/public/donate", async (req, res): Promise<void> => {
         powerConnectionReading: computeNumerology(now),
         stage: "intake",
         pendingReview: true,
-      })
-      .returning();
+        });
     await tx.insert(stageHistoryTable).values({
       id: randomUUID(),
       itemId: id,

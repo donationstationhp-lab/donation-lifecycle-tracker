@@ -1,19 +1,17 @@
 import { Router, type IRouter } from "express";
-import { desc, eq } from "drizzle-orm";
-import { db, donationItemsTable, pickupFlagsTable, pickupRequestsTable, serviceActivitiesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { db, pickupFlagsTable, pickupRequestsTable, serviceActivitiesTable } from "@workspace/db";
 import { GetDashboardResponse } from "@workspace/api-zod";
 import { isActiveItemStage, isExpiringSoon } from "../lib/dashboardMetrics";
 import { expireStaleReservations } from "./appointments";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 
 // GET /dashboard
 router.get("/dashboard", async (_req, res): Promise<void> => {
   await expireStaleReservations();
-  const allItems = await db
-    .select()
-    .from(donationItemsTable)
-    .orderBy(desc(donationItemsTable.createdAt));
+  const allItems = await itemRepository.list({}, { order: "createdAtDesc" });
 
   const activeItems = allItems.filter((item) => isActiveItemStage(item.stage));
   const totalActiveItems = activeItems.length;

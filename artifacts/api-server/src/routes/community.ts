@@ -8,7 +8,6 @@ import {
   claimsTable,
   communityOwnershipTable,
   db,
-  donationItemsTable,
   locationsTable,
   pickupRequestsTable,
   recipientAccountsTable,
@@ -17,6 +16,7 @@ import {
 } from "@workspace/db";
 import { randomUUID } from "node:crypto";
 import { requireCommunity, requireStaff } from "../middlewares/apiKeyAuth";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 
@@ -39,7 +39,7 @@ async function ownershipRecordExists(recordType: OwnershipType, recordId: string
     case "account":
       return Boolean((await db.select({ id: recipientAccountsTable.id }).from(recipientAccountsTable).where(eq(recipientAccountsTable.id, recordId)).limit(1))[0]);
     case "donation":
-      return Boolean((await db.select({ id: donationItemsTable.id }).from(donationItemsTable).where(eq(donationItemsTable.id, recordId)).limit(1))[0]);
+      return itemRepository.existsById(recordId);
     case "claim":
       return Boolean((await db.select({ id: claimsTable.id }).from(claimsTable).where(eq(claimsTable.id, recordId)).limit(1))[0]);
     case "appointment":
@@ -91,7 +91,7 @@ export async function getCommunityHistory(clerkUserId: string) {
         ? db.select().from(appointmentsTable).where(inArray(appointmentsTable.id, directAppointmentIds))
         : Promise.resolve([]),
       directDonationIds.length
-        ? db.select().from(donationItemsTable).where(inArray(donationItemsTable.id, directDonationIds))
+        ? itemRepository.findByIds(directDonationIds)
         : Promise.resolve([]),
       pickupIds.length
         ? db.select().from(pickupRequestsTable).where(inArray(pickupRequestsTable.id, pickupIds))
@@ -109,8 +109,8 @@ export async function getCommunityHistory(clerkUserId: string) {
     claimIds.length
       ? db.select().from(appointmentsTable).where(inArray(appointmentsTable.relatedClaimId, claimIds))
       : Promise.resolve([]),
-    claimItemIds.length
-      ? db.select().from(donationItemsTable).where(inArray(donationItemsTable.id, claimItemIds))
+      claimItemIds.length
+        ? itemRepository.findByIds(claimItemIds)
       : Promise.resolve([]),
     claimIds.length
       ? db.select().from(claimHistoryTable)
@@ -329,10 +329,7 @@ router.get("/community/ownership/candidates", requireStaff, async (req, res): Pr
       return;
     }
     case "donation": {
-      const rows = await db.select({ id: donationItemsTable.id, label: donationItemsTable.name, detail: donationItemsTable.itemId })
-        .from(donationItemsTable)
-        .where(search ? or(ilike(donationItemsTable.id, pattern), ilike(donationItemsTable.name, pattern), ilike(donationItemsTable.itemId, pattern)) : undefined)
-        .orderBy(desc(donationItemsTable.createdAt)).limit(50);
+      const rows = await itemRepository.searchResults(search, 50);
       res.json(rows);
       return;
     }

@@ -4,6 +4,7 @@ import {
   initializeStartupSecrets,
   STARTUP_SECRET_NAMES,
 } from "./lib/startupSecrets";
+import { initializeNotionItemLogSchema } from "./lib/notionItemLogSchema";
 
 const rawPort = process.env["PORT"];
 
@@ -28,6 +29,16 @@ async function start(): Promise<void> {
         "Resolved startup secret",
       );
     }
+
+    const notionItemLogSchema = await initializeNotionItemLogSchema();
+    logger.info(
+      {
+        configuredReferenceId: notionItemLogSchema.configuredReferenceId,
+        dataSourceId: notionItemLogSchema.dataSourceId,
+        propertyCount: Object.keys(notionItemLogSchema.properties).length,
+      },
+      "Validated Notion Item Log schema",
+    );
 
     const [
       { default: app },

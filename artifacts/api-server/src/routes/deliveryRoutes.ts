@@ -5,7 +5,6 @@ import {
   db,
   deliveryRoutesTable,
   routeStopsTable,
-  donationItemsTable,
   pickupRequestsTable,
 } from "@workspace/db";
 import {
@@ -14,6 +13,7 @@ import {
   UpdateRouteBody,
   DeleteRouteParams,
 } from "@workspace/api-zod";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 
@@ -116,12 +116,9 @@ router.get("/routes/:id", async (req, res): Promise<void> => {
 
   const stopsWithItems = await Promise.all(
     stops.map(async (stop) => {
-      const [item] = stop.itemId
-        ? await db
-            .select()
-            .from(donationItemsTable)
-            .where(eq(donationItemsTable.id, stop.itemId))
-        : [];
+      const item = stop.itemId
+        ? await itemRepository.getById(stop.itemId!)
+        : undefined;
       const [pickup] = stop.pickupRequestId
         ? await db
             .select()

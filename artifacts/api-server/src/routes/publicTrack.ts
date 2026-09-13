@@ -5,7 +5,6 @@ import {
   claimHistoryTable,
   claimsTable,
   db,
-  donationItemsTable,
   ensureClaimTrackingCodes,
   recipientAccountsTable,
   trackingOtpsTable,
@@ -27,6 +26,7 @@ import { buildPublicActivityTimeline } from "../lib/publicServiceActivity";
 import { safeCategory, safeItemName } from "../lib/publicItemLabels";
 import { sendTrackingVerificationSms } from "../lib/twilio";
 import { logger } from "../lib/logger";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 const PUBLIC_TIME_ZONE = "America/Chicago";
@@ -199,20 +199,29 @@ export function buildPublicImpactSummary(source: PublicImpactSource) {
 
 async function findPublicTracking(trackingCode: string) {
   await ensureClaimTrackingCodes();
-  const [result] = await db
+  const [claim] = await db
     .select({
       claimId: claimsTable.id,
       trackingCode: claimsTable.trackingCode,
       status: claimsTable.status,
       updatedAt: claimsTable.updatedAt,
-      itemName: donationItemsTable.name,
-      itemCategory: donationItemsTable.category,
-      itemStage: donationItemsTable.stage,
+      itemId: claimsTable.itemId,
     })
     .from(claimsTable)
-    .innerJoin(donationItemsTable, eq(claimsTable.itemId, donationItemsTable.id))
     .where(eq(claimsTable.trackingCode, trackingCode))
     .limit(1);
+  const item = claim ? await itemRepository.getPublicTrackingItem(claim.itemId) : undefined;
+  const result = claim && item
+    ? {
+        claimId: claim.claimId,
+        trackingCode: claim.trackingCode,
+        status: claim.status,
+        updatedAt: claim.updatedAt,
+        itemName: item.name,
+        itemCategory: item.category,
+        itemStage: item.stage,
+      }
+    : undefined;
 
   if (!result?.trackingCode) return null;
 
@@ -550,10 +559,7 @@ router.post("/public/track/:trackingCode/verification/verify", async (req, res):
 
 router.get("/public/impact-summary", async (_req, res): Promise<void> => {
   const [items, claims, history, receivedTransfers] = await Promise.all([
-    db.select({
-      category: donationItemsTable.category,
-      stage: donationItemsTable.stage,
-    }).from(donationItemsTable),
+    itemRepository.listImpactItems(),
     db.select({
       id: claimsTable.id,
       status: claimsTable.status,

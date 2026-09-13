@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, asc } from "drizzle-orm";
-import { db, donorsTable, donationItemsTable, type Donor } from "@workspace/db";
+import { eq, ilike } from "drizzle-orm";
+import { db, donorsTable, type Donor } from "@workspace/db";
 import { ListDonorsQueryParams, CreateDonorBody, GetDonorParams } from "@workspace/api-zod";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 
@@ -71,9 +72,7 @@ router.get("/donors", async (req, res): Promise<void> => {
     ? await db.select().from(donorsTable).where(ilike(donorsTable.name, `%${search}%`))
     : await db.select().from(donorsTable);
 
-  const items = await db
-    .select({ donorId: donationItemsTable.donorId, createdAt: donationItemsTable.createdAt })
-    .from(donationItemsTable);
+  const items = await itemRepository.listGiftDates();
 
   const giftDatesByDonor = new Map<string, Date[]>();
   for (const item of items) {
@@ -129,11 +128,7 @@ router.get("/donors/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const items = await db
-    .select()
-    .from(donationItemsTable)
-    .where(eq(donationItemsTable.donorId, donor.id))
-    .orderBy(asc(donationItemsTable.createdAt));
+  const items = await itemRepository.listByDonorId(donor.id);
 
   res.json({
     ...toDonorResponse(donor, items.map((item) => item.createdAt)),

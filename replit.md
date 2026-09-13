@@ -39,6 +39,11 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 ## Architecture decisions
 
 - `NOTION_API_KEY` and `DONATION_STATION_API_KEY` are resolved once during API startup from Secret Key Api, cached for the instance lifetime, and fall back to same-named local environment variables. `VAULT_SERVICE_TOKEN`, `DATABASE_URL`, and `CLERK_SECRET_KEY` remain Replit Secrets.
+- Notion pairing is staged: PostgreSQL remains the active item store and intake behavior is unchanged until a later cutover explicitly enables Notion writes. API startup resolves the Item Log's live property IDs and rejects missing, renamed, mistyped, or incomplete required properties.
+- `S.N.O.W. Category Tier` (`URGENT`, `STABLE`, `SURPLUS`) is a staff-confirmed or overridden suggestion derived from category and expiry. It is separate from `T.I.E.R.` (`T`, `I`, `E`, `R`) and the two concepts must never be collapsed.
+- `Lifecycle Phase` (`Intake`, `Signal`, `Grounded`) and `Stage` (`intake`, `matched`, `scheduled`, `qc`, `storage`, `distributed`, `closed`) are separate axes. Missing Notion status options block startup; status options must be added manually in Notion.
+- Pounds are canonical for new entries (`weightLbs`). Historical kilogram numbers are not converted and remain flagged with `Weight Unit = kg (unconverted)`.
+- Live Notion items `DS-0001` through `DS-0005` must be imported into the app identity mapping before Notion-backed intake can be enabled. This is a hard collision-prevention gate.
 
 ## Product
 

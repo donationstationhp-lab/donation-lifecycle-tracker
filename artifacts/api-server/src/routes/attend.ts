@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, count, desc, eq, gte, inArray, isNotNull, isNull, like, lte } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import {
-  allocateClaimTrackingCode, ensureClaimTrackingCodes, getClaimTrackingCapacityWarning, attendDeliveryAlertsTable, db, claimEvidenceTable, claimHistoryTable, claimsTable, donationItemsTable,
+  allocateClaimTrackingCode, ensureClaimTrackingCodes, getClaimTrackingCapacityWarning, attendDeliveryAlertsTable, db, claimEvidenceTable, claimHistoryTable, claimsTable,
   notificationOutboxTable, recipientAccountsTable, stageHistoryTable, transferHistoryTable, transfersTable,
 } from "@workspace/db";
 import {
@@ -20,6 +20,7 @@ import { canCollectEvidence, validateClaimTransition, validateTransferTransition
 import { deliverAttendOutboxByDedupeKey } from "../lib/attendSheets";
 import { isUniqueViolation } from "../lib/dbErrors";
 import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 const actor = (res: import("express").Response) => res.locals.authMethod === "api-key" ? "api-key" : (res.locals.staffUserId ?? "staff");
@@ -174,15 +175,17 @@ router.get("/claims", async (req, res): Promise<void> => {
   await ensureClaimTrackingCodes();
   const c = parsed.data;
   const conditions = [c.status ? eq(claimsTable.status, c.status) : undefined, c.accountId ? eq(claimsTable.accountId, c.accountId) : undefined, c.itemId ? eq(claimsTable.itemId, c.itemId) : undefined].filter(Boolean);
-  const rows = await db.select().from(claimsTable).innerJoin(donationItemsTable, eq(claimsTable.itemId, donationItemsTable.id)).where(conditions.length ? and(...conditions) : undefined);
-  res.json(ListClaimsResponse.parse(rows.filter(({ donation_items }) => !c.itemStage || donation_items.stage === c.itemStage).map(({ claims }) => claims)));
+  const rows = await db.select().from(claimsTable).where(conditions.length ? and(...conditions) : undefined);
+  const itemRows = await itemRepository.findByIds(rows.map(({ itemId }) => itemId));
+  const stages = new Map(itemRows.map((item) => [item.id, item.stage]));
+  res.json(ListClaimsResponse.parse(rows.filter((claim) => stages.has(claim.itemId) && (!c.itemStage || stages.get(claim.itemId) === c.itemStage))));
 });
 router.post("/claims", async (req, res): Promise<void> => {
   const parsed = CreateClaimBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [[account], [item]] = await Promise.all([
+  const [[account], item] = await Promise.all([
     db.select({ id: recipientAccountsTable.id }).from(recipientAccountsTable).where(eq(recipientAccountsTable.id, parsed.data.accountId)),
-    db.select({ id: donationItemsTable.id }).from(donationItemsTable).where(eq(donationItemsTable.id, parsed.data.itemId)),
+    itemRepository.getById(parsed.data.itemId),
   ]);
   if (!account || !item) { res.status(404).json({ error: "Recipient account or item not found" }); return; }
   const by = actor(res); const id = randomUUID();
@@ -235,9 +238,9 @@ router.get("/claims/:id", async (req, res): Promise<void> => {
   await ensureClaimTrackingCodes();
   const [claim] = await db.select().from(claimsTable).where(eq(claimsTable.id, params.data.id));
   if (!claim) { res.status(404).json({ error: "Claim not found" }); return; }
-  const [[account], [item], evidence, history] = await Promise.all([
+  const [[account], item, evidence, history] = await Promise.all([
     db.select({ id: recipientAccountsTable.id, name: recipientAccountsTable.name, type: recipientAccountsTable.type }).from(recipientAccountsTable).where(eq(recipientAccountsTable.id, claim.accountId)),
-    db.select({ id: donationItemsTable.id, itemId: donationItemsTable.itemId, name: donationItemsTable.name, stage: donationItemsTable.stage }).from(donationItemsTable).where(eq(donationItemsTable.id, claim.itemId)),
+    itemRepository.listWorkflowSummary(claim.itemId),
     db.select().from(claimEvidenceTable).where(eq(claimEvidenceTable.claimId, claim.id)),
     db.select().from(claimHistoryTable).where(eq(claimHistoryTable.claimId, claim.id)).orderBy(claimHistoryTable.timestamp),
   ]);
@@ -252,7 +255,8 @@ router.patch("/claims/:id/status", async (req, res): Promise<void> => {
   const result = await db.transaction(async (tx) => {
     const [snapshot] = await tx.select().from(claimsTable).where(eq(claimsTable.id, params.data.id));
     if (!snapshot) return { error: "Claim not found" };
-    const [item] = await tx.select().from(donationItemsTable).where(eq(donationItemsTable.id, snapshot.itemId)).for("update");
+    const repository = itemRepository.forTransaction(tx);
+    const item = await repository.getById(snapshot.itemId, { forUpdate: true });
     const [claim] = await tx.select().from(claimsTable).where(eq(claimsTable.id, params.data.id)).for("update");
     if (!claim || !item) return { error: "Claim references a missing item" };
     const evidence = await tx.select().from(claimEvidenceTable).where(eq(claimEvidenceTable.claimId, claim.id));
@@ -281,12 +285,12 @@ router.patch("/claims/:id/status", async (req, res): Promise<void> => {
     const by = actor(res); const [updated] = await tx.update(claimsTable).set({ status: body.data.status, ...(body.data.status === "approved" ? { approvedBy: by } : {}) }).where(eq(claimsTable.id, claim.id)).returning();
     await tx.insert(claimHistoryTable).values({ id: randomUUID(), claimId: claim.id, fromStatus: claim.status, toStatus: body.data.status, by, notes: body.data.notes ?? null });
     if (body.data.status === "approved" && item.stage === "storage") {
-      const [matched] = await tx.update(donationItemsTable).set({ stage: "matched", updatedAt: new Date() }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "storage"))).returning();
+      const matched = await repository.updateStage(item.id, "storage", "matched", { updatedAt: new Date() });
       if (!matched) return { error: "Item stage changed while approving claim" };
       await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "storage", toStage: "matched", notes: `Claim ${claim.id} approved` });
     }
     if (claim.status === "approved" && body.data.status === "cancelled") {
-      const [restored] = await tx.update(donationItemsTable).set({ stage: "storage", updatedAt: new Date() }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "matched"))).returning();
+      const restored = await repository.updateStage(item.id, "matched", "storage", { updatedAt: new Date() });
       if (!restored) return { error: "Item stage changed while cancelling claim" };
       await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "matched", toStage: "storage", notes: `Claim ${claim.id} cancelled` });
     }
@@ -325,14 +329,15 @@ router.post("/transfers", async (req, res): Promise<void> => {
   try {
     transfer = await db.transaction(async (tx) => {
       // Lock item then claim everywhere that both allocation records are changed.
-      const [item] = await tx.select().from(donationItemsTable).where(eq(donationItemsTable.id, parsed.data.itemId)).for("update");
+      const repository = itemRepository.forTransaction(tx);
+      const item = await repository.getById(parsed.data.itemId, { forUpdate: true });
       const [claim] = await tx.select().from(claimsTable).where(eq(claimsTable.id, parsed.data.claimId)).for("update");
       if (!item || !claim || claim.status !== "approved" || claim.accountId !== parsed.data.accountId || claim.itemId !== parsed.data.itemId) {
         throw new Error("TRANSFER_PRECONDITION");
       }
       if (item.stage !== "matched") throw new Error("ITEM_NOT_MATCHED");
       const [created] = await tx.insert(transfersTable).values({ id, ...parsed.data }).returning();
-      const [scheduled] = await tx.update(donationItemsTable).set({ stage: "scheduled", updatedAt: new Date() }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "matched"))).returning();
+      const scheduled = await repository.updateStage(item.id, "matched", "scheduled", { updatedAt: new Date() });
       if (!scheduled) throw new Error("ITEM_NOT_MATCHED");
       await tx.insert(transferHistoryTable).values({ id: randomUUID(), transferId: id, fromStatus: null, toStatus: "planned", by });
       await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "matched", toStage: "scheduled", notes: `Transfer ${id} planned` });
@@ -365,10 +370,10 @@ router.get("/transfers/:id", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   const [transfer] = await db.select().from(transfersTable).where(eq(transfersTable.id, params.data.id));
   if (!transfer) { res.status(404).json({ error: "Transfer not found" }); return; }
-  const [[account], [claim], [item], history] = await Promise.all([
+  const [[account], [claim], item, history] = await Promise.all([
     db.select({ id: recipientAccountsTable.id, name: recipientAccountsTable.name, type: recipientAccountsTable.type }).from(recipientAccountsTable).where(eq(recipientAccountsTable.id, transfer.accountId)),
     db.select({ id: claimsTable.id, accountId: claimsTable.accountId, itemId: claimsTable.itemId, status: claimsTable.status }).from(claimsTable).where(eq(claimsTable.id, transfer.claimId)),
-    db.select({ id: donationItemsTable.id, itemId: donationItemsTable.itemId, name: donationItemsTable.name, stage: donationItemsTable.stage }).from(donationItemsTable).where(eq(donationItemsTable.id, transfer.itemId)),
+    itemRepository.listWorkflowSummary(transfer.itemId),
     db.select().from(transferHistoryTable).where(eq(transferHistoryTable.transferId, transfer.id)).orderBy(transferHistoryTable.timestamp),
   ]);
   if (!account || !claim || !item) { res.status(409).json({ error: "Transfer references missing related records" }); return; }
@@ -386,7 +391,8 @@ router.patch("/transfers/:id/status", async (req, res): Promise<void> => {
     if (allowed.idempotent) return { transfer };
     const by = actor(res);
     if (body.data.status === "received") {
-      const [item] = await tx.select().from(donationItemsTable).where(eq(donationItemsTable.id, transfer.itemId)).for("update");
+      const repository = itemRepository.forTransaction(tx);
+      const item = await repository.getById(transfer.itemId, { forUpdate: true });
       const [claim] = await tx.select().from(claimsTable).where(eq(claimsTable.id, transfer.claimId)).for("update");
       const [account] = await tx.select().from(recipientAccountsTable).where(eq(recipientAccountsTable.id, transfer.accountId));
       if (!claim || !item || !account || claim.status !== "approved" || claim.accountId !== transfer.accountId || claim.itemId !== transfer.itemId) return { error: "An approved, consistent claim is required to receive a transfer" };
@@ -394,7 +400,7 @@ router.patch("/transfers/:id/status", async (req, res): Promise<void> => {
       const [updated] = await tx.update(transfersTable).set({ status: "received", receivedBy: by }).where(and(eq(transfersTable.id, transfer.id), eq(transfersTable.status, "released"))).returning();
       if (!updated) return { error: "Transfer receipt was already processed" };
       const [fulfilled] = await tx.update(claimsTable).set({ status: "fulfilled" }).where(and(eq(claimsTable.id, claim.id), eq(claimsTable.status, "approved"))).returning();
-      const [distributed] = await tx.update(donationItemsTable).set({ stage: "distributed", recipient: account.name }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "scheduled"))).returning();
+      const distributed = await repository.updateStage(item.id, "scheduled", "distributed", { recipient: account.name });
       if (!fulfilled || !distributed) return { error: "Claim or item changed while receiving transfer" };
       await tx.insert(transferHistoryTable).values({ id: randomUUID(), transferId: transfer.id, fromStatus: transfer.status, toStatus: "received", by, notes: body.data.notes ?? null });
       await tx.insert(claimHistoryTable).values({ id: randomUUID(), claimId: claim.id, fromStatus: "approved", toStatus: "fulfilled", by, notes: "Transfer received" });
@@ -416,9 +422,10 @@ router.patch("/transfers/:id/status", async (req, res): Promise<void> => {
       return { transfer: updated };
     }
     if (body.data.status === "cancelled") {
-      const [item] = await tx.select().from(donationItemsTable).where(eq(donationItemsTable.id, transfer.itemId)).for("update");
+      const repository = itemRepository.forTransaction(tx);
+      const item = await repository.getById(transfer.itemId, { forUpdate: true });
       if (item?.stage === "scheduled") {
-        const [restored] = await tx.update(donationItemsTable).set({ stage: "matched", updatedAt: new Date() }).where(and(eq(donationItemsTable.id, item.id), eq(donationItemsTable.stage, "scheduled"))).returning();
+        const restored = await repository.updateStage(item.id, "scheduled", "matched", { updatedAt: new Date() });
         if (!restored) return { error: "Item stage changed while cancelling transfer" };
         await tx.insert(stageHistoryTable).values({ id: randomUUID(), itemId: item.id, fromStage: "scheduled", toStage: "matched", notes: `Transfer ${transfer.id} cancelled` });
       }

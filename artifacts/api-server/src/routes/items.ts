@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, and, like, ilike } from "drizzle-orm";
+import { eq, ilike } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { db, donationItemsTable, stageHistoryTable, claimsTable, transfersTable, donorsTable } from "@workspace/db";
+import { db, stageHistoryTable, claimsTable, transfersTable, donorsTable } from "@workspace/db";
 import {
   ListItemsQueryParams,
   CreateItemBody,
@@ -15,6 +15,7 @@ import {
 import { isUniqueViolation } from "../lib/dbErrors";
 import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
 import { validateItemStageTransition } from "../lib/itemLifecycle";
+import { itemRepository } from "../lib/itemRepository";
 
 const router: IRouter = Router();
 
@@ -59,11 +60,7 @@ async function resolveDonorId(donorName: string): Promise<string> {
 }
 
 async function getItemById(id: string) {
-  const [item] = await db
-    .select()
-    .from(donationItemsTable)
-    .where(eq(donationItemsTable.id, id));
-  return item;
+  return itemRepository.getById(id);
 }
 
 async function advanceStage(
@@ -72,24 +69,14 @@ async function advanceStage(
   options: { by?: string; notes?: string; extra?: string } = {},
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   return db.transaction(async (tx) => {
-    const [item] = await tx
-      .select({ stage: donationItemsTable.stage })
-      .from(donationItemsTable)
-      .where(eq(donationItemsTable.id, itemId))
-      .for("update");
+    const repository = itemRepository.forTransaction(tx);
+    const item = await repository.getById(itemId, { forUpdate: true });
     if (!item) return { ok: false, error: "Item not found" };
 
     const validation = validateItemStageTransition(item.stage, toStage, {});
     if (!validation.ok) return { ok: false, error: validation.reason };
 
-    const [updated] = await tx
-      .update(donationItemsTable)
-      .set({ stage: toStage, updatedAt: new Date() })
-      .where(and(
-        eq(donationItemsTable.id, itemId),
-        eq(donationItemsTable.stage, item.stage),
-      ))
-      .returning({ id: donationItemsTable.id });
+    const updated = await repository.updateStage(itemId, item.stage, toStage, { updatedAt: new Date() });
     if (!updated) return { ok: false, error: "Item stage changed during transition" };
 
     const parts = [
@@ -138,28 +125,19 @@ router.get("/items", async (req, res): Promise<void> => {
 
   const { stage, tier, category, temperatureZone, search } = parsed.data;
 
-  const conditions = [];
-  if (stage) conditions.push(eq(donationItemsTable.stage, stage));
-  if (tier) conditions.push(eq(donationItemsTable.tier, tier));
-  if (category) conditions.push(eq(donationItemsTable.category, category));
-  if (temperatureZone) conditions.push(eq(donationItemsTable.temperatureZone, temperatureZone));
-  if (search) conditions.push(like(donationItemsTable.name, `%${search}%`));
-
   // ?pendingReview=true  → only pending items
   // ?pendingReview=false → only non-pending items
   // (omitted)            → all items
   const pendingReviewParam = req.query.pendingReview;
-  if (pendingReviewParam === "true") {
-    conditions.push(eq(donationItemsTable.pendingReview, true));
-  } else if (pendingReviewParam === "false") {
-    conditions.push(eq(donationItemsTable.pendingReview, false));
-  }
-
-  const items = await db
-    .select()
-    .from(donationItemsTable)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(donationItemsTable.createdAt));
+  const pendingReview = pendingReviewParam === "true"
+    ? true
+    : pendingReviewParam === "false"
+      ? false
+      : undefined;
+  const items = await itemRepository.list(
+    { stage, tier, category, temperatureZone, search, pendingReview },
+    { order: "createdAtDesc" },
+  );
 
   res.json(items);
 });
@@ -197,12 +175,11 @@ router.post("/items", async (req, res): Promise<void> => {
     req.body.by ? `By: ${req.body.by}` : null,
   ].filter(Boolean);
 
-  let item: typeof donationItemsTable.$inferSelect;
+  let item: Awaited<ReturnType<typeof getItemById>>;
   try {
     item = await db.transaction(async (tx) => {
-      const [created] = await tx
-        .insert(donationItemsTable)
-        .values({
+      const repository = itemRepository.forTransaction(tx);
+      const created = await repository.insert({
           id,
           itemId,
           name: parsed.data.name,
@@ -220,8 +197,7 @@ router.post("/items", async (req, res): Promise<void> => {
           lotNumber,
           powerConnectionReading,
           stage: "intake",
-        })
-        .returning();
+        });
       await tx.insert(stageHistoryTable).values({
         id: randomUUID(),
         itemId: id,
@@ -264,10 +240,7 @@ router.get("/items/expiring", async (req, res): Promise<void> => {
   const flatMode = daysParam != null;
   const windowDays = flatMode ? Math.max(0, parseInt(String(daysParam), 10) || 2) : 14;
 
-  const allItems = await db
-    .select()
-    .from(donationItemsTable)
-    .orderBy(donationItemsTable.expiryDate);
+  const allItems = await itemRepository.list({}, { order: "expiryDateAsc" });
 
   const withExpiry = allItems.filter((item) => item.expiryDate != null);
 
@@ -315,10 +288,7 @@ router.post("/items/:id/approve", async (req, res): Promise<void> => {
 
   const by = req.body?.by;
 
-  await db
-    .update(donationItemsTable)
-    .set({ pendingReview: false, updatedAt: new Date() })
-    .where(eq(donationItemsTable.id, id));
+  await itemRepository.updateById(id, { pendingReview: false, updatedAt: new Date() });
 
   await db.insert(stageHistoryTable).values({
     id: randomUUID(),
@@ -364,10 +334,7 @@ router.post("/items/:id/store", async (req, res): Promise<void> => {
   const { location, by, notes } = req.body ?? {};
 
   if (location) {
-    await db
-      .update(donationItemsTable)
-      .set({ location: String(location) })
-      .where(eq(donationItemsTable.id, id));
+    await itemRepository.updateById(id, { location: String(location) });
   }
 
   const transition = await advanceStage(id, "storage", { by, notes });
@@ -387,10 +354,7 @@ router.post("/items/:id/distribute", async (req, res): Promise<void> => {
   const { recipient, by, notes, substitution } = req.body ?? {};
 
   if (recipient) {
-    await db
-      .update(donationItemsTable)
-      .set({ recipient: String(recipient) })
-      .where(eq(donationItemsTable.id, id));
+    await itemRepository.updateById(id, { recipient: String(recipient) });
   }
 
   const extra = substitution ? `Substitution: ${substitution}` : undefined;
@@ -407,10 +371,7 @@ router.get("/items/:id", async (req, res): Promise<void> => {
   const params = GetItemParams.safeParse({ id: raw });
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
-  const [item] = await db
-    .select()
-    .from(donationItemsTable)
-    .where(eq(donationItemsTable.id, params.data.id));
+  const item = await itemRepository.getById(params.data.id);
 
   if (!item) { res.status(404).json({ error: "Item not found" }); return; }
 
@@ -439,15 +400,11 @@ router.patch("/items/:id", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const { expiryDate, ...updates } = parsed.data;
-  const [item] = await db
-    .update(donationItemsTable)
-    .set({
+  const item = await itemRepository.updateById(params.data.id, {
       ...updates,
       ...(expiryDate !== undefined ? { expiryDate: toDateString(expiryDate) } : {}),
       updatedAt: new Date(),
-    })
-    .where(eq(donationItemsTable.id, params.data.id))
-    .returning();
+  });
 
   if (!item) { res.status(404).json({ error: "Item not found" }); return; }
 
@@ -460,10 +417,7 @@ router.delete("/items/:id", async (req, res): Promise<void> => {
   const params = DeleteItemParams.safeParse({ id: raw });
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
-  const [item] = await db
-    .delete(donationItemsTable)
-    .where(eq(donationItemsTable.id, params.data.id))
-    .returning();
+  const item = await itemRepository.deleteById(params.data.id);
 
   if (!item) { res.status(404).json({ error: "Item not found" }); return; }
 
@@ -480,11 +434,8 @@ router.patch("/items/:id/stage", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const result = await db.transaction(async (tx) => {
-    const [existing] = await tx
-      .select()
-      .from(donationItemsTable)
-      .where(eq(donationItemsTable.id, params.data.id))
-      .for("update");
+    const repository = itemRepository.forTransaction(tx);
+    const existing = await repository.getById(params.data.id, { forUpdate: true });
 
     if (!existing) return { error: "Item not found" };
 
@@ -495,14 +446,12 @@ router.patch("/items/:id/stage", async (req, res): Promise<void> => {
     );
     if (!validation.ok) return { error: validation.reason };
 
-    const [item] = await tx
-      .update(donationItemsTable)
-      .set({ stage: parsed.data.stage, updatedAt: new Date() })
-      .where(and(
-        eq(donationItemsTable.id, params.data.id),
-        eq(donationItemsTable.stage, existing.stage),
-      ))
-      .returning();
+    const item = await repository.updateStage(
+      params.data.id,
+      existing.stage,
+      parsed.data.stage,
+      { updatedAt: new Date() },
+    );
 
     if (!item) return { error: "Item stage changed during transition" };
 
