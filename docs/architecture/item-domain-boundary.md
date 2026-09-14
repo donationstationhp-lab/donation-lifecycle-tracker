@@ -273,7 +273,102 @@ The live Notion `Lifecycle Phase` and `Stage` values predate the target database
 
 Historical kilogram numbers remain unchanged and use `kg (unconverted)`. New canonical intake weight will use pounds.
 
-### 6. Extraction criteria
+### 6. Seamlessness requirement
+
+The owner states: **“I forgot to add both should be seamless.”**
+
+Seamlessness is a requirement, not a nice-to-have. The Warehouse Floor and Community instruments must feel like one system to the people using them.
+
+There is a domain join between the instruments, but that join must be invisible in normal use. A user must never have to discover it, decide which copy is correct, run a synchronization process, switch identity, or work around a boundary.
+
+The following are acceptance tests. The architecture is not seamless until all four pass in a deployed environment.
+
+#### Acceptance test 1: One sign-in
+
+**Requirement:** A staff member authenticates once and can move between the Warehouse Floor interface and the Community interface without re-authenticating, switching accounts, copying credentials, or encountering a second authorization flow.
+
+**Verification:**
+
+1. Sign in as a staff member through the supported staff entry point.
+2. Open an authorized Floor view.
+3. Navigate to an authorized Community view.
+4. Return to the Floor view.
+5. Confirm that all transitions use the same staff identity and session, preserve the assigned role, and require no additional authentication.
+
+Role authorization may present an access-denied response when a staff member lacks permission, but it must not present a second sign-in or a separate account system.
+
+**Current state:** API access currently relies on a shared API key rather than real staff authentication enforced end to end. That does not meet this requirement. Staff identity, shared session handling, and server-enforced role authorization across both instruments must be resolved before this acceptance test can pass.
+
+#### Acceptance test 2: One item, one page
+
+**Requirement:** An item reached from a shelf or inventory view and the same item reached from a claim, route stop, appointment, or transfer must resolve to one canonical item record and one item-detail experience.
+
+**Verification:**
+
+1. Select one item that appears in both a Floor workflow and a Community workflow.
+2. Open it from the shelf/inventory view and record its URL or canonical item reference.
+3. Open it from a claim, route stop, appointment, and transfer where applicable.
+4. Confirm that every path resolves to the same canonical detail page and opaque item key.
+5. Confirm that every entry point shows the same `DS-####` ID, artifact photo, physical state, fulfillment state, and last authoritative version.
+6. Change an authorized field through its owning instrument and confirm that all entry points show the committed result without a second human update.
+
+Different contextual panels are allowed, but divergent item-detail records or separately maintained item-detail screens are not.
+
+#### Acceptance test 3: No double entry
+
+**Requirement:** No field may be typed by a human into more than one system. Every field has one write owner; all other interfaces and Notion receive it through commands, events, or projections.
+
+**Verification:**
+
+1. For each editable item and workflow field, identify exactly one owning service and one user entry point.
+2. Complete representative intake, QC, storage, claim, scheduling, route, transfer, and distribution workflows.
+3. Confirm that no workflow asks a person to re-enter a value already committed elsewhere.
+4. Confirm that Notion updates without manual re-entry.
+5. Treat every duplicate entry prompt, spreadsheet handoff, manual Notion edit, copy-and-paste instruction, or second authoritative form as a failed test and a defect.
+
+The one-owner-per-Notion-property rule exists to enforce this requirement. Neither instrument may offer an editable copy of a property owned by the other service.
+
+Known or prohibited double-entry defects include:
+
+- **Live defect:** Items `DS-0001` through `DS-0005` are currently logged by hand in the Notion Item Log while this app runs unconnected. This is the first seam to close.
+- Re-entering item identity or physical attributes from a Community submission into the Floor instrument instead of accepting them through a reviewed handoff.
+- Re-entering Floor item attributes in Community records for display or reporting.
+- Manually copying claim, recipient, route, transfer, or fulfillment state into Notion.
+- Allowing both services, repair scripts, or operators to write the same Notion property.
+- Introducing a second item-detail form in the predecessor Warehouse Floor interface.
+
+The future Notion write path exists to close the current manual Item Log defect. It must project committed state from the owning service; it must not create another form of dual writing.
+
+#### Acceptance test 4: The ledger agrees without being asked
+
+**Requirement:** The Notion Item Log reflects committed current state without anyone running a sync, pressing a button, re-entering data, or choosing which system should overwrite the other.
+
+**Verification:**
+
+1. Commit representative Floor-owned and Community-owned changes through their normal interfaces.
+2. Confirm that outbox processing updates the owned Notion properties automatically within the documented delivery objective.
+3. Confirm that retries are idempotent and do not create duplicate pages or regress newer values.
+4. Interrupt Notion delivery, restore it, and confirm that queued projection updates recover automatically.
+5. Run reconciliation and confirm that it reports no divergence after delivery completes.
+
+Reconciliation exists to detect missed events, version gaps, unauthorized writes, and projection defects. It is an exception-control mechanism, not the normal synchronization path.
+
+#### Why one backend is the more seamless architecture
+
+The single-backend decision makes the two instruments more seamless, not less. It preserves one identity, one authorization boundary, one transactional item service, and immediate conflict checks while allowing each role to have a focused interface.
+
+Two authoritative apps would create visible seams:
+
+- Projection lag between independent item records
+- Reconciliation reports that staff must interpret
+- An item appearing available in one interface and reserved in the other
+- Conflicting artifact photos, statuses, locations, or DS identifiers
+- Separate authentication and authorization behavior
+- Manual decisions about which app should win
+
+If a future proposal recommends separate authoritative item databases, it must demonstrate how it still passes all four acceptance tests. Deployment separation alone is never permission to create a second item authority.
+
+### 7. Extraction criteria
 
 The Warehouse Floor instrument remains a client of the shared backend until all of the following are true:
 
