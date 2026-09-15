@@ -27,3 +27,7 @@ channel = "stable-25_05"
 [userenv.shared]
 ATTEND_SHEETS_RANGE = "'ATTEND Events'!A:G"
 ATTEND_SHEETS_SPREADSHEET_ID = "1ZGnTDKb3LNlWT7fSNBTBmVLyQoDcD7RfFy5589Eh-bA"
+
+[userenv.production]
+NOTION_ITEMS_DATA_SOURCE_URL = "https://app.notion.com/p/218acff8868d4217a161ca78babfe37b?v=2666ab925aa748259bd3ea055d984ad6&source=copy_link"
+NOTION_ROUTES_DATA_SOURCE_URL = "https://app.notion.com/p/50102c7629d141f494e34794d07b1435?v=1a06fec558534fdbb1b0dc6dec845865&source=copy_link"
