@@ -127,10 +127,12 @@ router.get("/manifest/:routeName", async (req, res): Promise<void> => {
 
   const stopsWithItems = await Promise.all(
     stops.map(async (stop) => {
-      const [item] = await db
-        .select()
-        .from(donationItemsTable)
-        .where(eq(donationItemsTable.id, stop.itemId));
+      const [item] = stop.itemId
+        ? await db
+            .select()
+            .from(donationItemsTable)
+            .where(eq(donationItemsTable.id, stop.itemId))
+        : [];
       return {
         stop: stop.stopOrder,
         item_id: item?.itemId ?? stop.itemId,

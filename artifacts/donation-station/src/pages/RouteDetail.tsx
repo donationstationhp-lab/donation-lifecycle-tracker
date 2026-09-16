@@ -8,9 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  ArrowLeft, Truck, MapPin, Calendar, CheckCircle2, Clock, Navigation, 
-  Package, FileText, Loader2, GripVertical
+import {
+  ArrowLeft, Truck, MapPin, Calendar, CheckCircle2, Clock, Navigation,
+  Package, FileText, Loader2, GripVertical, Phone
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { TierBadge } from '@/components/shared';
@@ -146,7 +146,7 @@ export default function RouteDetail() {
             <div className="divide-y divide-border/50">
               {/* Sort stops by stopOrder */}
               {[...route.stops].sort((a, b) => a.stopOrder - b.stopOrder).map((stop, index) => (
-                <div key={stop.itemId} className="flex items-stretch group hover:bg-secondary/20 transition-colors">
+                <div key={stop.itemId ?? stop.pickupRequestId ?? index} className="flex items-stretch group hover:bg-secondary/20 transition-colors">
                   <div className="w-12 md:w-16 shrink-0 flex flex-col items-center py-4 border-r border-border/50 bg-secondary/10">
                     <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm ring-2 ring-white">
                       {stop.stopOrder}
@@ -155,45 +155,86 @@ export default function RouteDetail() {
                       <div className="flex-1 w-0.5 bg-border mt-2" />
                     )}
                   </div>
-                  
+
                   <div className="flex-1 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="hidden md:flex mt-1">
-                        <Package className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Link href={`/items/${stop.item.id}`} className="font-bold text-lg hover:text-primary hover:underline">
-                            {stop.item.name}
-                          </Link>
-                          <span className="text-xs font-mono bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
-                            {stop.item.itemId}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                          <TierBadge tier={stop.item.tier} />
-                          <span>•</span>
-                          <span>Recipient: <span className="font-medium text-foreground">{stop.item.recipient || 'Not specified'}</span></span>
-                        </div>
-                        
-                        {stop.notes && (
-                          <div className="text-sm bg-white border border-border p-2 rounded italic text-muted-foreground mt-2">
-                            Stop Note: {stop.notes}
+                    {stop.item ? (
+                      <>
+                        <div className="flex items-start gap-4">
+                          <div className="hidden md:flex mt-1">
+                            <Package className="w-5 h-5 text-muted-foreground" />
                           </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="shrink-0 flex items-center gap-4">
-                      <div className="text-right hidden md:block">
-                        <div className="text-xs text-muted-foreground">Location</div>
-                        <div className="font-medium text-sm">{stop.item.location || 'Unknown'}</div>
-                      </div>
-                      <Link href={`/items/${stop.item.id}`}>
-                        <Button variant="outline" size="sm">View Item</Button>
-                      </Link>
-                    </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Link href={`/items/${stop.item.id}`} className="font-bold text-lg hover:text-primary hover:underline">
+                                {stop.item.name}
+                              </Link>
+                              <span className="text-xs font-mono bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
+                                {stop.item.itemId}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                              <TierBadge tier={stop.item.tier} />
+                              <span>•</span>
+                              <span>Recipient: <span className="font-medium text-foreground">{stop.item.recipient || 'Not specified'}</span></span>
+                            </div>
+
+                            {stop.notes && (
+                              <div className="text-sm bg-white border border-border p-2 rounded italic text-muted-foreground mt-2">
+                                Stop Note: {stop.notes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 flex items-center gap-4">
+                          <div className="text-right hidden md:block">
+                            <div className="text-xs text-muted-foreground">Location</div>
+                            <div className="font-medium text-sm">{stop.item.location || 'Unknown'}</div>
+                          </div>
+                          <Link href={`/items/${stop.item.id}`}>
+                            <Button variant="outline" size="sm">View Item</Button>
+                          </Link>
+                        </div>
+                      </>
+                    ) : stop.pickup ? (
+                      <>
+                        <div className="flex items-start gap-4">
+                          <div className="hidden md:flex mt-1">
+                            <Phone className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-bold text-lg">{stop.pickup.name || 'Pickup'}</span>
+                              <span className="text-xs font-mono bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
+                                {stop.pickup.phone}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                              <Badge variant="outline">Pickup</Badge>
+                              <span>•</span>
+                              <span>{stop.pickup.address}</span>
+                            </div>
+
+                            {stop.notes && (
+                              <div className="text-sm bg-white border border-border p-2 rounded italic text-muted-foreground mt-2">
+                                Stop Note: {stop.notes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 flex items-center gap-4">
+                          <div className="text-right hidden md:block">
+                            <div className="text-xs text-muted-foreground">Window</div>
+                            <div className="font-medium text-sm">{stop.pickup.requestedWindow}</div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-muted-foreground italic">Stop details unavailable</div>
+                    )}
                   </div>
                 </div>
               ))}

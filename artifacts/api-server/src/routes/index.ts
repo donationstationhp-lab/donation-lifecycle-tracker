@@ -3,12 +3,15 @@ import { staffAuth } from "../middlewares/staffAuth";
 import healthRouter from "./health";
 import publicRoutes from "./publicRoutes";
 import authRouter from "./auth";
+import notionHealthRouter from "./notionHealth";
 import itemsRouter from "./items";
 import donorsRouter from "./donors";
 import dashboardRouter from "./dashboard";
 import deliveryRoutesRouter from "./deliveryRoutes";
 import locationsRouter from "./locations";
 import cliExtrasRouter from "./cliExtras";
+import pickupsRouter from "./pickups";
+import attendRouter from "./attend";
 
 const router: IRouter = Router();
 
@@ -17,6 +20,7 @@ const router: IRouter = Router();
 router.use(healthRouter);   // /healthz  /health
 router.use(publicRoutes);   // /public/donate
 router.use(authRouter);     // /auth/login  /auth/logout  /auth/me (self-checking)
+router.use(notionHealthRouter); // /notion/health
 
 // ── Auth gate ────────────────────────────────────────────────────────────────
 // Accepts either a valid X-API-Key (CLI/automation) or a signed-in staff session.
@@ -29,5 +33,7 @@ router.use(dashboardRouter);
 router.use(deliveryRoutesRouter);
 router.use(locationsRouter);
 router.use(cliExtrasRouter);
+router.use(pickupsRouter);
+router.use(attendRouter);
 
 export default router;

@@ -26,6 +26,13 @@ import ExpiringItems from '@/pages/ExpiringItems';
 import RoutesList from '@/pages/RoutesList';
 import RouteDetail from '@/pages/RouteDetail';
 import PendingReview from '@/pages/PendingReview';
+import Pickups from '@/pages/Pickups';
+import PickupFlags from '@/pages/PickupFlags';
+import ClaimsList from '@/pages/ClaimsList';
+import ClaimDetail from '@/pages/ClaimDetail';
+import TransfersList from '@/pages/TransfersList';
+import TransferDetail from '@/pages/TransferDetail';
+import AccountsList from '@/pages/AccountsList';
 
 const queryClient = new QueryClient();
 
@@ -64,9 +71,16 @@ function Router() {
                 <Route path="/items/:id" component={ItemDetail} />
                 <Route path="/donors" component={Donors} />
                 <Route path="/donors/:id" component={DonorDetail} />
+                <Route path="/pickups" component={Pickups} />
+                <Route path="/pickup-flags" component={PickupFlags} />
                 <Route path="/expiring" component={ExpiringItems} />
+                <Route path="/claims" component={ClaimsList} />
+                <Route path="/claims/:id" component={ClaimDetail} />
+                <Route path="/transfers" component={TransfersList} />
+                <Route path="/transfers/:id" component={TransferDetail} />
                 <Route path="/routes" component={RoutesList} />
                 <Route path="/routes/:id" component={RouteDetail} />
+                <Route path="/accounts" component={AccountsList} />
                 <Route path="/pending" component={PendingReview} />
                 <Route component={NotFound} />
               </Switch>

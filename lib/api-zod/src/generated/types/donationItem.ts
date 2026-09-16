@@ -33,8 +33,12 @@ export interface DonationItem {
   origin?: string | null;
   /** Lot number in format LOT-XXXX */
   lotNumber: string;
-  /** Numerology reading on intake date */
   powerConnectionReading: string;
+  /**
+     * Numerology reading on intake date
+     * @nullable
+     */
+  sourcePickupId?: string | null;
   stage: DonationItemStage;
   createdAt: Date;
   updatedAt: Date;

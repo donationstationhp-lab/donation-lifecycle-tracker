@@ -4,6 +4,7 @@ interface StaffUser {
   id: string;
   email: string;
   name: string;
+  role: 'staff' | 'supervisor';
 }
 
 interface LoginResult {

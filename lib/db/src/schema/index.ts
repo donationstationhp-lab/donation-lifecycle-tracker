@@ -6,3 +6,8 @@ export * from "./routeStops";
 export * from "./locations";
 export * from "./staffUsers";
 export * from "./sessions";
+export * from "./pickupRequests";
+export * from "./pickupFlags";
+export * from "./pickupContactAttempts";
+export * from "./confirmationTemplates";
+export * from "./attendLifecycle";
