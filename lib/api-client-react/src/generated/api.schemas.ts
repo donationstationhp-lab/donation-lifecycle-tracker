@@ -5,6 +5,223 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+export type AttendOutboxEntryStatus = typeof AttendOutboxEntryStatus[keyof typeof AttendOutboxEntryStatus];
+
+
+export const AttendOutboxEntryStatus = {
+  pending: 'pending',
+  processing: 'processing',
+  failed: 'failed',
+  sent: 'sent',
+} as const;
+
+export interface AttendOutboxEntry {
+  id: string;
+  eventType: string;
+  aggregateType: string;
+  aggregateId: string;
+  dedupeKey: string;
+  status: AttendOutboxEntryStatus;
+  attempts: number;
+  /** @nullable */
+  lastError?: string | null;
+  /** @nullable */
+  nextRetryAt?: string | null;
+  /** @nullable */
+  processingLeaseUntil?: string | null;
+  /** @nullable */
+  sentAt?: string | null;
+  createdAt: string;
+}
+
+export interface RecipientAccount {
+  id: string;
+  name: string;
+  type: string;
+  /** @nullable */
+  contactName?: string | null;
+  /** @nullable */
+  contactEmail?: string | null;
+  /** @nullable */
+  contactPhone?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecipientAccountInput {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  type: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+}
+
+export interface RecipientAccountSummary {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export type ClaimStatus = typeof ClaimStatus[keyof typeof ClaimStatus];
+
+
+export const ClaimStatus = {
+  submitted: 'submitted',
+  verified: 'verified',
+  approved: 'approved',
+  fulfilled: 'fulfilled',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Claim {
+  id: string;
+  accountId: string;
+  itemId: string;
+  status: ClaimStatus;
+  submittedBy: string;
+  /** @nullable */
+  approvedBy?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClaimInput {
+  accountId: string;
+  itemId: string;
+  notes?: string;
+}
+
+export type ClaimEvidenceKind = typeof ClaimEvidenceKind[keyof typeof ClaimEvidenceKind];
+
+
+export const ClaimEvidenceKind = {
+  identity: 'identity',
+  eligibility: 'eligibility',
+  need: 'need',
+} as const;
+
+export interface ClaimEvidence {
+  id: string;
+  claimId: string;
+  kind: ClaimEvidenceKind;
+  reference: string;
+  note: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export type ClaimEvidenceInputKind = typeof ClaimEvidenceInputKind[keyof typeof ClaimEvidenceInputKind];
+
+
+export const ClaimEvidenceInputKind = {
+  identity: 'identity',
+  eligibility: 'eligibility',
+  need: 'need',
+} as const;
+
+export interface ClaimEvidenceInput {
+  kind: ClaimEvidenceInputKind;
+  /** @minLength 1 */
+  reference: string;
+  /** @minLength 1 */
+  note: string;
+}
+
+export interface ClaimHistoryEntry {
+  id: string;
+  claimId: string;
+  /** @nullable */
+  fromStatus?: string | null;
+  toStatus: string;
+  by: string;
+  /** @nullable */
+  notes?: string | null;
+  timestamp: string;
+}
+
+export interface ItemSummary {
+  id: string;
+  itemId: string;
+  name: string;
+  stage: string;
+}
+
+export type ClaimDetail = Claim & {
+  evidence: ClaimEvidence[];
+  history: ClaimHistoryEntry[];
+  account: RecipientAccountSummary;
+  item: ItemSummary;
+};
+
+export type TransferStatus = typeof TransferStatus[keyof typeof TransferStatus];
+
+
+export const TransferStatus = {
+  planned: 'planned',
+  released: 'released',
+  received: 'received',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Transfer {
+  id: string;
+  claimId: string;
+  accountId: string;
+  itemId: string;
+  status: TransferStatus;
+  /** @nullable */
+  releasedBy?: string | null;
+  /** @nullable */
+  receivedBy?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransferInput {
+  claimId: string;
+  accountId: string;
+  itemId: string;
+  notes?: string;
+}
+
+export interface TransferHistoryEntry {
+  id: string;
+  transferId: string;
+  /** @nullable */
+  fromStatus?: string | null;
+  toStatus: string;
+  by: string;
+  /** @nullable */
+  notes?: string | null;
+  timestamp: string;
+}
+
+export interface ClaimSummary {
+  id: string;
+  accountId: string;
+  itemId: string;
+  status: string;
+}
+
+export type TransferDetail = Transfer & {
+  history: TransferHistoryEntry[];
+  account: RecipientAccountSummary;
+  claim: ClaimSummary;
+  item: ItemSummary;
+};
+
+export interface StatusTransitionInput {
+  status: string;
+  notes?: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -77,8 +294,12 @@ export interface DonationItem {
   origin?: string | null;
   /** Lot number in format LOT-XXXX */
   lotNumber: string;
-  /** Numerology reading on intake date */
   powerConnectionReading: string;
+  /**
+     * Numerology reading on intake date
+     * @nullable
+     */
+  sourcePickupId?: string | null;
   stage: DonationItemStage;
   createdAt: string;
   updatedAt: string;
@@ -94,8 +315,66 @@ export interface StageHistoryEntry {
   notes?: string | null;
 }
 
+export interface ItemClaimSummary {
+  id: string;
+  accountId: string;
+  status: string;
+}
+
+export interface ItemTransferSummary {
+  id: string;
+  claimId: string;
+  accountId: string;
+  status: string;
+}
+
 export type DonationItemDetail = DonationItem & {
   history: StageHistoryEntry[];
+  claims?: ItemClaimSummary[];
+  transfers?: ItemTransferSummary[];
+};
+
+/**
+ * Derived from gift recency and history — not stored
+ */
+export type DonorStage = typeof DonorStage[keyof typeof DonorStage];
+
+
+export const DonorStage = {
+  prospect: 'prospect',
+  'first-gift': 'first-gift',
+  active: 'active',
+  lapsing: 'lapsing',
+  lapsed: 'lapsed',
+  reactivated: 'reactivated',
+} as const;
+
+export interface Donor {
+  id: string;
+  name: string;
+  /** @nullable */
+  contact?: string | null;
+  /** @nullable */
+  organization?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** Derived from gift recency and history — not stored */
+  stage: DonorStage;
+  giftCount: number;
+  /** @nullable */
+  lastGiftAt: string | null;
+  createdAt: string;
+}
+
+export interface DonorInput {
+  name: string;
+  contact?: string;
+  organization?: string;
+  notes?: string;
+}
+
+export type DonorDetail = Donor & {
+  items: DonationItem[];
 };
 
 export type DonationItemInputTier = typeof DonationItemInputTier[keyof typeof DonationItemInputTier];
@@ -283,53 +562,17 @@ export interface DashboardSummary {
   byStage: StageCount[];
   recentItems: DonationItem[];
   expiringCount: number;
+  pendingReviewCount: number;
+  pickupsPendingVerification: number;
+  pickupsConfirmedThisWeek: number;
+  flaggedPickupValues: number;
 }
-
-/**
- * Derived from gift recency and history — not stored
- */
-export type DonorStage = typeof DonorStage[keyof typeof DonorStage];
-
-
-export const DonorStage = {
-  prospect: 'prospect',
-  'first-gift': 'first-gift',
-  active: 'active',
-  lapsing: 'lapsing',
-  lapsed: 'lapsed',
-  reactivated: 'reactivated',
-} as const;
-
-export interface Donor {
-  id: string;
-  name: string;
-  /** @nullable */
-  contact?: string | null;
-  /** @nullable */
-  organization?: string | null;
-  /** @nullable */
-  notes?: string | null;
-  /** Derived from gift recency and history — not stored */
-  stage: DonorStage;
-  giftCount: number;
-  /** @nullable */
-  lastGiftAt: string | null;
-  createdAt: string;
-}
-
-export interface DonorInput {
-  name: string;
-  contact?: string;
-  organization?: string;
-  notes?: string;
-}
-
-export type DonorDetail = Donor & {
-  items: DonationItem[];
-};
 
 export interface RouteStop {
-  itemId: string;
+  /** @nullable */
+  itemId?: string | null;
+  /** @nullable */
+  pickupRequestId?: string | null;
   stopOrder: number;
   /** @nullable */
   notes?: string | null;
@@ -355,12 +598,85 @@ export interface DeliveryRoute {
   createdAt: string;
 }
 
+export type PickupStatus = typeof PickupStatus[keyof typeof PickupStatus];
+
+
+export const PickupStatus = {
+  unverified: 'unverified',
+  contact_made: 'contact_made',
+  confirmed: 'confirmed',
+  dispatched: 'dispatched',
+  completed: 'completed',
+  no_show: 'no_show',
+  false_address: 'false_address',
+  cancelled: 'cancelled',
+  closed_no_response: 'closed_no_response',
+} as const;
+
+export type PickupAddressType = typeof PickupAddressType[keyof typeof PickupAddressType];
+
+
+export const PickupAddressType = {
+  residence: 'residence',
+  business: 'business',
+  other: 'other',
+} as const;
+
+export type PickupOutcome = typeof PickupOutcome[keyof typeof PickupOutcome];
+
+
+export const PickupOutcome = {
+  completed: 'completed',
+  no_show: 'no_show',
+  false_address: 'false_address',
+  cancelled: 'cancelled',
+  flagged: 'flagged',
+} as const;
+
+export interface PickupRequest {
+  id: string;
+  status: PickupStatus;
+  phone: string;
+  /** @nullable */
+  name?: string | null;
+  address: string;
+  addressConfirmed: boolean;
+  addressVerified: boolean;
+  addressType: PickupAddressType;
+  requestedWindow: string;
+  /** @nullable */
+  confirmedDatetime?: string | null;
+  /** @nullable */
+  itemsDescribed?: string | null;
+  /** @nullable */
+  itemsReceived?: string | null;
+  confirmationSent: boolean;
+  confirmationReplied: boolean;
+  outcome?: PickupOutcome | null;
+  /** @nullable */
+  outcomeNotes?: string | null;
+  phoneFlagged: boolean;
+  addressFlagged: boolean;
+  requiresSupervisorApproval: boolean;
+  /** @nullable */
+  assignedDriver?: string | null;
+  /** @nullable */
+  linkedRouteId?: string | null;
+  contactAttempts: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface RouteStopDetail {
-  itemId: string;
+  /** @nullable */
+  itemId?: string | null;
+  /** @nullable */
+  pickupRequestId?: string | null;
   stopOrder: number;
   /** @nullable */
   notes?: string | null;
-  item: DonationItem;
+  item?: DonationItem | null;
+  pickup?: PickupRequest | null;
 }
 
 export type DeliveryRouteDetail = DeliveryRoute & {
@@ -372,6 +688,155 @@ export interface DeliveryRouteInput {
   date: string;
   notes?: string;
   stops?: RouteStop[];
+}
+
+export interface PickupRequestInput {
+  phone: string;
+  /** @nullable */
+  name?: string | null;
+  address: string;
+  addressConfirmed?: boolean;
+  addressVerified?: boolean;
+  addressType?: PickupAddressType;
+  requestedWindow: string;
+  /** @nullable */
+  confirmedDatetime?: string | null;
+  /** @nullable */
+  itemsDescribed?: string | null;
+  confirmationSent?: boolean;
+  confirmationReplied?: boolean;
+  /** @nullable */
+  assignedDriver?: string | null;
+}
+
+export interface PickupRequestUpdate {
+  phone?: string;
+  /** @nullable */
+  name?: string | null;
+  address?: string;
+  addressConfirmed?: boolean;
+  addressVerified?: boolean;
+  addressType?: PickupAddressType;
+  requestedWindow?: string;
+  /** @nullable */
+  confirmedDatetime?: string | null;
+  /** @nullable */
+  itemsDescribed?: string | null;
+  /** @nullable */
+  itemsReceived?: string | null;
+  confirmationSent?: boolean;
+  confirmationReplied?: boolean;
+  /** @nullable */
+  assignedDriver?: string | null;
+  /** @nullable */
+  outcomeNotes?: string | null;
+}
+
+export type PickupContactAttemptInputResult = typeof PickupContactAttemptInputResult[keyof typeof PickupContactAttemptInputResult];
+
+
+export const PickupContactAttemptInputResult = {
+  contacted: 'contacted',
+  no_response: 'no_response',
+} as const;
+
+export interface PickupContactAttemptInput {
+  result: PickupContactAttemptInputResult;
+  notes?: string;
+}
+
+export interface PickupOutcomeInput {
+  outcome: PickupOutcome;
+  notes?: string;
+}
+
+export type PickupCompleteInputCondition = typeof PickupCompleteInputCondition[keyof typeof PickupCompleteInputCondition];
+
+
+export const PickupCompleteInputCondition = {
+  good: 'good',
+  fair: 'fair',
+  poor: 'poor',
+} as const;
+
+export interface PickupCompleteInput {
+  itemsReceived: string;
+  condition?: PickupCompleteInputCondition;
+  category?: string;
+  notes?: string;
+}
+
+export interface PickupContactAttempt {
+  id: string;
+  pickupRequestId: string;
+  attemptNumber: number;
+  result: string;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+}
+
+export type PickupFlagType = typeof PickupFlagType[keyof typeof PickupFlagType];
+
+
+export const PickupFlagType = {
+  phone: 'phone',
+  address: 'address',
+} as const;
+
+export interface PickupFlag {
+  id: string;
+  type: PickupFlagType;
+  value: string;
+  reason: string;
+  pickupRequestId: string;
+  count: number;
+  supervisorApproved: boolean;
+  associatedPickupIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PickupRequestDetail = PickupRequest & {
+  contactHistory: PickupContactAttempt[];
+  flags: PickupFlag[];
+};
+
+export interface PickupCompletionResponse {
+  pickup: PickupRequestDetail;
+  item: DonationItem;
+}
+
+export interface PickupRouteInput {
+  linkedRouteId: string;
+  assignedDriver?: string;
+  /** @nullable */
+  confirmedDatetime?: string | null;
+}
+
+export interface PickupFlagInput {
+  type: PickupFlagType;
+  value: string;
+  reason: string;
+}
+
+export interface PickupFlagUpdate {
+  supervisorApproved?: boolean;
+}
+
+export interface DispatchBlockedResponse {
+  error: string;
+  missing: string[];
+}
+
+export interface ConfirmationTemplate {
+  id: string;
+  body: string;
+  updatedAt: string;
+}
+
+export interface ConfirmationTemplateInput {
+  body: string;
 }
 
 export type DeliveryRouteUpdateStatus = typeof DeliveryRouteUpdateStatus[keyof typeof DeliveryRouteUpdateStatus];
@@ -443,5 +908,78 @@ export const ListDonorsStage = {
   lapsing: 'lapsing',
   lapsed: 'lapsed',
   reactivated: 'reactivated',
+} as const;
+
+export type ListPickupsParams = {
+status?: ListPickupsStatus;
+flagged?: boolean;
+from?: string;
+to?: string;
+};
+
+export type ListPickupsStatus = typeof ListPickupsStatus[keyof typeof ListPickupsStatus];
+
+
+export const ListPickupsStatus = {
+  unverified: 'unverified',
+  contact_made: 'contact_made',
+  confirmed: 'confirmed',
+  dispatched: 'dispatched',
+  completed: 'completed',
+  no_show: 'no_show',
+  false_address: 'false_address',
+  cancelled: 'cancelled',
+  closed_no_response: 'closed_no_response',
+} as const;
+
+export type ListAccountsParams = {
+search?: string;
+type?: string;
+};
+
+export type ListClaimsParams = {
+status?: ListClaimsStatus;
+accountId?: string;
+itemId?: string;
+itemStage?: ListClaimsItemStage;
+};
+
+export type ListClaimsStatus = typeof ListClaimsStatus[keyof typeof ListClaimsStatus];
+
+
+export const ListClaimsStatus = {
+  submitted: 'submitted',
+  verified: 'verified',
+  approved: 'approved',
+  fulfilled: 'fulfilled',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+} as const;
+
+export type ListClaimsItemStage = typeof ListClaimsItemStage[keyof typeof ListClaimsItemStage];
+
+
+export const ListClaimsItemStage = {
+  intake: 'intake',
+  qc: 'qc',
+  storage: 'storage',
+  distributed: 'distributed',
+} as const;
+
+export type ListTransfersParams = {
+status?: ListTransfersStatus;
+accountId?: string;
+itemId?: string;
+claimId?: string;
+};
+
+export type ListTransfersStatus = typeof ListTransfersStatus[keyof typeof ListTransfersStatus];
+
+
+export const ListTransfersStatus = {
+  planned: 'planned',
+  released: 'released',
+  received: 'received',
+  cancelled: 'cancelled',
 } as const;
 

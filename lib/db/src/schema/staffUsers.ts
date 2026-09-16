@@ -7,6 +7,7 @@ export const staffUsersTable = pgTable("staff_users", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("staff"), // staff | supervisor
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

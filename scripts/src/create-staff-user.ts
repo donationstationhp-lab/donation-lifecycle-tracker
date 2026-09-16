@@ -4,7 +4,8 @@
  *
  * Usage:
  *   pnpm --filter @workspace/scripts run create-staff-user -- \
- *     --email jane@example.org --name "Jane Doe" --password "correct horse battery staple"
+ *     --email jane@example.org --name "Jane Doe" --password "correct horse battery staple" \
+ *     [--role supervisor]
  */
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
@@ -21,10 +22,11 @@ async function main() {
   const email = readFlag(args, "--email")?.trim().toLowerCase();
   const name = readFlag(args, "--name")?.trim();
   const password = readFlag(args, "--password");
+  const role = readFlag(args, "--role")?.trim() ?? "staff";
 
   if (!email || !name || !password) {
     console.error(
-      "Usage: create-staff-user -- --email <email> --name <name> --password <password>",
+      "Usage: create-staff-user -- --email <email> --name <name> --password <password> [--role supervisor]",
     );
     process.exitCode = 1;
     return;
@@ -32,6 +34,12 @@ async function main() {
 
   if (password.length < 8) {
     console.error("Password must be at least 8 characters.");
+    process.exitCode = 1;
+    return;
+  }
+
+  if (role !== "staff" && role !== "supervisor") {
+    console.error(`Invalid role "${role}". Must be "staff" or "supervisor".`);
     process.exitCode = 1;
     return;
   }
@@ -53,9 +61,10 @@ async function main() {
     email,
     name,
     passwordHash: hashPassword(password),
+    role,
   });
 
-  console.log(`Created staff account for ${name} <${email}>.`);
+  console.log(`Created staff account for ${name} <${email}> (role: ${role}).`);
 }
 
 main()

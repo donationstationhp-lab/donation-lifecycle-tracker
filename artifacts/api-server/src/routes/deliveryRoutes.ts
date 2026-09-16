@@ -1,7 +1,13 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { db, deliveryRoutesTable, routeStopsTable, donationItemsTable } from "@workspace/db";
+import {
+  db,
+  deliveryRoutesTable,
+  routeStopsTable,
+  donationItemsTable,
+  pickupRequestsTable,
+} from "@workspace/db";
 import {
   GetRouteParams,
   UpdateRouteParams,
@@ -43,6 +49,10 @@ router.post("/routes", async (req, res): Promise<void> => {
     res.status(400).json({ error: "name is required" });
     return;
   }
+  if (Array.isArray(stops) && stops.some((stop: any) => stop?.pickupRequestId)) {
+    res.status(400).json({ error: "Assign confirmed pickups from the pickup workflow" });
+    return;
+  }
 
   const routeDate =
     date ??
@@ -68,6 +78,7 @@ router.post("/routes", async (req, res): Promise<void> => {
       id: randomUUID(),
       routeId: id,
       itemId: stop.itemId,
+      pickupRequestId: null,
       stopOrder: stop.stopOrder,
       notes: stop.notes ?? null,
     }));
@@ -105,11 +116,19 @@ router.get("/routes/:id", async (req, res): Promise<void> => {
 
   const stopsWithItems = await Promise.all(
     stops.map(async (stop) => {
-      const [item] = await db
-        .select()
-        .from(donationItemsTable)
-        .where(eq(donationItemsTable.id, stop.itemId));
-      return { ...stop, item };
+      const [item] = stop.itemId
+        ? await db
+            .select()
+            .from(donationItemsTable)
+            .where(eq(donationItemsTable.id, stop.itemId))
+        : [];
+      const [pickup] = stop.pickupRequestId
+        ? await db
+            .select()
+            .from(pickupRequestsTable)
+            .where(eq(pickupRequestsTable.id, stop.pickupRequestId))
+        : [];
+      return { ...stop, item: item ?? null, pickup: pickup ?? null };
     })
   );
 
@@ -131,7 +150,28 @@ router.patch("/routes/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  if (parsed.data.stops?.some((stop: any) => stop.pickupRequestId)) {
+    res.status(400).json({ error: "Assign confirmed pickups from the pickup workflow" });
+    return;
+  }
+
   const { stops, date, ...routeFields } = parsed.data;
+
+  if (stops !== undefined) {
+    const existingPickupStops = await db
+      .select({ pickupRequestId: routeStopsTable.pickupRequestId })
+      .from(routeStopsTable)
+      .where(eq(routeStopsTable.routeId, params.data.id));
+    const hasWorkflowPickupStop = existingPickupStops.some(
+      (stop) => stop.pickupRequestId !== null,
+    );
+    if (hasWorkflowPickupStop) {
+      res.status(409).json({
+        error: "Routes with pickup stops cannot replace their manifest through route editing",
+      });
+      return;
+    }
+  }
 
   const [route] = await db
     .update(deliveryRoutesTable)
@@ -151,6 +191,7 @@ router.patch("/routes/:id", async (req, res): Promise<void> => {
         id: randomUUID(),
         routeId: route.id,
         itemId: stop.itemId,
+        pickupRequestId: (stop as any).pickupRequestId ?? null,
         stopOrder: stop.stopOrder,
         notes: stop.notes ?? null,
       }));

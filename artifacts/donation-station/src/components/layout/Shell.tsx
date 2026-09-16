@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, Users, Printer, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, Users, Printer, LogOut, ClipboardCheck, Flag, FileText, ArrowRightLeft, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
@@ -32,6 +32,11 @@ export function Shell({ children }: { children: ReactNode }) {
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/items', label: 'Items', icon: Package },
     { href: '/donors', label: 'Donors', icon: Users },
+    { href: '/accounts', label: 'Accounts', icon: Building2 },
+    { href: '/claims', label: 'Claims', icon: FileText },
+    { href: '/transfers', label: 'Transfers', icon: ArrowRightLeft },
+    { href: '/pickups', label: 'Pickups', icon: ClipboardCheck },
+    { href: '/pickup-flags', label: 'Flags', icon: Flag },
     { href: '/expiring', label: 'Expiring', icon: AlertTriangle },
     { href: '/routes', label: 'Routes', icon: Truck },
     { href: '/pending', label: 'Pending Review', icon: Clock, badge: pendingCount },

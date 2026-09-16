@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, desc, and, like, ilike } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { db, donationItemsTable, stageHistoryTable, donorsTable } from "@workspace/db";
+import { db, donationItemsTable, stageHistoryTable, donorsTable, claimsTable, transfersTable } from "@workspace/db";
 import {
   ListItemsQueryParams,
   CreateItemBody,
@@ -385,7 +385,13 @@ router.get("/items/:id", async (req, res): Promise<void> => {
     .where(eq(stageHistoryTable.itemId, item.id))
     .orderBy(stageHistoryTable.timestamp);
 
-  res.json({ ...item, history });
+  const [claims, transfers] = await Promise.all([
+    db.select({ id: claimsTable.id, accountId: claimsTable.accountId, status: claimsTable.status })
+      .from(claimsTable).where(eq(claimsTable.itemId, item.id)),
+    db.select({ id: transfersTable.id, claimId: transfersTable.claimId, accountId: transfersTable.accountId, status: transfersTable.status })
+      .from(transfersTable).where(eq(transfersTable.itemId, item.id)),
+  ]);
+  res.json({ ...item, history, claims, transfers });
 });
 
 // ── PATCH /items/:id ──────────────────────────────────────────────────────────

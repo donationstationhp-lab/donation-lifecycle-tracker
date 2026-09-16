@@ -26,3 +26,7 @@ channel = "stable-25_05"
 
 [userenv.shared]
 # DONATION_STATION_API_KEY must be set via the Replit Secrets pane, never committed here.
+# The ATTEND Google Sheets sync and Notion health check are optional features.
+# To enable them, set these via the Replit Secrets pane (never commit values here):
+#   ATTEND_SHEETS_SPREADSHEET_ID, ATTEND_SHEETS_RANGE (Google Sheets connector via @replit/connectors-sdk)
+#   NOTION_API_KEY, NOTION_ITEMS_DATA_SOURCE_URL, NOTION_ROUTES_DATA_SOURCE_URL

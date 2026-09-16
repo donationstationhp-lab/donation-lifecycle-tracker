@@ -6,11 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DonationItem } from './donationItem';
+import type { PickupRequest } from './pickupRequest';
 
 export interface RouteStopDetail {
-  itemId: string;
+  /** @nullable */
+  itemId?: string | null;
+  /** @nullable */
+  pickupRequestId?: string | null;
   stopOrder: number;
   /** @nullable */
   notes?: string | null;
-  item: DonationItem;
+  item?: DonationItem | null;
+  pickup?: PickupRequest | null;
 }

@@ -7,7 +7,10 @@
  */
 
 export interface RouteStop {
-  itemId: string;
+  /** @nullable */
+  itemId?: string | null;
+  /** @nullable */
+  pickupRequestId?: string | null;
   stopOrder: number;
   /** @nullable */
   notes?: string | null;

@@ -33,8 +33,8 @@ function cookieOptions() {
   };
 }
 
-function toPublicUser(user: { id: string; email: string; name: string }) {
-  return { id: user.id, email: user.email, name: user.name };
+function toPublicUser(user: { id: string; email: string; name: string; role: string }) {
+  return { id: user.id, email: user.email, name: user.name, role: user.role };
 }
 
 router.post("/auth/login", async (req, res): Promise<void> => {
