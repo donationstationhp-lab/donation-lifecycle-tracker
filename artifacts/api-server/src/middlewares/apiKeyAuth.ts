@@ -6,8 +6,22 @@ import { getStartupSecret } from "../lib/startupSecrets";
 export type StaffRole = "staff" | "supervisor";
 export type AppRole = StaffRole | "community";
 const roleCache = new Map<string, { role: AppRole; expiresAt: number }>();
-// Temporary stopgap until Managed Auth Production role assignment is resolved via Pro dashboard access or Replit support.
-const STAFF_EMAIL_ALLOWLIST = ["dewaynelogan79@gmail.com"];
+// Configurable stopgap until Managed Auth Production role assignment is resolved via Pro dashboard access or Replit support.
+export function parseStaffEmailAllowlist(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+const STAFF_EMAIL_ALLOWLIST = parseStaffEmailAllowlist(
+  process.env.STAFF_EMAIL_ALLOWLIST,
+);
+if (STAFF_EMAIL_ALLOWLIST.length === 0) {
+  console.warn(
+    "STAFF_EMAIL_ALLOWLIST is missing or empty; no fallback staff email access is configured.",
+  );
+}
 
 type ApiAuthRequest = Request;
 type RoleResolver = (req: ApiAuthRequest) => Promise<AppRole | null>;

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { NextFunction, Request, Response } from "express";
 import {
   createApiKeyAuth,
+  parseStaffEmailAllowlist,
   requireCommunity,
   requireStaff,
   requireSupervisor,
@@ -12,6 +13,20 @@ import {
 
 const SERVER_API_KEY = "server-held-test-key";
 const DONOR_PHONE = "555-0100";
+
+describe("staff email allowlist configuration", () => {
+  it("accepts comma-separated addresses with trimmed, case-insensitive matching", () => {
+    assert.deepEqual(
+      parseStaffEmailAllowlist(" Staff@One.Example,SECOND@Example.com , "),
+      ["staff@one.example", "second@example.com"],
+    );
+  });
+
+  it("uses an empty allowlist when configuration is missing or empty", () => {
+    assert.deepEqual(parseStaffEmailAllowlist(undefined), []);
+    assert.deepEqual(parseStaffEmailAllowlist(" ,  , "), []);
+  });
+});
 
 type ResponseState = {
   statusCode: number;
