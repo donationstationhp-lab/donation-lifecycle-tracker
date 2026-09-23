@@ -11,9 +11,11 @@ export type StaffRole = "staff" | "supervisor";
  * A valid API key is treated as supervisor-level access, since it's used by
  * trusted CLI/automation callers rather than an individual staff member.
  *
- * When DONATION_STATION_API_KEY is unset entirely, requests are allowed
- * through without a session either — a dev-only fallback for running
- * locally without secrets configured.
+ * When DONATION_STATION_API_KEY is unset entirely AND NODE_ENV is not
+ * "production", requests are allowed through without a session either — a
+ * dev-only fallback for running locally without secrets configured. In
+ * production this fails closed instead: an unset key is a misconfiguration,
+ * not an invitation to run with no auth at all.
  */
 export function staffAuth(req: Request, res: Response, next: NextFunction): void {
   const expectedKey = process.env.DONATION_STATION_API_KEY;
@@ -43,7 +45,7 @@ export function staffAuth(req: Request, res: Response, next: NextFunction): void
     return;
   }
 
-  if (!expectedKey) {
+  if (!expectedKey && process.env.NODE_ENV !== "production") {
     res.locals.staffRole = "supervisor" satisfies StaffRole;
     res.locals.authMethod = "dev-fallback";
     next();
