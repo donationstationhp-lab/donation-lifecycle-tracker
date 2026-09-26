@@ -11,6 +11,13 @@ import { TierBadge, StageChip, ConditionChip } from '@/components/shared';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
+const TIER_LABELS: Record<string, string> = {
+  Tactical: "Ready to go today",
+  Immediate: "Needed within hours",
+  Essential: "Keeps stations running",
+  Reserve: "Holding for next week",
+};
+
 function usePendingCount() {
   const { data } = useQuery<unknown[]>({
     queryKey: ['pending-count'],
@@ -54,6 +61,16 @@ export default function Dashboard() {
 
   const maxTierCount = Math.max(...summary.byTier.map(t => t.count), 1);
 
+  // Seed for the upcycled-tee shop: Reserve-tier apparel/fabric items in good condition.
+  const marketReadyCount = summary.recentItems.filter((item) => {
+    const category = item.category?.toLowerCase() ?? '';
+    return (
+      item.condition === 'good' &&
+      item.tier === 'R' &&
+      (category.includes('apparel') || category.includes('tee') || category.includes('fabric'))
+    );
+  }).length;
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <h1 className="text-2xl font-bold tracking-tight">Operations Overview</h1>
@@ -69,7 +86,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{summary.totalItems}</div>
-            <p className="text-xs text-muted-foreground mt-1 tracking-tight">In system currently</p>
+            <p className="text-xs text-muted-foreground mt-1 tracking-tight">In circulation across universal stations</p>
           </CardContent>
         </Card>
 
@@ -84,7 +101,7 @@ export default function Dashboard() {
             <div className="text-3xl font-bold text-green-700">
               {summary.byStage.find(s => s.stage === 'distributed')?.count || 0}
             </div>
-            <p className="text-xs text-muted-foreground mt-1 tracking-tight">Successfully delivered</p>
+            <p className="text-xs text-muted-foreground mt-1 tracking-tight">Moved to new ownership</p>
           </CardContent>
         </Card>
 
@@ -101,7 +118,7 @@ export default function Dashboard() {
                 {summary.expiringCount}
               </div>
               <p className={`text-xs mt-1 tracking-tight ${summary.expiringCount > 0 ? 'text-orange-700' : 'text-muted-foreground'}`}>
-                Within 14 days
+                Needs action in 14 days
               </p>
             </CardContent>
           </Link>
@@ -121,7 +138,11 @@ export default function Dashboard() {
                 {pendingCount}
               </div>
               <p className={`text-xs mt-1 tracking-tight ${pendingCount > 0 ? 'text-amber-700' : 'text-muted-foreground'}`}>
-                {pendingCount === 1 ? 'Donor submission' : 'Donor submissions'}
+                {pendingCount === 0
+                  ? 'All caught up — no new donations'
+                  : pendingCount === 1
+                    ? 'New donation waiting'
+                    : 'New donations waiting'}
               </p>
             </CardContent>
           </Link>
@@ -225,23 +246,47 @@ export default function Dashboard() {
                 E: 'Essential',
                 R: 'Reserve',
               };
+              const tierName = tierNames[tier.tier];
               return (
-                <div key={tier.tier} className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-muted-foreground w-4">{tier.tier}</span>
-                  <div className="flex-1 bg-secondary rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${tierColors[tier.tier] ?? 'bg-primary'} transition-all`}
-                      style={{ width: `${(tier.count / maxTierCount) * 100}%` }}
-                    />
+                <div key={tier.tier} className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-muted-foreground w-4">{tier.tier}</span>
+                    <div className="flex-1 bg-secondary rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${tierColors[tier.tier] ?? 'bg-primary'} transition-all`}
+                        style={{ width: `${(tier.count / maxTierCount) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-semibold w-8 text-right">{tier.count}</span>
+                    <span className="text-xs text-muted-foreground w-20 hidden sm:block">
+                      {tierName}
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold w-8 text-right">{tier.count}</span>
-                  <span className="text-xs text-muted-foreground w-20 hidden sm:block">
-                    {tierNames[tier.tier]}
-                  </span>
+                  <p className="text-xs text-muted-foreground pl-7">{TIER_LABELS[tierName]}</p>
                 </div>
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Market Ready — seed for the upcycled-tee shop */}
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">Market Ready</CardTitle>
+            <CardDescription>
+              Reserve-tier apparel and fabric in good condition, ready for the upcycled-tee shop
+            </CardDescription>
+          </div>
+          <div className="text-3xl font-bold text-foreground">{marketReadyCount}</div>
+        </CardHeader>
+        <CardContent>
+          <Link href="/market/draft/new">
+            <Button size="sm" className="flex items-center gap-1">
+              Create market draft <ArrowRight className="w-3 h-3" />
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 
@@ -266,12 +311,10 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3">
                     <TierBadge tier={item.tier} />
                     <div>
-                      <div className="font-medium text-foreground flex items-center gap-2">
-                        {item.name}
-                        <span className="text-xs font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-                          {item.itemId}
-                        </span>
-                      </div>
+                      <div className="font-medium text-foreground">{item.name}</div>
+                      <span className="inline-block text-xs font-mono text-muted-foreground bg-secondary px-1.5 py-0.5 rounded mt-1">
+                        {item.itemId}
+                      </span>
                       <div className="text-xs text-muted-foreground mt-1 flex gap-2 items-center">
                         <span>{item.category}</span>
                         <span>•</span>
@@ -292,6 +335,23 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick links */}
+      <Card className="shadow-sm">
+        <CardContent className="py-4 flex flex-wrap gap-4">
+          <Link href="/items" className="text-sm font-medium text-primary hover:underline">
+            View all items
+          </Link>
+          <a
+            href="/donation-station/donate"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Share donation link
+          </a>
         </CardContent>
       </Card>
     </div>
