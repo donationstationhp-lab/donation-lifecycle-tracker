@@ -106,6 +106,9 @@ def get_sm_frame(d: date) -> dict:
     # Oct2(1·1·4·2), Oct3(1·1·4·3)
     address = f"{year_arc}·{attention}·{week_num}·{intention}"
 
+    # Day–Year Synthesis: Purpose + Year Arc
+    day_year = reduce_sm(purpose + year_arc)
+
     return {
         "date":        d.isoformat(),
         "attention":   attention,
@@ -115,6 +118,7 @@ def get_sm_frame(d: date) -> dict:
         "method_b":    method_b,
         "convergence": convergence,
         "year_arc":    year_arc,
+        "day_year":    day_year,
         "stage":       stage,
         "week_num":    week_num,
         "address":     address,
@@ -234,8 +238,10 @@ def format_reading(d: date) -> tuple[str, dict]:
     lines.append(f"    › {SM_ACTIONS[p]}")
 
     # Secondary lens
-    lines.append("\n── Secondary Lens · Method B + Convergence ──")
-    lines.append(f"  Method B: {frame['method_b']} — {SM_NAMES[frame['method_b']]}")
+    lines.append("\n── Secondary Lens · Three Paths ──")
+    lines.append(f"  Method B (digit concat): {frame['method_b']} — {SM_NAMES[frame['method_b']]}")
+    lines.append(f"  Numeric sum ({d.month}+{d.day}+{d.year}={d.month+d.day+d.year}): {frame['method_b']} — {SM_NAMES[frame['method_b']]}")
+    lines.append(f"  Day–Year Synthesis (P{p}+Arc{frame['year_arc']}={p+frame['year_arc']}): {frame['day_year']} — {SM_NAMES[frame['day_year']]}")
     lines.append(f"  Convergence: {frame['convergence']} — {SM_NAMES[frame['convergence']]}")
     lines.append(f"  Address: {frame['address']}")
 
@@ -312,6 +318,7 @@ def format_reading(d: date) -> tuple[str, dict]:
         "intention":   frame["intention"],
         "purpose":     frame["purpose"],
         "method_b":    frame["method_b"],
+        "day_year":    frame["day_year"],
         "convergence": frame["convergence"],
         "address":     frame["address"],
         "stage":       frame["stage"],
