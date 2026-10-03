@@ -32,6 +32,7 @@ import type {
   CommunityOwnership,
   CommunityOwnershipCandidate,
   CommunityOwnershipInput,
+  ConScireCalendar,
   ConfirmationTemplate,
   ConfirmationTemplateInput,
   DashboardSummary,
@@ -49,6 +50,8 @@ import type {
   DonorInput,
   ErrorResponse,
   ExpiringItemsResponse,
+  GetConScireWindows400,
+  GetConScireWindowsParams,
   HealthStatus,
   ListAccountsParams,
   ListAttendDeliveryAlertsParams,
@@ -111,6 +114,91 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetConScireWindowsUrl = (params?: GetConScireWindowsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/con-scire/windows?${stringifiedParams}` : `/api/con-scire/windows`
+}
+
+/**
+ * Scans UTC calendar dates, including today. Convergence is the digital root of attention plus intention plus purpose.
+ * @summary Public Con-Scire cognitive calendar windows
+ */
+export const getConScireWindows = async (params?: GetConScireWindowsParams, options?: Parameters<typeof customFetch>[1]): Promise<ConScireCalendar> => {
+
+  return customFetch<ConScireCalendar>(getGetConScireWindowsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetConScireWindowsQueryKey = (params?: GetConScireWindowsParams,) => {
+    return [
+    `/api/con-scire/windows`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetConScireWindowsQueryOptions = <TData = Awaited<ReturnType<typeof getConScireWindows>>, TError = ErrorType<GetConScireWindows400>>(params?: GetConScireWindowsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConScireWindows>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetConScireWindowsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getConScireWindows>>> = ({ signal }) => getConScireWindows(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getConScireWindows>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetConScireWindowsQueryResult = NonNullable<Awaited<ReturnType<typeof getConScireWindows>>>
+export type GetConScireWindowsQueryError = ErrorType<GetConScireWindows400>
+
+
+/**
+ * @summary Public Con-Scire cognitive calendar windows
+ */
+
+export function useGetConScireWindows<TData = Awaited<ReturnType<typeof getConScireWindows>>, TError = ErrorType<GetConScireWindows400>>(
+ params?: GetConScireWindowsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getConScireWindows>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetConScireWindowsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getHealthCheckUrl = () => {
 

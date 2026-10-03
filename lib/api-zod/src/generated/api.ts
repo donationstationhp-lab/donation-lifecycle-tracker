@@ -9,6 +9,72 @@ import * as zod from 'zod';
 
 
 /**
+ * Scans UTC calendar dates, including today. Convergence is the digital root of attention plus intention plus purpose.
+ * @summary Public Con-Scire cognitive calendar windows
+ */
+export const getConScireWindowsQueryStageDefault = `all`;
+export const getConScireWindowsQueryDaysDefault = `30`;
+export const getConScireWindowsQueryDaysRegExp = new RegExp('^([1-9]|[1-8][0-9]|90)$');
+
+
+export const GetConScireWindowsQueryParams = zod.object({
+  "stage": zod.enum(['all', 'intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']).default(getConScireWindowsQueryStageDefault),
+  "days": zod.coerce.string().regex(getConScireWindowsQueryDaysRegExp).default(getConScireWindowsQueryDaysDefault)
+})
+
+export const getConScireWindowsResponseDaysMax = 90;
+export const getConScireWindowsResponseDaysMultipleOf = 1;
+
+export const getConScireWindowsResponseWindowsItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getConScireWindowsResponseWindowsItemPurposePositionMax = 9;
+export const getConScireWindowsResponseWindowsItemPurposePositionMultipleOf = 1;
+
+export const getConScireWindowsResponseWindowsItemStageMax = 16;
+export const getConScireWindowsResponseWindowsItemStageMultipleOf = 1;
+
+export const getConScireWindowsResponseWindowsItemConvergenceMax = 9;
+export const getConScireWindowsResponseWindowsItemConvergenceMultipleOf = 1;
+
+export const getConScireWindowsResponseStagesItemDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getConScireWindowsResponseStagesItemPurposePositionMax = 9;
+export const getConScireWindowsResponseStagesItemPurposePositionMultipleOf = 1;
+
+export const getConScireWindowsResponseStagesItemStageMax = 16;
+export const getConScireWindowsResponseStagesItemStageMultipleOf = 1;
+
+export const getConScireWindowsResponseStagesItemConvergenceMax = 9;
+export const getConScireWindowsResponseStagesItemConvergenceMultipleOf = 1;
+
+
+
+export const GetConScireWindowsResponse = zod.object({
+  "days": zod.number().min(1).max(getConScireWindowsResponseDaysMax).multipleOf(getConScireWindowsResponseDaysMultipleOf),
+  "startDate": zod.coerce.date(),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']).optional(),
+  "windows": zod.array(zod.object({
+  "date": zod.string().regex(getConScireWindowsResponseWindowsItemDateRegExp),
+  "purposePosition": zod.number().min(1).max(getConScireWindowsResponseWindowsItemPurposePositionMax).multipleOf(getConScireWindowsResponseWindowsItemPurposePositionMultipleOf),
+  "purposeName": zod.string(),
+  "stage": zod.number().min(1).max(getConScireWindowsResponseWindowsItemStageMax).multipleOf(getConScireWindowsResponseWindowsItemStageMultipleOf),
+  "stageName": zod.string(),
+  "stageEtymology": zod.string(),
+  "aligned": zod.boolean(),
+  "convergence": zod.number().min(1).max(getConScireWindowsResponseWindowsItemConvergenceMax).multipleOf(getConScireWindowsResponseWindowsItemConvergenceMultipleOf)
+})).optional(),
+  "stages": zod.record(zod.string(), zod.array(zod.object({
+  "date": zod.string().regex(getConScireWindowsResponseStagesItemDateRegExp),
+  "purposePosition": zod.number().min(1).max(getConScireWindowsResponseStagesItemPurposePositionMax).multipleOf(getConScireWindowsResponseStagesItemPurposePositionMultipleOf),
+  "purposeName": zod.string(),
+  "stage": zod.number().min(1).max(getConScireWindowsResponseStagesItemStageMax).multipleOf(getConScireWindowsResponseStagesItemStageMultipleOf),
+  "stageName": zod.string(),
+  "stageEtymology": zod.string(),
+  "aligned": zod.boolean(),
+  "convergence": zod.number().min(1).max(getConScireWindowsResponseStagesItemConvergenceMax).multipleOf(getConScireWindowsResponseStagesItemConvergenceMultipleOf)
+}))).optional()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

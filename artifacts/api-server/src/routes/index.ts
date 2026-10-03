@@ -15,6 +15,7 @@ import attendRouter from "./attend";
 import appointmentsRouter, { publicAppointmentsRouter } from "./appointments";
 import serviceActivitiesRouter from "./serviceActivities";
 import communityRouter from "./community";
+import conScireRouter from "./conScire";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,7 @@ router.use(publicRoutes);   // /public/donate
 router.use(publicTrackRouter); // /public/track/:trackingCode
 router.use(publicAppointmentsRouter); // public slots and booking
 router.use(notionHealthRouter); // /notion/health
+router.use(conScireRouter); // /con-scire/windows
 
 // ── Auth gate ────────────────────────────────────────────────────────────────
 router.use(apiKeyAuth);

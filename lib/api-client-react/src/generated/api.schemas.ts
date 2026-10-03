@@ -5,6 +5,57 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+export type ConScireCalendarStage = typeof ConScireCalendarStage[keyof typeof ConScireCalendarStage];
+
+
+export const ConScireCalendarStage = {
+  intake: 'intake',
+  qc: 'qc',
+  storage: 'storage',
+  matched: 'matched',
+  scheduled: 'scheduled',
+  distributed: 'distributed',
+  closed: 'closed',
+} as const;
+
+export interface ConScireWindow {
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  date: string;
+  /**
+     * @minimum 1
+     * @maximum 9
+     */
+  purposePosition: number;
+  purposeName: string;
+  /**
+     * @minimum 1
+     * @maximum 16
+     */
+  stage: number;
+  stageName: string;
+  stageEtymology: string;
+  aligned: boolean;
+  /**
+     * @minimum 1
+     * @maximum 9
+     */
+  convergence: number;
+}
+
+export type ConScireCalendarStages = {[key: string]: ConScireWindow[]};
+
+export interface ConScireCalendar {
+  /**
+     * @minimum 1
+     * @maximum 90
+     */
+  days: number;
+  startDate: string;
+  stage?: ConScireCalendarStage;
+  windows?: ConScireWindow[];
+  stages?: ConScireCalendarStages;
+}
+
 export type AttendOutboxEntryStatus = typeof AttendOutboxEntryStatus[keyof typeof AttendOutboxEntryStatus];
 
 
@@ -1051,6 +1102,32 @@ export interface DeliveryRouteUpdate {
   notes?: string;
   stops?: RouteStop[];
 }
+
+export type GetConScireWindowsParams = {
+stage?: GetConScireWindowsStage;
+/**
+ * @pattern ^([1-9]|[1-8][0-9]|90)$
+ */
+days?: string;
+};
+
+export type GetConScireWindowsStage = typeof GetConScireWindowsStage[keyof typeof GetConScireWindowsStage];
+
+
+export const GetConScireWindowsStage = {
+  all: 'all',
+  intake: 'intake',
+  qc: 'qc',
+  storage: 'storage',
+  matched: 'matched',
+  scheduled: 'scheduled',
+  distributed: 'distributed',
+  closed: 'closed',
+} as const;
+
+export type GetConScireWindows400 = {
+  error: string;
+};
 
 export type ListItemsParams = {
 stage?: ListItemsStage;
