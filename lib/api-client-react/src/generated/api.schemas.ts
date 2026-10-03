@@ -446,6 +446,8 @@ export interface HealthStatus {
 
 export interface ErrorResponse {
   error: string;
+  /** Machine-readable error code; DATABASE_UNAVAILABLE for temporary database outages (HTTP 503). */
+  code?: string;
 }
 
 /**

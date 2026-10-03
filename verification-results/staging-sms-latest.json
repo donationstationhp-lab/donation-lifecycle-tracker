@@ -1,0 +1,16 @@
+{
+  "environment": "staging",
+  "startedAt": "2026-10-03T07:21:16.652Z",
+  "finishedAt": "2026-10-03T07:21:16.653Z",
+  "outcome": "BLOCKED",
+  "reason": "Configuration incomplete; no SMS was attempted.",
+  "statuses": [],
+  "configurationIssues": [
+    "Refusing to run in a production runtime.",
+    "SMS_STAGING_ENVIRONMENT must explicitly be staging.",
+    "An explicit --confirm-real-send flag is required.",
+    "SMS_STAGING_ACCOUNT_SID must identify the dedicated staging Twilio account; no account auto-selection is allowed.",
+    "SMS_STAGING_FROM_NUMBER is required in E.164 format (+country code and digits, no spaces).",
+    "SMS_STAGING_PHONE_NUMBER is required in E.164 format for an approved, consenting test recipient."
+  ]
+}

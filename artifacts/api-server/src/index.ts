@@ -44,7 +44,7 @@ async function start(): Promise<void> {
       { default: app },
       { startAttendOutboxRetryWorker },
       { startTrackingOtpCleanupWorker },
-      { initializeClaimTrackingCodes },
+      { initializeClaimTrackingCodes, databaseConnection, isDatabaseConnectionError },
     ] = await Promise.all([
       import("./app"),
       import("./lib/attendSheets"),
@@ -52,12 +52,25 @@ async function start(): Promise<void> {
       import("@workspace/db"),
     ]);
 
-    const assigned = await initializeClaimTrackingCodes();
-    if (assigned.length > 0) {
-      logger.info(
-        { assignedClaimTrackingCodes: assigned.length },
-        "Assigned missing claim tracking codes",
-      );
+    let databaseInitialized = false;
+    const initializeDatabase = async () => {
+      if (databaseInitialized) return;
+      const assigned = await initializeClaimTrackingCodes();
+      databaseInitialized = true;
+      if (assigned.length > 0) {
+        logger.info(
+          { assignedClaimTrackingCodes: assigned.length },
+          "Assigned missing claim tracking codes",
+        );
+      }
+    };
+    databaseConnection.setBeforeReady(initializeDatabase);
+    try {
+      await initializeDatabase();
+    } catch (error) {
+      if (!isDatabaseConnectionError(error)) throw error;
+      databaseConnection.reportFailure(error);
+      logger.warn("Starting API with database unavailable; initialization will resume after reconnection");
     }
 
     app.listen(port, (err) => {

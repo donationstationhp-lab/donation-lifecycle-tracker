@@ -7,6 +7,7 @@ import {
   capacitySlotsTable,
   claimsTable,
   db,
+  isDatabaseConnectionError,
   locationsTable,
   stageHistoryTable,
   transferHistoryTable,
@@ -242,6 +243,7 @@ publicAppointmentsRouter.post("/public/appointments", async (req, res): Promise<
     const [location] = await db.select().from(locationsTable).where(eq(locationsTable.id, appointment.locationId));
     res.status(201).json(publicAppointment(appointment, location));
   } catch (error) {
+    if (isDatabaseConnectionError(error)) throw error;
     res.status(409).json({ error: "Appointment request could not be completed" });
   }
 });
@@ -441,6 +443,7 @@ appointmentsRouter.patch("/appointments/:id/status", async (req, res): Promise<v
   if (!updated) { res.status(404).json({ error: "Appointment not found" }); return; }
   res.json(updated);
   } catch (error) {
+    if (isDatabaseConnectionError(error)) throw error;
     res.status(409).json({ error: error instanceof Error ? error.message : "Appointment could not be updated" });
   }
 });

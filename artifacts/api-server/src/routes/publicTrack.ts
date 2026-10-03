@@ -5,6 +5,8 @@ import {
   claimHistoryTable,
   claimsTable,
   db,
+  databaseConnection,
+  isDatabaseConnectionError,
   ensureClaimTrackingCodes,
   recipientAccountsTable,
   trackingOtpsTable,
@@ -361,7 +363,7 @@ export function startTrackingOtpCleanupWorker(
   let running = false;
   let stopped = false;
   const runNow = async (): Promise<void> => {
-    if (stopped || running) return;
+    if (stopped || running || !databaseConnection.isAvailable) return;
     running = true;
     try {
       await cleanupExpiredTrackingOtps(
@@ -372,7 +374,7 @@ export function startTrackingOtpCleanupWorker(
     } catch (error) {
       logger.error(
         {
-          error: error instanceof Error ? error.message : "Unknown verification cleanup error",
+          error: isDatabaseConnectionError(error) ? "Database temporarily unavailable" : error instanceof Error ? error.message : "Unknown verification cleanup error",
         },
         "Public tracking verification cleanup failed",
       );

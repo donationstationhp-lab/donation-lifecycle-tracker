@@ -4,6 +4,9 @@ info:
   title: Api
   version: 0.1.0
   description: Donation Station API
+# Database-dependent operations may return 503 with ErrorResponse and
+# code DATABASE_UNAVAILABLE, plus Retry-After (seconds). Failed user writes are
+# never automatically replayed. Health and calendar operations remain available.
 servers:
   - url: /api
     description: Base API path
@@ -1581,6 +1584,9 @@ components:
       properties:
         error:
           type: string
+        code:
+          type: string
+          description: Machine-readable error code; DATABASE_UNAVAILABLE for temporary database outages (HTTP 503).
       required:
         - error
 

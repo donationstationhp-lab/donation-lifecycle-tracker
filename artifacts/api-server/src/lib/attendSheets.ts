@@ -1,6 +1,6 @@
 import { ReplitConnectors } from "@replit/connectors-sdk";
 import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
-import { attendDeliveryAlertsTable, db, notificationOutboxTable } from "@workspace/db";
+import { attendDeliveryAlertsTable, db, databaseConnection, isDatabaseConnectionError, notificationOutboxTable } from "@workspace/db";
 import { randomUUID } from "node:crypto";
 import { logger } from "./logger";
 
@@ -390,14 +390,25 @@ export function deliverAttendOutboxBestEffort(
   retryOptions: AttendOutboxRetryOptions = {},
 ): void {
   void deliverAttendOutbox(id, retryOptions.adapter ?? new GoogleSheetsAttendAdapter(), retryOptions).catch((error) => {
-    logger.warn({ outboxId: id, error: error instanceof Error ? error.message : "Unknown outbox error" }, "ATTEND outbox delivery failed");
+    logger.warn({
+      outboxId: id,
+      error: isDatabaseConnectionError(error)
+        ? "Database temporarily unavailable"
+        : error instanceof Error ? error.message : "Unknown outbox error",
+    }, "ATTEND outbox delivery failed");
   });
 }
 
 export async function deliverAttendOutboxByDedupeKey(dedupeKey: string): Promise<void> {
-  const [message] = await db.select({ id: notificationOutboxTable.id }).from(notificationOutboxTable)
-    .where(eq(notificationOutboxTable.dedupeKey, dedupeKey));
-  if (message) deliverAttendOutboxBestEffort(message.id);
+  // Called after the response has been sent. A DB blip must not create an
+  // unhandled rejection; the durable outbox retry worker will pick this up.
+  try {
+    const [message] = await db.select({ id: notificationOutboxTable.id }).from(notificationOutboxTable)
+      .where(eq(notificationOutboxTable.dedupeKey, dedupeKey));
+    if (message) deliverAttendOutboxBestEffort(message.id);
+  } catch {
+    logger.warn("ATTEND immediate outbox lookup deferred to retry worker");
+  }
 }
 
 export async function retryAttendOutboxBatch(
@@ -433,13 +444,13 @@ export function startAttendOutboxRetryWorker(
   let running = false;
   let stopped = false;
   const runNow = async (): Promise<void> => {
-    if (stopped || running) return;
+    if (stopped || running || !databaseConnection.isAvailable) return;
     running = true;
     try {
       await retryAttendOutboxBatch(options);
     } catch (error) {
       logger.error(
-        { error: error instanceof Error ? error.message : "Unknown outbox worker error" },
+        { error: isDatabaseConnectionError(error) ? "Database temporarily unavailable" : error instanceof Error ? error.message : "Unknown outbox worker error" },
         "ATTEND outbox retry worker failed",
       );
     } finally {

@@ -16,25 +16,29 @@ import appointmentsRouter, { publicAppointmentsRouter } from "./appointments";
 import serviceActivitiesRouter from "./serviceActivities";
 import communityRouter from "./community";
 import conScireRouter from "./conScire";
+import { requireDatabase } from "../middlewares/databaseAvailability";
 
 const router: IRouter = Router();
 
 // ── Unauthenticated endpoints ────────────────────────────────────────────────
 // These are registered BEFORE the auth middleware.
 router.use(healthRouter);   // /healthz  /health
+router.use(notionHealthRouter); // /notion/health
+router.use(conScireRouter); // /con-scire/windows
+router.use("/public", requireDatabase);
 router.use(publicRoutes);   // /public/donate
 router.use(publicTrackRouter); // /public/track/:trackingCode
 router.use(publicAppointmentsRouter); // public slots and booking
-router.use(notionHealthRouter); // /notion/health
-router.use(conScireRouter); // /con-scire/windows
 
 // ── Auth gate ────────────────────────────────────────────────────────────────
 router.use(apiKeyAuth);
 
 // ── Protected endpoints ──────────────────────────────────────────────────────
+router.use("/community", requireDatabase);
 router.use(communityRouter);
 router.use(requireStaff);
-router.use(protectedHealthRouter); // /health
+router.use(protectedHealthRouter); // /health (database-independent)
+router.use(requireDatabase);
 router.use(itemsRouter);
 router.use(donorsRouter);
 router.use(dashboardRouter);

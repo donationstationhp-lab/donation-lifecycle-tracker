@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DashboardRefreshTime } from '@/components/dashboard/shared';
+import { BestDaysPanel } from '@/components/dashboard/BestDaysPanel';
 
 const dateBoundary = (value: string, endOfDay = false) => {
   if (!value) return undefined;
@@ -65,6 +66,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="space-y-6">
+        <BestDaysPanel />
         <Skeleton className="h-32 rounded-xl w-full" />
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Skeleton className="h-28 rounded-xl" />
@@ -80,8 +82,11 @@ export default function Dashboard() {
 
   if (isError || !summary) {
     return (
-      <div className="p-8 text-center bg-destructive/10 text-destructive rounded-xl border border-destructive/20 font-medium">
-        Failed to load operations dashboard. Please try again.
+      <div className="space-y-6">
+        <div className="p-8 text-center bg-destructive/10 text-destructive rounded-xl border border-destructive/20 font-medium">
+          Failed to load operations dashboard. Please try again.
+        </div>
+        <BestDaysPanel />
       </div>
     );
   }
@@ -119,6 +124,8 @@ export default function Dashboard() {
           Receive &rarr; Gain &rarr; Give &rarr; Build &rarr; Focus &rarr; Create &rarr; Master Build &rarr; Construct Bridging &rarr; Form Relationships &rarr; Universally Service
         </p>
       </div>
+
+      <BestDaysPanel />
 
       {isSupervisor && (
         <section aria-labelledby="attend-alerts-heading">
