@@ -43,10 +43,20 @@ def chicago_today() -> date:
 
 
 def reduce_sm(n: int) -> int:
-    """Reduce to 1–10. Stops at 10 (Knowledge-Cipher, integration) or single digit. 0→9."""
-    while n > 10:
+    """Reduce to 1–9 by digit sum. 0→9."""
+    while n > 9:
         n = sum(int(d) for d in str(n))
     return n if n > 0 else 9
+
+
+def reduce_sm_noted(n: int) -> tuple[int, bool]:
+    """Reduce to 1–9; also returns whether the path passed through 10 (integration point)."""
+    passed_10 = False
+    while n > 9:
+        if n == 10:
+            passed_10 = True
+        n = sum(int(d) for d in str(n))
+    return (n if n > 0 else 9), passed_10
 
 
 SM_NAMES = {
@@ -84,14 +94,14 @@ SM_ACTIONS = {
 
 
 def get_sm_frame(d: date) -> dict:
-    attention  = reduce_sm(d.month)
-    intention  = reduce_sm(d.day)
-    purpose    = reduce_sm(d.month + d.day)
-    year_arc   = reduce_sm(sum(int(c) for c in str(d.year)))
+    attention,  att_via10  = reduce_sm_noted(d.month)
+    intention,  int_via10  = reduce_sm_noted(d.day)
+    purpose,    pur_via10  = reduce_sm_noted(d.month + d.day)
+    year_arc,   arc_via10  = reduce_sm_noted(sum(int(c) for c in str(d.year)))
 
     # Method B: digit sum of all digits in M/D/YYYY
     digit_str  = f"{d.month}{d.day}{d.year}"
-    method_b   = reduce_sm(sum(int(c) for c in digit_str))
+    method_b,  mb_via10   = reduce_sm_noted(sum(int(c) for c in digit_str))
 
     # Convergence = reduce(2 × purpose − 1)
     # Verified: P1→1, P3→5, P4→7, P5→9 against known readings
@@ -104,7 +114,7 @@ def get_sm_frame(d: date) -> dict:
     # Address week from anchor Sep 8, 2026
     week_num = (d - WEEK_ANCHOR).days // 7 + 1
 
-    # Address: YearArc · Attention · WeekNum · Intention
+    # Address: YearArc · Attention · WeekNum · Intention (single-digit values)
     # Verified against Sep14(1·9·1·5), Sep21(1·9·2·3), Sep28(1·9·3·1),
     # Oct2(1·1·4·2), Oct3(1·1·4·3)
     address = f"{year_arc}·{attention}·{week_num}·{intention}"
@@ -114,13 +124,13 @@ def get_sm_frame(d: date) -> dict:
 
     return {
         "date":        d.isoformat(),
-        "attention":   attention,
-        "intention":   intention,
-        "purpose":     purpose,
+        "attention":   attention,   "att_via10":  att_via10,
+        "intention":   intention,   "int_via10":  int_via10,
+        "purpose":     purpose,     "pur_via10":  pur_via10,
         "purpose_sum": d.month + d.day,
-        "method_b":    method_b,
+        "method_b":    method_b,    "mb_via10":   mb_via10,
         "convergence": convergence,
-        "year_arc":    year_arc,
+        "year_arc":    year_arc,    "arc_via10":  arc_via10,
         "day_year":    day_year,
         "stage":       stage,
         "week_num":    week_num,
@@ -261,27 +271,39 @@ def format_reading(d: date) -> tuple[str, dict]:
     lines.append(f"  {d.strftime('%B %-d, %Y')} — Unified Daily Reading")
     lines.append("=" * w)
 
+    def via10_note(via10: bool, raw: int) -> str:
+        """Inline note when a value's reduction path passed through 10."""
+        if via10:
+            return f" [→ 10 · Knowledge-Cipher → {reduce_sm(raw)}]"
+        return ""
+
     # Primary frame
     lines.append("\n── Fraction Calendar · Primary Frame ──")
-    lines.append(f"  Attention ({d.strftime('%B')} = {d.month})")
+    att_note = f" = {d.month} · through integration → {frame['attention']}" if frame["att_via10"] else f" = {d.month}"
+    lines.append(f"  Attention ({d.strftime('%B')}{att_note})")
     lines.append(f"    {frame['attention']} — {SM_NAMES[frame['attention']]} · {SM_ROOTS[frame['attention']]}")
     lines.append(f"    › {SM_ACTIONS[frame['attention']]}")
-    lines.append(f"  Intention (day {d.day})")
+
+    int_note = f" = {d.day} · through integration → {frame['intention']}" if frame["int_via10"] else f" {d.day}"
+    lines.append(f"  Intention (day{int_note})")
     lines.append(f"    {frame['intention']} — {SM_NAMES[frame['intention']]} · {SM_ROOTS[frame['intention']]}")
     lines.append(f"    › {SM_ACTIONS[frame['intention']]}")
 
     compound_str = f"{d.month} + {d.day} = {frame['purpose_sum']}"
     label = f"{p} — {SM_NAMES[p]}"
-    if frame["purpose_sum"] >= 10:
+    if frame["pur_via10"]:
+        label = f"through 10 → {p} — {SM_NAMES[p]}"
+    elif frame["purpose_sum"] >= 10:
         label += f" [compound: {frame['purpose_sum']} → {p}]"
     lines.append(f"  Purpose ({compound_str})  ← governing")
     lines.append(f"    {label} · {SM_ROOTS[p]}")
     lines.append(f"    › {SM_ACTIONS[p]}")
 
     # Secondary lens
+    mb_suffix = f" · through integration" if frame["mb_via10"] else ""
     lines.append("\n── Secondary Lens · Three Paths ──")
-    lines.append(f"  Method B (digit concat): {frame['method_b']} — {SM_NAMES[frame['method_b']]}")
-    lines.append(f"  Numeric sum ({d.month}+{d.day}+{d.year}={d.month+d.day+d.year}): {frame['method_b']} — {SM_NAMES[frame['method_b']]}")
+    lines.append(f"  Method B (digit concat): {frame['method_b']} — {SM_NAMES[frame['method_b']]}{mb_suffix}")
+    lines.append(f"  Numeric sum ({d.month}+{d.day}+{d.year}={d.month+d.day+d.year}): {frame['method_b']} — {SM_NAMES[frame['method_b']]}{mb_suffix}")
     lines.append(f"  Day–Year Synthesis (P{p}+Arc{frame['year_arc']}={p+frame['year_arc']}): {frame['day_year']} — {SM_NAMES[frame['day_year']]}")
     lines.append(f"  Convergence: {frame['convergence']} — {SM_NAMES[frame['convergence']]}")
     lines.append(f"  Address: {frame['address']}")
@@ -310,6 +332,8 @@ def format_reading(d: date) -> tuple[str, dict]:
     # Year arc
     yr = frame['year_arc']
     lines.append(f"\n── Year Arc · {d.year} ──")
+    if frame["arc_via10"]:
+        lines.append(f"  {d.year} → 10 · Knowledge-Cipher (integration) → {yr}")
     lines.append(f"  {yr} — {SM_NAMES[yr]} · {SM_ROOTS[yr]}")
 
     # Cognitive bridge
