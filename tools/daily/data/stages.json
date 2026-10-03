@@ -1,0 +1,21 @@
+{
+  "note": "16 Self-Determination Stages — cycle: day_of_year mod 16 (0 → 16). Anchored to 2026 practice. Stages marked TODO need verification from original design docs.",
+  "stages": {
+    "1":  { "name": "Neophyte",     "root": "neo-phytos — newly planted",          "prompt": "Requires patient teaching" },
+    "2":  { "name": "Witness",      "root": "TODO — verify etymology",              "prompt": "TODO — verify" },
+    "3":  { "name": "Object",       "root": "ob-jacere — thrown before",            "prompt": "That which is examined" },
+    "4":  { "name": "Spectrum",     "root": "specere — to observe",                 "prompt": "Full range" },
+    "5":  { "name": "TODO",         "root": "TODO — verify",                        "prompt": "TODO — verify" },
+    "6":  { "name": "TODO",         "root": "TODO — verify",                        "prompt": "TODO — verify" },
+    "7":  { "name": "Commonality",  "root": "com-munis — shared duty or gift",      "prompt": "Common ground" },
+    "8":  { "name": "Whole",        "root": "hal — complete, uninjured",            "prompt": "All parts integrated" },
+    "9":  { "name": "TODO",         "root": "TODO — verify",                        "prompt": "TODO — verify" },
+    "10": { "name": "TODO",         "root": "TODO — verify",                        "prompt": "TODO — verify" },
+    "11": { "name": "TODO",         "root": "TODO — verify",                        "prompt": "TODO — verify" },
+    "12": { "name": "TODO",         "root": "TODO — verify",                        "prompt": "TODO — verify" },
+    "13": { "name": "TODO",         "root": "TODO — verify",                        "prompt": "TODO — verify" },
+    "14": { "name": "TODO",         "root": "TODO — verify",                        "prompt": "TODO — verify" },
+    "15": { "name": "Intercept",    "root": "inter-capere — seize between",         "prompt": "Where paths cross" },
+    "16": { "name": "Anoint",       "root": "TODO — verify etymology",              "prompt": "Culmination" }
+  }
+}

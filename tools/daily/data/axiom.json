@@ -1,0 +1,26 @@
+{
+  "note": "Donation Station HP — AXIOM organizational health scores. Assessed 2026-09-16; aggregate updated from daily readings. Positions 2,6,7,8,9,0 not yet individually assessed — update when available.",
+  "assessed_date": "2026-09-16",
+  "aggregate": 8.58,
+  "aggregate_level": "Mature",
+  "aggregate_signal": "OPTIMAL",
+  "theme": "embodiment, responsible stewardship with love",
+  "positions": {
+    "1": { "name": "Knowledge",          "score": 8.50, "level": "Mature", "signal": "OPTIMAL" },
+    "2": { "name": "Wisdom",             "score": null, "level": null,     "signal": null },
+    "3": { "name": "Understanding",      "score": 8.83, "level": "Mature", "signal": "OPTIMAL" },
+    "4": { "name": "Cultured Freedom",   "score": 9.00, "level": "Mature", "signal": "OPTIMAL" },
+    "5": { "name": "Powered Refinement", "score": 8.50, "level": "Mature", "signal": "OPTIMAL" },
+    "6": { "name": "Equality",           "score": null, "level": null,     "signal": null },
+    "7": { "name": "Consciousness",      "score": null, "level": null,     "signal": null },
+    "8": { "name": "Build/Destroy",      "score": null, "level": null,     "signal": null },
+    "9": { "name": "Birth",              "score": null, "level": null,     "signal": null },
+    "0": { "name": "Cipher",             "score": null, "level": null,     "signal": null }
+  },
+  "lifecycle_map": {
+    "Intake":      ["1", "9"],
+    "QC":          ["2", "8"],
+    "Storage":     ["3", "4"],
+    "Distributed": ["6", "7"]
+  }
+}

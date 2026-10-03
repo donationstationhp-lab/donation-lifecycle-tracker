@@ -1,0 +1,77 @@
+{
+  "note": "SM purpose position (1-9) → cognitive functions, domain, value. Position 4 confirmed from 2026-10-03 reading. All others are reconstructed from partial data and need verification. Functions marked with ? are inferred, not confirmed.",
+  "positions": {
+    "1": {
+      "name": "Knowledge",
+      "root": "*ǵneh₃- — to know",
+      "functions": ["Systematic Investigation?", "Precision Analysis?"],
+      "domain": "Logic/Proof",
+      "value": "INTEGRITY",
+      "action": "Track the trail. Attend to what can be learned."
+    },
+    "2": {
+      "name": "Wisdom",
+      "root": "*weid- — to see, to know by seeing",
+      "functions": ["Pattern Recognition?", "Evaluation?"],
+      "domain": "Precision",
+      "value": "DIGNITY",
+      "action": "See clearly. Apply what was seen before."
+    },
+    "3": {
+      "name": "Understanding",
+      "root": "*steh₂- — to stand (among)",
+      "functions": ["Relational Reasoning?", "Contextual Analysis?"],
+      "domain": "Relationships",
+      "value": "DIGNITY",
+      "action": "Stand on the common ground beneath the two."
+    },
+    "4": {
+      "name": "Cultured Freedom",
+      "root": "*kʷel- — to turn, to till",
+      "functions": ["Inductive Thinking", "Working Systematically", "Principles (Prioritizing)"],
+      "domain": "Abstraction/Generalization",
+      "value": "GOOD ANCESTORSHIP",
+      "action": "Work the freedom. Till it; it is freedom only once made."
+    },
+    "5": {
+      "name": "Powered Refinement",
+      "root": "posse + finis — capacity meeting its limit",
+      "functions": ["Representation?", "Boundary Awareness?"],
+      "domain": "Representation",
+      "value": "INTEGRITY",
+      "action": "Show the full capacity. Name what bounds it."
+    },
+    "6": {
+      "name": "Equality",
+      "root": "aequus — level, even",
+      "functions": ["Comparative Analysis?", "Calibration?"],
+      "domain": "Quantity",
+      "value": "DISCERNMENT",
+      "action": "Measure what is level. Redistribute what is not."
+    },
+    "7": {
+      "name": "Consciousness",
+      "root": "*gudą — that which is invoked",
+      "functions": ["Synthesis?", "Coordination?"],
+      "domain": "Abstraction/Generalization",
+      "value": "THE STRUGGLE (With Safeguards)",
+      "action": "Hold the whole. Coordinate, not effort."
+    },
+    "8": {
+      "name": "Build/Destroy",
+      "root": "*bʰuH- + *strew- — to bring into being and scatter",
+      "functions": ["Systematic Construction?", "Principled Release?"],
+      "domain": "Logic/Proof",
+      "value": "GOOD ANCESTORSHIP",
+      "action": "Build what endures. Release what obstructs."
+    },
+    "9": {
+      "name": "Birth",
+      "root": "*bʰer- — to carry, to bring forth",
+      "functions": ["Emergence?", "Initiation?"],
+      "domain": "Representation",
+      "value": "DISCERNMENT",
+      "action": "Carry what is new. Bring it across the threshold."
+    }
+  }
+}
