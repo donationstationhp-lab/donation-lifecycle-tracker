@@ -43,8 +43,8 @@ def chicago_today() -> date:
 
 
 def reduce_sm(n: int) -> int:
-    """Reduce positive integer to 1–9 (digit sum until single digit; 0 → 9)."""
-    while n > 9:
+    """Reduce to 1–10. Stops at 10 (Knowledge-Cipher, integration) or single digit. 0→9."""
+    while n > 10:
         n = sum(int(d) for d in str(n))
     return n if n > 0 else 9
 
@@ -52,7 +52,8 @@ def reduce_sm(n: int) -> int:
 SM_NAMES = {
     1: "Knowledge",        2: "Wisdom",           3: "Understanding",
     4: "Cultured Freedom", 5: "Powered Refinement", 6: "Equality",
-    7: "Consciousness",    8: "Build/Destroy",    9: "Birth"
+    7: "Consciousness",    8: "Build/Destroy",    9: "Birth",
+    10: "Knowledge-Cipher",
 }
 
 SM_ROOTS = {
@@ -65,6 +66,7 @@ SM_ROOTS = {
     7: "*gudą — that which is invoked",
     8: "*bʰuH- + *strew- — to make arise and scatter",
     9: "*bʰer- — to carry, bring forth",
+    10: "*ǵneh₃- + ṣifr — knowing through the void; the arc complete",
 }
 
 SM_ACTIONS = {
@@ -77,6 +79,7 @@ SM_ACTIONS = {
     7: "Hold the whole. Coordinate, not effort.",
     8: "Build what endures. Release what obstructs.",
     9: "Carry what is new. Bring it across the threshold.",
+    10: "Close the arc. Return what was known through Cipher to begin again.",
 }
 
 
@@ -153,6 +156,36 @@ def moon_phase(d: date) -> dict:
     return {"name": name, "emoji": emoji, "illumination": illumination}
 
 
+def get_doctrinal_frame(d: date) -> dict:
+    """Doctrinal 13-moon / 28-day frame. Anchor: March 1 (original Roman new year).
+    March names the first moon; October = 8th moon (octo), as the name still carries.
+    Days 365-366 fall outside the 13-moon cycle (intercalary)."""
+    anchor_year = d.year if d.month >= 3 else d.year - 1
+    anchor = date(anchor_year, 3, 1)
+    day_num = (d - anchor).days + 1  # 1-indexed from March 1
+
+    if day_num > 364:
+        return {
+            "moon": None, "day": None,
+            "intercalary": day_num - 364,
+            "day_num": day_num,
+            "attention": None, "intention": None, "purpose": None,
+        }
+
+    moon       = (day_num - 1) // 28 + 1   # 1–13
+    day_in_moon = (day_num - 1) % 28 + 1   # 1–28
+
+    return {
+        "moon":        moon,
+        "day":         day_in_moon,
+        "intercalary": 0,
+        "day_num":     day_num,
+        "attention":   reduce_sm(moon),
+        "intention":   reduce_sm(day_in_moon),
+        "purpose":     reduce_sm(moon + day_in_moon),
+    }
+
+
 def load_json(path: Path) -> dict:
     if path.exists():
         with open(path) as f:
@@ -194,9 +227,17 @@ def find_log_entry(entries: list, iso_date: str) -> int:
     return -1
 
 
+def sm_label(n) -> str:
+    """Format an SM position number with its name (handles 10)."""
+    if n is None:
+        return "—"
+    return f"{n} — {SM_NAMES.get(n, str(n))}"
+
+
 def format_reading(d: date) -> tuple[str, dict]:
     """Return (display_string, log_record)."""
     frame   = get_sm_frame(d)
+    doc     = get_doctrinal_frame(d)
     moon    = moon_phase(d)
     bridge  = load_bridge()
     stages  = load_stages()
@@ -248,11 +289,28 @@ def format_reading(d: date) -> tuple[str, dict]:
     # Moon
     lines.append(f"\n── 🌙 Moon ──")
     lines.append(f"  {moon['emoji']} {moon['name']} ({moon['illumination']}% illuminated)")
-    lines.append("  outer/astronomical synodic calc — doctrinal: 28-day/13-month, held-in-study")
+    lines.append("  outer/astronomical synodic calc (29.53-day cycle)")
+
+    # Doctrinal frame
+    lines.append(f"\n── Doctrinal Frame · March 1 Anchor · 13-Moon / 28-Day ──")
+    if doc["intercalary"]:
+        lines.append(f"  Intercalary Day {doc['intercalary']} — outside the 13-moon cycle")
+    else:
+        dp  = doc["purpose"]
+        lines.append(f"  Moon {doc['moon']} · Day {doc['day']}  (day {doc['day_num']} from March 1)")
+        lines.append(f"  Attention {sm_label(doc['attention'])}")
+        lines.append(f"  Intention {sm_label(doc['intention'])}")
+        lines.append(f"  Purpose   {sm_label(dp)}")
+        # Cross-frame alignment check
+        if dp == p:
+            lines.append(f"  ◇ Purpose aligns across both frames — {SM_NAMES[p]}")
+        if doc["intention"] == frame["intention"]:
+            lines.append(f"  ◇ Intention aligns across both frames — {SM_NAMES[frame['intention']]}")
 
     # Year arc
+    yr = frame['year_arc']
     lines.append(f"\n── Year Arc · {d.year} ──")
-    lines.append(f"  {frame['year_arc']} — {SM_NAMES[frame['year_arc']]} · {SM_ROOTS[frame['year_arc']]}")
+    lines.append(f"  {yr} — {SM_NAMES[yr]} · {SM_ROOTS[yr]}")
 
     # Cognitive bridge
     lines.append(f"\n── Cognitive Bridge · Purpose {p} — {SM_NAMES[p]} ──")
@@ -323,6 +381,10 @@ def format_reading(d: date) -> tuple[str, dict]:
         "address":     frame["address"],
         "stage":       frame["stage"],
         "moon":        f"{moon['emoji']} {moon['name']} ({moon['illumination']}%)",
+        "doc_moon":    doc["moon"],
+        "doc_day":     doc["day"],
+        "doc_purpose": doc["purpose"],
+        "doc_aligns":  doc["purpose"] == p if doc["purpose"] else False,
         "domain":      bf.get("domain") if bf else None,
         "value":       bf.get("value") if bf else None,
         "axiom_p":     axiom_p.get("score") if axiom_p else None,
