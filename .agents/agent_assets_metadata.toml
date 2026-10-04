@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "wi-CPVJYTrYq2WzHw7AkJ"
+uri = "file://reports/git-all-branches-history.txt"
+type = "text"
+title = "Full Git history across all branches — 280 commits"
+description = "Complete, untruncated output of git branch -a and git log --all --reverse, including full hashes, committer timestamps, and ref decorations."
+logical_id = "5f530015-5e89-431d-a8be-5fe73a56e354"
+content_hash = "sha256:a6f255fcf4d0d104fd5bb55cd9976184f07bf8c7d97ece61df4d14195294a329"
+size = 19318
+mtime_ms = 1791084176094
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:43f34b6e-1a79-445b-b0fa-8b04e3cf75a5/5f530015-5e89-431d-a8be-5fe73a56e354/bb2a0dbc-2b0d-4df7-a268-a3c632c91ae1"
+storage_version_token = "1791084176841808"
+content_type = "text/plain"
