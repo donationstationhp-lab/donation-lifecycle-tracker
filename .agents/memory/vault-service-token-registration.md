@@ -8,3 +8,9 @@ Secret Key Api service routes do not authenticate directly against the environme
 **Why:** Matching environment secrets still produced 401 responses until the token hash was registered in production, and then produced 403 responses until the second required key was added to the token's authorization set.
 
 **How to apply:** When rotating the vault token, update both projects, publish Secret Key Api so its production sync completes, verify each required key independently, and only then restart Donation Station and confirm source-only startup logs report `vault`.
+
+Check that the configured vault address is live before diagnosing token registration or grants. Do not infer the vault project's editor name from its service hostname.
+
+**Why:** A generic missing-startup-secret error can also result from an unavailable vault deployment. A public Replit app-not-live page and a 404 on the configured API path do not establish a token-permission problem.
+
+**How to apply:** Verify public endpoint availability without credentials or response secret bodies, identify the actual vault project and its verified published URL, then investigate authentication. Do not change the client's URL merely because another project has a similar name.
