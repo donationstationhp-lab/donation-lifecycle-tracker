@@ -1,0 +1,32 @@
+From 419ee946627dcfdc4acdb6f34792264d77de95e3 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 5 Oct 2026 10:44:34 -0500
+Subject: [PATCH] Fix donateUrl to point at the actual /donate route
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The Donor Intake Form banner's Copy Link/Open buttons were pointing at
+/donation-station/donate, which doesn't exist in this app's router.
+The route is registered at /donate — a leftover from the old
+standalone donation-station app structure. Pre-existing bug, not
+introduced by the dashboard/donate patches.
+---
+ artifacts/donation-station/src/pages/Dashboard.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/artifacts/donation-station/src/pages/Dashboard.tsx b/artifacts/donation-station/src/pages/Dashboard.tsx
+index 41ac3be..59e4b76 100644
+--- a/artifacts/donation-station/src/pages/Dashboard.tsx
++++ b/artifacts/donation-station/src/pages/Dashboard.tsx
+@@ -68,7 +68,7 @@ export default function Dashboard() {
+   const wowMetrics = serviceMetrics?.wowMetrics;
+ 
+   const pendingCount = summary?.pendingReviewCount ?? 0;
+-  const donateUrl = `${window.location.origin}/donation-station/donate`;
++  const donateUrl = `${window.location.origin}/donate`;
+ 
+   if (isLoading) {
+     return (
+-- 
+2.43.0
