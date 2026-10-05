@@ -29,7 +29,7 @@ export default function DashboardReceiving() {
         <MetricCard
           title="Active Items"
           value={summary.totalActiveItems}
-          subtitle="In system currently"
+          subtitle="In circulation across universal stations"
           icon={Package}
         />
         <MetricCard
@@ -46,7 +46,7 @@ export default function DashboardReceiving() {
           <MetricCard
             title="Expiring Soon"
             value={summary.expiringCount}
-            subtitle="Within 14 days"
+            subtitle="Needs action in 14 days"
             icon={AlertTriangle}
             className={summary.expiringCount > 0 ? 'bg-orange-50 border-orange-200 hover:border-orange-300 transition-colors cursor-pointer' : 'hover:border-primary/30 transition-colors cursor-pointer'}
             valueClassName={summary.expiringCount > 0 ? 'text-orange-600' : 'text-foreground'}
@@ -101,10 +101,10 @@ export default function DashboardReceiving() {
                   <div className="flex items-center gap-3">
                     <TierBadge tier={item.tier} />
                     <div>
-                      <div className="font-semibold text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
+                      <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
                         {item.name}
-                        <span className="text-[10px] font-mono text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded bg-secondary">{item.itemId}</span>
                       </div>
+                      <span className="text-[10px] font-mono text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded bg-secondary inline-block mt-1">{item.itemId}</span>
                       <div className="text-xs text-muted-foreground mt-1 flex gap-2 items-center font-medium">
                         <span>{item.category}</span>
                         <span className="text-border">•</span>

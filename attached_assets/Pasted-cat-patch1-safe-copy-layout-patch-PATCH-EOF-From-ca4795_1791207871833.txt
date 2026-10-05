@@ -1,0 +1,115 @@
+cat > patch1-safe-copy-layout.patch << 'PATCH_EOF'
+From ca479519924ddc5baa0d190eb72ea6e19ac2b41b Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 5 Oct 2026 08:31:52 -0500
+Subject: [PATCH] Update dashboard card subtext and Recent Intakes layout
+
+- Total Active Items / Expiring Soon / Items Distributed subtext updated
+- Due Diligence Review wording now distinguishes zero/singular/plural
+- Recent Intakes: item ID pill moved below the name instead of inline
+
+Pure copy/layout; no functional or data changes.
+---
+ .../donation-station/src/pages/Dashboard.tsx  | 20 +++++++++++--------
+ .../src/pages/DashboardReceiving.tsx          |  8 ++++----
+ 2 files changed, 16 insertions(+), 12 deletions(-)
+
+diff --git a/artifacts/donation-station/src/pages/Dashboard.tsx b/artifacts/donation-station/src/pages/Dashboard.tsx
+index ede3ab5..bb3c446 100644
+--- a/artifacts/donation-station/src/pages/Dashboard.tsx
++++ b/artifacts/donation-station/src/pages/Dashboard.tsx
+@@ -326,7 +326,7 @@ export default function Dashboard() {
+             </CardHeader>
+             <CardContent>
+               <div className="text-4xl font-bold text-foreground">{summary.totalActiveItems}</div>
+-              <p className="text-xs font-medium text-muted-foreground mt-1">In system currently</p>
++              <p className="text-xs font-medium text-muted-foreground mt-1">In circulation across universal stations</p>
+             </CardContent>
+           </Card>
+ 
+@@ -343,7 +343,7 @@ export default function Dashboard() {
+                   {summary.expiringCount}
+                 </div>
+                 <p className={`text-xs font-medium mt-1 ${summary.expiringCount > 0 ? 'text-orange-700' : 'text-muted-foreground'}`}>
+-                  Within 14 days
++                  Needs action in 14 days
+                 </p>
+               </CardContent>
+             </Link>
+@@ -418,12 +418,12 @@ export default function Dashboard() {
+                       <div className="flex items-center gap-3">
+                         <TierBadge tier={item.tier} />
+                         <div>
+-                          <div className="font-semibold text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
++                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                             {item.name}
+-                            <span className="text-[10px] font-mono font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border/50">
+-                              {item.itemId}
+-                            </span>
+                           </div>
++                          <span className="text-[10px] font-mono font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border/50 inline-block mt-1">
++                            {item.itemId}
++                          </span>
+                           <div className="text-xs text-muted-foreground mt-1 flex gap-2 items-center font-medium">
+                             <span>{item.category}</span>
+                             <span className="text-border">•</span>
+@@ -478,7 +478,11 @@ export default function Dashboard() {
+                   {pendingCount}
+                 </div>
+                 <p className={`text-xs font-medium mt-1 ${pendingCount > 0 ? 'text-amber-700' : 'text-muted-foreground'}`}>
+-                  {pendingCount === 1 ? 'Submission pending' : 'Submissions pending'}
++                  {pendingCount === 0
++                    ? 'All caught up — no new donations'
++                    : pendingCount === 1
++                    ? 'New donation waiting'
++                    : 'New donations waiting'}
+                 </p>
+               </CardContent>
+             </Link>
+@@ -534,7 +538,7 @@ export default function Dashboard() {
+               <div className="text-4xl font-bold text-emerald-700">
+                 {summary.byStage.find(s => s.stage === 'distributed')?.count || 0}
+               </div>
+-              <p className="text-xs font-medium text-emerald-700/70 mt-1">Successfully delivered</p>
++              <p className="text-xs font-medium text-emerald-700/70 mt-1">Moved to new ownership</p>
+             </CardContent>
+           </Card>
+ 
+diff --git a/artifacts/donation-station/src/pages/DashboardReceiving.tsx b/artifacts/donation-station/src/pages/DashboardReceiving.tsx
+index 97900fb..6a18d99 100644
+--- a/artifacts/donation-station/src/pages/DashboardReceiving.tsx
++++ b/artifacts/donation-station/src/pages/DashboardReceiving.tsx
+@@ -29,7 +29,7 @@ export default function DashboardReceiving() {
+         <MetricCard
+           title="Active Items"
+           value={summary.totalActiveItems}
+-          subtitle="In system currently"
++          subtitle="In circulation across universal stations"
+           icon={Package}
+         />
+         <MetricCard
+@@ -46,7 +46,7 @@ export default function DashboardReceiving() {
+           <MetricCard
+             title="Expiring Soon"
+             value={summary.expiringCount}
+-            subtitle="Within 14 days"
++            subtitle="Needs action in 14 days"
+             icon={AlertTriangle}
+             className={summary.expiringCount > 0 ? 'bg-orange-50 border-orange-200 hover:border-orange-300 transition-colors cursor-pointer' : 'hover:border-primary/30 transition-colors cursor-pointer'}
+             valueClassName={summary.expiringCount > 0 ? 'text-orange-600' : 'text-foreground'}
+@@ -101,10 +101,10 @@ export default function DashboardReceiving() {
+                   <div className="flex items-center gap-3">
+                     <TierBadge tier={item.tier} />
+                     <div>
+-                      <div className="font-semibold text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
++                      <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                         {item.name}
+-                        <span className="text-[10px] font-mono text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded bg-secondary">{item.itemId}</span>
+                       </div>
++                      <span className="text-[10px] font-mono text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded bg-secondary inline-block mt-1">{item.itemId}</span>
+                       <div className="text-xs text-muted-foreground mt-1 flex gap-2 items-center font-medium">
+                         <span>{item.category}</span>
+                         <span className="text-border">•</span>
+-- 
+2.43.0
+PATCH_EOF

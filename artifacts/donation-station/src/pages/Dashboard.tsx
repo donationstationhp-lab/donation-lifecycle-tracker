@@ -326,7 +326,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-foreground">{summary.totalActiveItems}</div>
-              <p className="text-xs font-medium text-muted-foreground mt-1">In system currently</p>
+              <p className="text-xs font-medium text-muted-foreground mt-1">In circulation across universal stations</p>
             </CardContent>
           </Card>
 
@@ -343,7 +343,7 @@ export default function Dashboard() {
                   {summary.expiringCount}
                 </div>
                 <p className={`text-xs font-medium mt-1 ${summary.expiringCount > 0 ? 'text-orange-700' : 'text-muted-foreground'}`}>
-                  Within 14 days
+                  Needs action in 14 days
                 </p>
               </CardContent>
             </Link>
@@ -418,12 +418,12 @@ export default function Dashboard() {
                       <div className="flex items-center gap-3">
                         <TierBadge tier={item.tier} />
                         <div>
-                          <div className="font-semibold text-foreground flex items-center gap-2 group-hover:text-primary transition-colors">
+                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
                             {item.name}
-                            <span className="text-[10px] font-mono font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border/50">
-                              {item.itemId}
-                            </span>
                           </div>
+                          <span className="text-[10px] font-mono font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border/50 inline-block mt-1">
+                            {item.itemId}
+                          </span>
                           <div className="text-xs text-muted-foreground mt-1 flex gap-2 items-center font-medium">
                             <span>{item.category}</span>
                             <span className="text-border">•</span>
@@ -478,7 +478,11 @@ export default function Dashboard() {
                   {pendingCount}
                 </div>
                 <p className={`text-xs font-medium mt-1 ${pendingCount > 0 ? 'text-amber-700' : 'text-muted-foreground'}`}>
-                  {pendingCount === 1 ? 'Submission pending' : 'Submissions pending'}
+                  {pendingCount === 0
+                    ? 'All caught up — no new donations'
+                    : pendingCount === 1
+                    ? 'New donation waiting'
+                    : 'New donations waiting'}
                 </p>
               </CardContent>
             </Link>
@@ -534,7 +538,7 @@ export default function Dashboard() {
               <div className="text-4xl font-bold text-emerald-700">
                 {summary.byStage.find(s => s.stage === 'distributed')?.count || 0}
               </div>
-              <p className="text-xs font-medium text-emerald-700/70 mt-1">Successfully delivered</p>
+              <p className="text-xs font-medium text-emerald-700/70 mt-1">Moved to new ownership</p>
             </CardContent>
           </Card>
 
