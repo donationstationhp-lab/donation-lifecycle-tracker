@@ -31,6 +31,13 @@ const dateBoundary = (value: string, endOfDay = false) => {
   return date.toISOString();
 };
 
+const TIER_LABELS: Record<string, string> = {
+  T: 'Ready to go today',
+  I: 'Needed within hours',
+  E: 'Keeps stations running',
+  R: 'Holding for next week',
+};
+
 export default function Dashboard() {
   const { user } = useUser();
   const { data: summary, isLoading, isError } = useGetDashboard();
@@ -92,6 +99,19 @@ export default function Dashboard() {
   }
 
   const maxTierCount = Math.max(...summary.byTier.map(t => t.count), 1);
+
+  // NOTE: scoped to summary.recentItems (the dashboard's small recent-items
+  // list), not full inventory — there's no endpoint yet that returns all
+  // items client-side. Treat this as directional, not an exact count, until
+  // a dedicated query exists.
+  const marketReadyCount = summary.recentItems.filter(
+    (item) =>
+      item.condition === 'good' &&
+      item.tier === 'R' &&
+      item.stage !== 'distributed' &&
+      item.stage !== 'closed' &&
+      /apparel|tee|fabric/i.test(item.category)
+  ).length;
 
   return (
     <div className="space-y-12 animate-fade-in pb-12">
@@ -731,6 +751,7 @@ export default function Dashboard() {
                             style={{ width: `${(tier.count / maxTierCount) * 100}%` }}
                           />
                         </div>
+                        <p className="text-xs text-muted-foreground">{TIER_LABELS[tier.tier]}</p>
                       </div>
                     </div>
                   );
@@ -739,6 +760,23 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="shadow-sm border-border mt-6">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Market Ready</CardTitle>
+              <CardDescription>
+                Reserve-tier, good-condition apparel from recent intakes — directional count, not full inventory
+              </CardDescription>
+            </div>
+            <div className="text-3xl font-bold text-foreground">{marketReadyCount}</div>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" size="sm" disabled title="Market draft flow is not built yet">
+              Create market draft (coming soon)
+            </Button>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );
