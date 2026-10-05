@@ -20,3 +20,9 @@ The user verified that the separate Secret Access project at `https://secret-acc
 **Why:** Its misleading name led to directing the user to the wrong project; the user checked that it has no service-secrets endpoints.
 
 **How to apply:** Do not use Secret Access as the vault or direct the user there for vault administration. Locate and verify the actual vault separately.
+
+The user approved using Donation Station's existing direct-secret fallback to recover publishing rather than waiting to locate the unavailable vault.
+
+**Why:** Notion startup was blocked, and the supported fallback avoids application-code changes or changes to existing records.
+
+**How to apply:** Configure the existing Notion integration credential securely for the published app and verify production availability before retrying publishing. This recovery decision does not authorize decommissioning the vault, rotating unrelated credentials, or switching Notion workspaces.
