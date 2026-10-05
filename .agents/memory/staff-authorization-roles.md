@@ -3,10 +3,10 @@ name: Staff authorization roles
 description: Durable rules for granting staff and supervisor access to donor records.
 ---
 
-Clerk authentication alone never grants operations access. A user must have an
-exact `staff` or `supervisor` role in server-verified public metadata, and
-supervisor-sensitive actions must also be checked on the server. The legacy
-server-held API key remains privileged for trusted CLI automation.
+Clerk authentication alone never grants operations access. Staff access must
+be explicitly authorized on the server, and supervisor-sensitive actions must
+require a server-verified supervisor role. The legacy server-held API key
+remains privileged for trusted CLI automation.
 
 **Why:** Self-service sign-up must not expose donor phone numbers, addresses, or
 other operations data, and hiding supervisor controls in the browser is not an

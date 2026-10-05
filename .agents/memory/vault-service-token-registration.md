@@ -26,3 +26,9 @@ The user approved using Donation Station's existing direct-secret fallback to re
 **Why:** Notion startup was blocked, and the supported fallback avoids application-code changes or changes to existing records.
 
 **How to apply:** Configure the existing Notion integration credential securely for the published app and verify production availability before retrying publishing. This recovery decision does not authorize decommissioning the vault, rotating unrelated credentials, or switching Notion workspaces.
+
+Secret-presence metadata can disagree with the Publishing UI for deployment-only secrets, even when requesting the production environment.
+
+**Why:** The helper reported an editor-only secret present and a newly added deployment-only secret absent while the Publishing UI showed the opposite. Presence metadata alone was therefore insufficient to establish the deployment's actual configuration.
+
+**How to apply:** Acknowledge discrepancies rather than asking the user to enter a visible deployment secret again. Confirm production configuration in Publishing and actual resolution in the next deployment's startup logs; never inspect values to resolve the discrepancy.
