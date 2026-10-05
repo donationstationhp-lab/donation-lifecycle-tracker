@@ -14,3 +14,9 @@ Check that the configured vault address is live before diagnosing token registra
 **Why:** A generic missing-startup-secret error can also result from an unavailable vault deployment. A public Replit app-not-live page and a 404 on the configured API path do not establish a token-permission problem.
 
 **How to apply:** Verify public endpoint availability without credentials or response secret bodies, identify the actual vault project and its verified published URL, then investigate authentication. Do not change the client's URL merely because another project has a similar name.
+
+The user verified that the separate Secret Access project at `https://secret-access.replit.app` is another Donation Station site, not the secrets vault.
+
+**Why:** Its misleading name led to directing the user to the wrong project; the user checked that it has no service-secrets endpoints.
+
+**How to apply:** Do not use Secret Access as the vault or direct the user there for vault administration. Locate and verify the actual vault separately.
