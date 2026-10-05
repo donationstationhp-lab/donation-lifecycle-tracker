@@ -68,7 +68,7 @@ export default function Dashboard() {
   const wowMetrics = serviceMetrics?.wowMetrics;
 
   const pendingCount = summary?.pendingReviewCount ?? 0;
-  const donateUrl = `${window.location.origin}/donation-station/donate`;
+  const donateUrl = `${window.location.origin}/donate`;
 
   if (isLoading) {
     return (
