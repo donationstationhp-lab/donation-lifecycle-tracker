@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { requireSupervisor } from "../middlewares/staffAuth";
+import { allocateItemDsId } from "../lib/itemIdentity";
 import {
   AssignPickupRouteBody,
   AssignPickupRouteParams,
@@ -78,10 +79,6 @@ function outcomeToStatus(outcome: string): string | null {
     cancelled: "cancelled",
   };
   return statuses[outcome] ?? null;
-}
-
-function generateItemId(): string {
-  return `DS-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 function generateLotNumber(): string {
@@ -586,7 +583,7 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
       .insert(donationItemsTable)
       .values({
         id: randomUUID(),
-        itemId: generateItemId(),
+        itemId: await allocateItemDsId(tx),
         name: body.data.itemsReceived,
         category: body.data.category ?? "Pickup Donation",
         tier: "R",

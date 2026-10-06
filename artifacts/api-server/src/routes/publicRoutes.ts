@@ -5,13 +5,9 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { db, donationItemsTable, stageHistoryTable } from "@workspace/db";
+import { generateProvisionalItemId } from "../lib/itemIdentity";
 
 const router: IRouter = Router();
-
-function generateItemId(): string {
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `DS-${num}`;
-}
 
 function generateLotNumber(): string {
   const num = Math.floor(1000 + Math.random() * 9000);
@@ -62,7 +58,7 @@ router.post("/public/donate", async (req, res): Promise<void> => {
 
   const now = new Date();
   const id = randomUUID();
-  const itemId = generateItemId();
+  const itemId = generateProvisionalItemId();
   const lotNumber = generateLotNumber();
 
   // Build a donor string — default to "Community Donor" when anonymous
