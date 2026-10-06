@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, desc, and, like, ilike } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { db, donationItemsTable, stageHistoryTable, donorsTable, claimsTable, transfersTable } from "@workspace/db";
+import { allocateItemDsId } from "../lib/itemIdentity";
 import {
   ListItemsQueryParams,
   CreateItemBody,
@@ -20,11 +21,6 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
-
-function generateItemId(): string {
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `DS-${num}`;
-}
 
 function generateLotNumber(): string {
   const num = Math.floor(1000 + Math.random() * 9000);
@@ -163,46 +159,51 @@ router.post("/items", async (req, res): Promise<void> => {
   }
 
   const id = randomUUID();
-  const itemId = parsed.data.itemId ?? generateItemId();
   const lotNumber = parsed.data.lotNumber ?? generateLotNumber();
   const powerConnectionReading = parsed.data.powerConnectionReading ?? computeNumerology(now);
   const donorId = await resolveDonorId(parsed.data.donor);
 
-  const [item] = await db
-    .insert(donationItemsTable)
-    .values({
-      id,
-      itemId,
-      name: parsed.data.name,
-      category: parsed.data.category,
-      tier: parsed.data.tier,
-      condition: parsed.data.condition,
-      donor: parsed.data.donor,
-      donorId,
-      recipient: parsed.data.recipient ?? null,
-      location: parsed.data.location ?? null,
-      expiryDate: toDateString(parsed.data.expiryDate) ?? null,
-      temperatureZone: parsed.data.temperatureZone ?? "ambient",
-      weight: parsed.data.weight ?? null,
-      origin: parsed.data.origin ?? null,
-      lotNumber,
-      powerConnectionReading,
-      stage: "intake",
-    })
-    .returning();
+  const item = await db.transaction(async (tx) => {
+    const itemId = parsed.data.itemId ?? (await allocateItemDsId(tx));
 
-  const historyParts = [
-    "Item received at intake",
-    parsed.data.notes ? `Notes: ${parsed.data.notes}` : null,
-    parsed.data.receivedBy ? `Received by: ${parsed.data.receivedBy}` : null,
-  ].filter(Boolean);
+    const [inserted] = await tx
+      .insert(donationItemsTable)
+      .values({
+        id,
+        itemId,
+        name: parsed.data.name,
+        category: parsed.data.category,
+        tier: parsed.data.tier,
+        condition: parsed.data.condition,
+        donor: parsed.data.donor,
+        donorId,
+        recipient: parsed.data.recipient ?? null,
+        location: parsed.data.location ?? null,
+        expiryDate: toDateString(parsed.data.expiryDate) ?? null,
+        temperatureZone: parsed.data.temperatureZone ?? "ambient",
+        weight: parsed.data.weight ?? null,
+        origin: parsed.data.origin ?? null,
+        lotNumber,
+        powerConnectionReading,
+        stage: "intake",
+      })
+      .returning();
 
-  await db.insert(stageHistoryTable).values({
-    id: randomUUID(),
-    itemId: id,
-    fromStage: null,
-    toStage: "intake",
-    notes: historyParts.join(" | "),
+    const historyParts = [
+      "Item received at intake",
+      parsed.data.notes ? `Notes: ${parsed.data.notes}` : null,
+      parsed.data.receivedBy ? `Received by: ${parsed.data.receivedBy}` : null,
+    ].filter(Boolean);
+
+    await tx.insert(stageHistoryTable).values({
+      id: randomUUID(),
+      itemId: id,
+      fromStage: null,
+      toStage: "intake",
+      notes: historyParts.join(" | "),
+    });
+
+    return inserted;
   });
 
   res.status(201).json(item);
@@ -268,19 +269,32 @@ router.post("/items/:id/approve", async (req, res): Promise<void> => {
 
   const by = req.body?.by;
 
-  await db
-    .update(donationItemsTable)
-    .set({ pendingReview: false, updatedAt: new Date() })
-    .where(eq(donationItemsTable.id, id));
+  await db.transaction(async (tx) => {
+    const isProvisional = item.itemId.startsWith("P-");
+    const assignedItemId = isProvisional ? await allocateItemDsId(tx) : null;
 
-  await db.insert(stageHistoryTable).values({
-    id: randomUUID(),
-    itemId: id,
-    fromStage: item.stage,
-    toStage: item.stage,
-    notes: ["Approved by staff — cleared for intake processing", by ? `By: ${by}` : null]
-      .filter(Boolean)
-      .join(" | "),
+    await tx
+      .update(donationItemsTable)
+      .set({
+        pendingReview: false,
+        updatedAt: new Date(),
+        ...(assignedItemId ? { itemId: assignedItemId } : {}),
+      })
+      .where(eq(donationItemsTable.id, id));
+
+    await tx.insert(stageHistoryTable).values({
+      id: randomUUID(),
+      itemId: id,
+      fromStage: item.stage,
+      toStage: item.stage,
+      notes: [
+        "Approved by staff — cleared for intake processing",
+        assignedItemId ? `Assigned ${assignedItemId} (was ${item.itemId})` : null,
+        by ? `By: ${by}` : null,
+      ]
+        .filter(Boolean)
+        .join(" | "),
+    });
   });
 
   const updated = await getItemById(id);
