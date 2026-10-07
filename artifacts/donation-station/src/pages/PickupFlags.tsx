@@ -10,13 +10,13 @@ import {
   useUpdatePickupFlag,
   getListPickupFlagsQueryKey,
 } from '@workspace/api-client-react';
-import { useUser } from '@clerk/react';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function PickupFlags() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useUser();
-  const isSupervisor = user?.publicMetadata.role === 'supervisor';
+  const { user } = useAuth();
+  const isSupervisor = user?.role === 'supervisor';
 
   const { data: flags, isLoading } = useListPickupFlags();
 

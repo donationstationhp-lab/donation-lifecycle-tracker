@@ -1,10 +1,34 @@
 import { useEffect, useState, ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag, FileText, ArrowRightLeft, Users, Heart, CalendarDays, Globe, ShieldAlert, Recycle, Menu, X, Link as LinkIcon, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag, FileText, ArrowRightLeft, Users, Heart, CalendarDays, Globe, ShieldAlert, Recycle, Menu, X, LogOut, Link as LinkIcon, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
-import { UserButton } from '@clerk/react';
+import { useAuth } from '@/hooks/use-auth';
 import { customFetch } from '@workspace/api-client-react';
+
+// Replaces Clerk's <UserButton /> now that staff sign-in is a session
+// cookie, not Clerk — see hooks/use-auth.tsx.
+function StaffSignOutButton() {
+  const { user, logout } = useAuth();
+  const [, navigate] = useLocation();
+
+  async function handleSignOut() {
+    await logout();
+    navigate('/login');
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleSignOut}
+      title={user ? `Sign out (${user.name})` : 'Sign out'}
+      className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground"
+    >
+      <LogOut className="w-4 h-4" />
+    </Button>
+  );
+}
 
 function usePendingCount() {
   const { data } = useQuery<unknown[]>({
@@ -139,7 +163,7 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               <span>↗</span> Donor Form
             </a>
-            <UserButton />
+            <StaffSignOutButton />
           </div>
         </div>
       </aside>
@@ -153,7 +177,7 @@ export function Shell({ children }: { children: ReactNode }) {
             W.O.W. OS
           </h1>
           <div className="flex items-center gap-3">
-            <UserButton />
+            <StaffSignOutButton />
             {pendingCount > 0 && (
               <Link href="/pending">
                 <span className="flex items-center gap-1 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full shadow-sm">

@@ -13,7 +13,7 @@ import {
   getGetItemQueryKey
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@clerk/react';
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,8 +49,8 @@ export default function ClaimDetail() {
   const [, params] = useRoute('/claims/:id');
   const id = params?.id || '';
   
-  const { user } = useUser();
-  const isSupervisor = user?.publicMetadata.role === 'supervisor';
+  const { user } = useAuth();
+  const isSupervisor = user?.role === 'supervisor';
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
