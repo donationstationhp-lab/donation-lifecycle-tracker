@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import type { NextFunction, Request, Response } from "express";
 import {
   createApiKeyAuth,
-  parseStaffEmailAllowlist,
   requireCommunity,
   requireStaff,
   requireSupervisor,
@@ -13,20 +12,7 @@ import {
 
 const SERVER_API_KEY = "server-held-test-key";
 const DONOR_PHONE = "555-0100";
-
-describe("staff email allowlist configuration", () => {
-  it("accepts comma-separated addresses with trimmed, case-insensitive matching", () => {
-    assert.deepEqual(
-      parseStaffEmailAllowlist(" Staff@One.Example,SECOND@Example.com , "),
-      ["staff@one.example", "second@example.com"],
-    );
-  });
-
-  it("uses an empty allowlist when configuration is missing or empty", () => {
-    assert.deepEqual(parseStaffEmailAllowlist(undefined), []);
-    assert.deepEqual(parseStaffEmailAllowlist(" ,  , "), []);
-  });
-});
+const SESSION_TOKEN = "session-test-token";
 
 type ResponseState = {
   statusCode: number;
@@ -35,27 +21,8 @@ type ResponseState = {
   locals: Record<string, unknown>;
 };
 
-function runMiddleware({
-  role,
-  userId = role ? `clerk-${role}` : null,
-  providedApiKey,
-  expectedApiKey = SERVER_API_KEY,
-}: {
-  role: AppRole | null;
-  userId?: string | null;
-  providedApiKey?: string;
-  expectedApiKey?: string;
-}): Promise<ResponseState> {
-  const state: ResponseState = {
-    statusCode: 200,
-    body: undefined,
-    nextCalled: false,
-    locals: {},
-  };
-  const req = {
-    headers: providedApiKey ? { "x-api-key": providedApiKey } : {},
-  } as unknown as Request;
-  const res = {
+function makeResponse(state: ResponseState): Response {
+  return {
     locals: state.locals,
     status(code: number) {
       state.statusCode = code;
@@ -66,14 +33,46 @@ function runMiddleware({
       return this;
     },
   } as unknown as Response;
+}
+
+function runMiddleware({
+  clerkUserId = null,
+  communityRole = null,
+  providedApiKey,
+  expectedApiKey = SERVER_API_KEY,
+  sessionToken,
+  sessionUserRole,
+}: {
+  clerkUserId?: string | null;
+  communityRole?: AppRole | null;
+  providedApiKey?: string;
+  expectedApiKey?: string;
+  sessionToken?: string;
+  /** If set, the mocked session lookup succeeds with this staff role; a
+   * sessionToken with no sessionUserRole simulates an expired/invalid cookie. */
+  sessionUserRole?: StaffRole;
+}): Promise<ResponseState> {
+  const state: ResponseState = {
+    statusCode: 200,
+    body: undefined,
+    nextCalled: false,
+    locals: {},
+  };
+  const req = {
+    headers: providedApiKey ? { "x-api-key": providedApiKey } : {},
+  } as unknown as Request;
+  const res = makeResponse(state);
   const next = (() => {
     state.nextCalled = true;
   }) as NextFunction;
 
   return createApiKeyAuth({
-    getRole: async () => role,
-    getUserId: () => userId,
     getExpectedApiKey: () => expectedApiKey,
+    getSessionToken: () => sessionToken,
+    getSessionUser: async (token) =>
+      sessionUserRole ? { id: `staff-${token}`, role: sessionUserRole } as never : null,
+    getClerkUserId: () => clerkUserId,
+    getCommunityRole: async () => communityRole,
   })(req, res, next).then(() => state);
 }
 
@@ -91,112 +90,94 @@ function assertDoesNotExposeSensitiveValues(
   }
 }
 
-describe("staff privacy access matrix", () => {
-  it("rejects signed-out requests before looking up a Clerk role", async () => {
-    let roleLookupCount = 0;
-    const result = await createApiKeyAuth({
-      getRole: async () => {
-        roleLookupCount += 1;
-        return null;
-      },
-      getUserId: () => null,
-      getExpectedApiKey: () => SERVER_API_KEY,
-    })(
-      { headers: {} } as unknown as Request,
-      {
-        locals: {},
-        status(code: number) {
-          return {
-            json(body: unknown) {
-              assert.equal(code, 401);
-              assert.deepEqual(body, { error: "Staff sign-in required" });
-            },
-          };
-        },
-      } as unknown as Response,
-      (() => undefined) as NextFunction,
-    );
-
-    assert.equal(result, undefined);
-    assert.equal(roleLookupCount, 0);
+describe("staff/supervisor access via session cookie (no Clerk)", () => {
+  it("rejects a request with no API key, no session cookie, and no Clerk user", async () => {
+    const result = await runMiddleware({ clerkUserId: null, communityRole: null });
+    assert.equal(result.statusCode, 401);
+    assert.equal(result.nextCalled, false);
+    assert.deepEqual(result.body, { error: "Sign-in required" });
+    assertDoesNotExposeSensitiveValues(result.body, SERVER_API_KEY, DONOR_PHONE);
   });
 
-  it("allows only assigned staff roles through the Clerk path", async () => {
-    const cases = [
-      { name: "unassigned", role: null, status: 403, allowed: false },
-      { name: "staff", role: "staff" as const, status: 200, allowed: true },
-      {
-        name: "supervisor",
-        role: "supervisor" as const,
-        status: 200,
-        allowed: true,
-      },
-      { name: "community", role: "community" as const, status: 200, allowed: true },
-    ];
-
-    for (const testCase of cases) {
-      const result = await runMiddleware({
-        role: testCase.role,
-        userId: testCase.role ? `clerk-${testCase.role}` : "clerk-unassigned",
-        providedApiKey: "not-the-server-key",
-      });
-      assert.equal(result.statusCode, testCase.status, testCase.name);
-      assert.equal(result.nextCalled, testCase.allowed, testCase.name);
-      if (testCase.allowed) {
-        assert.equal(result.locals.userRole, testCase.role);
-        if (testCase.role === "community") {
-          assert.equal(result.locals.communityUserId, `clerk-${testCase.role}`);
-          assert.equal(result.locals.staffRole, undefined);
-        } else {
-          assert.equal(result.locals.staffRole, testCase.role);
-        }
-        assert.equal(result.locals.authMethod, "clerk");
-      } else {
-        assert.deepEqual(result.body, {
-          error: "Staff access has not been assigned",
-        });
-      }
-      assertDoesNotExposeSensitiveValues(
-        result.body,
-        SERVER_API_KEY,
-        DONOR_PHONE,
-      );
-    }
-  });
-
-  it("accepts the server-held API key without exposing it or donor contact data", async () => {
-    const result = await runMiddleware({
-      role: null,
-      userId: null,
-      providedApiKey: SERVER_API_KEY,
-    });
-
+  it("accepts the server-held API key as supervisor, without exposing it", async () => {
+    const result = await runMiddleware({ providedApiKey: SERVER_API_KEY });
     assert.equal(result.statusCode, 200);
     assert.equal(result.nextCalled, true);
     assert.equal(result.locals.staffRole, "supervisor");
     assert.equal(result.locals.authMethod, "api-key");
-    assertDoesNotExposeSensitiveValues(
-      result.body,
-      SERVER_API_KEY,
-      DONOR_PHONE,
-    );
+    assertDoesNotExposeSensitiveValues(result.body, SERVER_API_KEY, DONOR_PHONE);
   });
 
   it("rejects an invalid API key without falling back to anonymous access", async () => {
-    const result = await runMiddleware({
-      role: null,
-      userId: null,
-      providedApiKey: "invalid-key",
-    });
-
+    const result = await runMiddleware({ providedApiKey: "invalid-key" });
     assert.equal(result.statusCode, 401);
     assert.equal(result.nextCalled, false);
-    assert.deepEqual(result.body, { error: "Staff sign-in required" });
-    assertDoesNotExposeSensitiveValues(
-      result.body,
-      SERVER_API_KEY,
-      DONOR_PHONE,
-    );
+    assertDoesNotExposeSensitiveValues(result.body, SERVER_API_KEY, DONOR_PHONE);
+  });
+
+  it("grants staff/supervisor access for a valid session cookie, bypassing Clerk entirely", async () => {
+    const result = await runMiddleware({
+      sessionToken: SESSION_TOKEN,
+      sessionUserRole: "staff",
+      clerkUserId: null, // no Clerk session at all — session cookie alone is sufficient
+    });
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.nextCalled, true);
+    assert.equal(result.locals.staffRole, "staff");
+    assert.equal(result.locals.authMethod, "session");
+    assertDoesNotExposeSensitiveValues(result.body, SERVER_API_KEY, DONOR_PHONE);
+  });
+
+  it("grants supervisor access for a session user with the supervisor role", async () => {
+    const result = await runMiddleware({
+      sessionToken: SESSION_TOKEN,
+      sessionUserRole: "supervisor",
+    });
+    assert.equal(result.locals.staffRole, "supervisor");
+    assert.equal(result.locals.authMethod, "session");
+  });
+
+  it("falls through to the community check on an expired/invalid session cookie", async () => {
+    const result = await runMiddleware({
+      sessionToken: "stale-token",
+      // sessionUserRole omitted: simulates getSessionUser returning null
+      clerkUserId: "clerk-donor-1",
+      communityRole: "community",
+    });
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.locals.authMethod, "clerk");
+    assert.equal(result.locals.userRole, "community");
+  });
+});
+
+describe("community access via Clerk only", () => {
+  it("grants community access for a Clerk user with the community role", async () => {
+    const result = await runMiddleware({
+      clerkUserId: "clerk-donor-1",
+      communityRole: "community",
+    });
+    assert.equal(result.statusCode, 200);
+    assert.equal(result.nextCalled, true);
+    assert.equal(result.locals.userRole, "community");
+    assert.equal(result.locals.communityUserId, "clerk-donor-1");
+    assert.equal(result.locals.authMethod, "clerk");
+    assert.equal(result.locals.staffRole, undefined);
+  });
+
+  it("rejects a Clerk user without the community role", async () => {
+    const result = await runMiddleware({
+      clerkUserId: "clerk-staff-leftover",
+      communityRole: null,
+    });
+    assert.equal(result.statusCode, 403);
+    assert.deepEqual(result.body, { error: "Community access has not been assigned" });
+    assertDoesNotExposeSensitiveValues(result.body, SERVER_API_KEY, DONOR_PHONE);
+  });
+
+  it("rejects when there is no session cookie and no Clerk user at all", async () => {
+    const result = await runMiddleware({});
+    assert.equal(result.statusCode, 401);
+    assert.deepEqual(result.body, { error: "Sign-in required" });
   });
 });
 
@@ -241,14 +222,21 @@ describe("community and staff route guards", () => {
     assert.equal(staff.nextCalled, false);
   });
 
-  it("keeps staff routes unavailable to an API-key-less community session", () => {
-    const result = runGuard(requireCommunity, {
+  it("lets a session-backed staff role reach the staff router but not community", () => {
+    const staff = runGuard(requireStaff, {
       userRole: "staff",
-      authMethod: "clerk",
+      authMethod: "session",
       staffRole: "staff",
     });
-    assert.equal(result.statusCode, 403);
-    assert.equal(result.nextCalled, false);
+    assert.equal(staff.nextCalled, true);
+
+    const community = runGuard(requireCommunity, {
+      userRole: "staff",
+      authMethod: "session",
+      staffRole: "staff",
+    });
+    assert.equal(community.statusCode, 403);
+    assert.equal(community.nextCalled, false);
   });
 });
 
@@ -262,17 +250,7 @@ describe("supervisor-only flag approval", () => {
     };
     requireSupervisor(
       {} as Request,
-      {
-        locals: result.locals,
-        status(code: number) {
-          result.statusCode = code;
-          return {
-            json(body: unknown) {
-              result.body = body;
-            },
-          };
-        },
-      } as unknown as Response,
+      makeResponse(result),
       (() => {
         result.nextCalled = true;
       }) as NextFunction,

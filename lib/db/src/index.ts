@@ -17,3 +17,4 @@ export * from "./connectionRecovery";
 export { createResilientPool } from "./resilientPool";
 export * from "./schema";
 export * from "./trackingCodes";
+export * from "./passwords";

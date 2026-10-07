@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { apiKeyAuth, requireStaff } from "../middlewares/apiKeyAuth";
 import healthRouter, { protectedHealthRouter } from "./health";
+import authRouter from "./auth";
 import publicRoutes from "./publicRoutes";
 import publicTrackRouter from "./publicTrack";
 import itemsRouter from "./items";
@@ -25,6 +26,8 @@ const router: IRouter = Router();
 router.use(healthRouter);   // /healthz  /health
 router.use(notionHealthRouter); // /notion/health
 router.use(conScireRouter); // /con-scire/windows
+router.use("/auth", requireDatabase);
+router.use(authRouter);     // /auth/login  /auth/logout  /auth/me — staff only, not Clerk
 router.use("/public", requireDatabase);
 router.use(publicRoutes);   // /public/donate
 router.use(publicTrackRouter); // /public/track/:trackingCode
