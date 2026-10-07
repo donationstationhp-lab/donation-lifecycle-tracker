@@ -1,11 +1,17 @@
 /**
- * Provisions a staff account for Donation Station sign-in.
- * There is no public signup — this is the only way to create one.
+ * Provisions a staff account for Donation Station sign-in, or resets the
+ * password on an existing one. There is no public signup and no
+ * self-service "forgot password" flow — this script is the only way to
+ * set a staff password.
  *
  * Usage:
  *   pnpm --filter @workspace/scripts run create-staff-user -- \
  *     --email jane@example.org --name "Jane Doe" --password "correct horse battery staple" \
  *     [--role supervisor]
+ *
+ *   # Reset the password on an account that already exists:
+ *   pnpm --filter @workspace/scripts run create-staff-user -- \
+ *     --email jane@example.org --password "new correct horse battery staple" --reset-password
  */
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
@@ -17,16 +23,22 @@ function readFlag(args: string[], flag: string): string | undefined {
   return args[index + 1];
 }
 
+function hasFlag(args: string[], flag: string): boolean {
+  return args.includes(flag);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const email = readFlag(args, "--email")?.trim().toLowerCase();
   const name = readFlag(args, "--name")?.trim();
   const password = readFlag(args, "--password");
   const role = readFlag(args, "--role")?.trim() ?? "staff";
+  const resetPassword = hasFlag(args, "--reset-password");
 
-  if (!email || !name || !password) {
+  if (!email || !password || (!resetPassword && !name)) {
     console.error(
-      "Usage: create-staff-user -- --email <email> --name <name> --password <password> [--role supervisor]",
+      "Usage: create-staff-user -- --email <email> --name <name> --password <password> [--role supervisor]\n" +
+        "   or: create-staff-user -- --email <email> --password <password> --reset-password",
     );
     process.exitCode = 1;
     return;
@@ -45,13 +57,31 @@ async function main() {
   }
 
   const [existing] = await db
-    .select({ id: staffUsersTable.id })
+    .select({ id: staffUsersTable.id, name: staffUsersTable.name, role: staffUsersTable.role })
     .from(staffUsersTable)
     .where(eq(staffUsersTable.email, email))
     .limit(1);
 
+  if (resetPassword) {
+    if (!existing) {
+      console.error(`No staff account with email "${email}" exists. Create it first (without --reset-password).`);
+      process.exitCode = 1;
+      return;
+    }
+
+    await db
+      .update(staffUsersTable)
+      .set({ passwordHash: hashPassword(password) })
+      .where(eq(staffUsersTable.email, email));
+
+    console.log(`Reset password for ${existing.name} <${email}> (role: ${existing.role}).`);
+    return;
+  }
+
   if (existing) {
-    console.error(`A staff account with email "${email}" already exists.`);
+    console.error(
+      `A staff account with email "${email}" already exists. Pass --reset-password to change its password.`,
+    );
     process.exitCode = 1;
     return;
   }
@@ -59,7 +89,7 @@ async function main() {
   await db.insert(staffUsersTable).values({
     id: randomUUID(),
     email,
-    name,
+    name: name!,
     passwordHash: hashPassword(password),
     role,
   });
