@@ -15,3 +15,4 @@ export * from "./appointments";
 export * from "./serviceActivities";
 export * from "./communityOwnership";
 export * from "./trackingCounters";
+export * from "./attendDeliveryAlerts";
