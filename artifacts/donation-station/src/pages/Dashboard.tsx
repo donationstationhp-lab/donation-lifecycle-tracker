@@ -1,4 +1,4 @@
-import { useUser } from '@clerk/react';
+import { useAuth } from '@/hooks/use-auth';
 import {
   getListAttendDeliveryAlertsQueryKey,
   useAcknowledgeAttendDeliveryAlert,
@@ -39,11 +39,11 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 export default function Dashboard() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { data: summary, isLoading, isError } = useGetDashboard();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const isSupervisor = user?.publicMetadata.role === 'supervisor';
+  const isSupervisor = user?.role === 'supervisor';
   const [alertAcknowledgement, setAlertAcknowledgement] = useState<'all' | 'open' | 'acknowledged'>('all');
   const [alertCreatedFrom, setAlertCreatedFrom] = useState('');
   const [alertCreatedTo, setAlertCreatedTo] = useState('');
