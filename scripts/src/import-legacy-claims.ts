@@ -24,8 +24,13 @@
  *   mappings are reported separately (lowConfidenceMappings) so staff can
  *   follow up and make the real call.
  *
+ * Not tied to any specific source system — it reads whatever JSON export
+ * the caller points it at. ("ATTEND" in this repo names this app's own
+ * Google Sheets notification outbox, not a retired predecessor system;
+ * see .agents/memory/attend-naming.md.)
+ *
  * Usage:
- *   pnpm --filter @workspace/scripts run migrate-attend-claims -- \
+ *   pnpm --filter @workspace/scripts run import-legacy-claims -- \
  *     --input ./legacy-claims.json [--commit]
  */
 import { randomUUID } from "crypto";
@@ -283,7 +288,7 @@ async function main() {
   const commit = args.includes("--commit");
 
   if (!inputPath) {
-    console.error("Usage: migrate-attend-claims -- --input <path-to-legacy-claims.json> [--commit]");
+    console.error("Usage: import-legacy-claims -- --input <path-to-legacy-claims.json> [--commit]");
     process.exitCode = 1;
     return;
   }
