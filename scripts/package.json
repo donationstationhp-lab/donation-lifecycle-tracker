@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "create-staff-user": "tsx ./src/create-staff-user.ts",
+    "migrate-attend-claims": "tsx ./src/migrate-attend-claims.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
