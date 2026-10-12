@@ -1,0 +1,58 @@
+Here’s a **read-only report for this workspace** to transmit to the backend agent. No credentials or personal records were accessed or included.
+
+## Source snapshot
+- **Branch:** `main`
+- **Commit:** `92bc89111b43a0d38abf2452d7afbee55b4cfbad` — “Add tracker documentation asset” (`2026-10-12T06:50:59Z`)
+- Local `main` is 15 commits ahead of and 19 behind `origin/main`.
+
+## Production database query
+I queried the Replit-managed **production** database.
+
+| Table | Records |
+|---|---:|
+| `donation_items` | 0 |
+| `donors` | 0 |
+| `stage_history` | 0 |
+| `delivery_routes` | 0 |
+| `route_stops` | 0 |
+| `locations` | 0 |
+
+There were no production items to group by lifecycle stage. The queried database has six public application tables; `users` and `sessions` are not present there.
+
+**Important discrepancy:** The prior consolidation note cited 27 production items for this workspace. The production database I could query returned zero items and has an older item schema. This may not be the database serving the live app, or it may have changed since that note. Treat these counts as belonging to the queried Replit-managed production database—not as verified live-inventory counts—until the live app’s database target is confirmed.
+
+## Production `donation_items` schema
+Columns below are listed as **name — type, nullability, default**:
+
+```text
+id — text, NOT NULL
+item_id — text, NOT NULL
+name — text, NOT NULL
+category — text, NOT NULL
+tier — text, NOT NULL
+condition — text, NOT NULL
+donor — text, NOT NULL
+donor_id — text, NULL
+recipient — text, NULL
+location — text, NULL
+expiry_date — date, NULL
+temperature_zone — text, NOT NULL, default 'ambient'
+weight — real, NULL
+origin — text, NULL
+lot_number — text, NOT NULL
+power_connection_reading — text, NOT NULL, default ''
+stage — text, NOT NULL, default 'intake'
+pending_review — boolean, NOT NULL, default false
+created_at — timestamp with time zone, NOT NULL, default now()
+updated_at — timestamp with time zone, NOT NULL, default now()
+```
+
+**Constraints:** `id` primary key; `item_id` unique; `donor_id` references `donors(id)`. No other constraints or indexes were reported. Production does **not** currently contain the `verified`, `quantity`, `received_date`, or `attend_entry_id` columns, or an `attend_entry_id` sequence.
+
+## Authentication and staff access
+The source code uses **Replit OIDC** (`https://replit.com/oidc`) with the authorization-code flow and PKCE. It creates a secure, HTTP-only session cookie with a seven-day lifetime.
+
+Staff API access requires both a valid login and a server-side allowlist match by user ID or email. The code recognizes `STAFF_ALLOWED_EMAILS`, `STAFF_ALLOWED_USER_IDS`, `STAFF_ALLOWED_USERS`, and `STAFF_EMAIL_ALLOWLIST`; an empty allowlist denies staff access. The public donation submission route is mounted before the staff-only API gate.
+
+## Meaning of `attend_entry_id`
+The source code and project brief define it as the numeric ATTEND entry identifier linked to the donation in the companion workbook’s **“Linked ATTEND Entry ID”** field. It is separate from the internal UUID and the human-readable `item_id` (for example, a DS number); it is not a claim tracking number. The app’s development data assigned `12` to `ITM-003`, with new app entries starting at `13`. The queried production database does not yet have that field.
