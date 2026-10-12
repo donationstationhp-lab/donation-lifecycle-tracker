@@ -115,6 +115,160 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
+export const getGetTermsUrl = () => {
+
+
+
+
+  return `/api/terms`
+}
+
+/**
+ * @summary Public donor SMS Terms of Service
+ */
+export const getTerms = async ( options?: Parameters<typeof customFetch>[1]): Promise<string> => {
+
+  return customFetch<string>(getGetTermsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTermsQueryKey = () => {
+    return [
+    `/api/terms`
+    ] as const;
+    }
+
+
+export const getGetTermsQueryOptions = <TData = Awaited<ReturnType<typeof getTerms>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTerms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTermsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTerms>>> = ({ signal }) => getTerms({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTerms>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTermsQueryResult = NonNullable<Awaited<ReturnType<typeof getTerms>>>
+export type GetTermsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public donor SMS Terms of Service
+ */
+
+export function useGetTerms<TData = Awaited<ReturnType<typeof getTerms>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTerms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTermsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPrivacyUrl = () => {
+
+
+
+
+  return `/api/privacy`
+}
+
+/**
+ * @summary Public donor SMS Privacy Policy
+ */
+export const getPrivacy = async ( options?: Parameters<typeof customFetch>[1]): Promise<string> => {
+
+  return customFetch<string>(getGetPrivacyUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPrivacyQueryKey = () => {
+    return [
+    `/api/privacy`
+    ] as const;
+    }
+
+
+export const getGetPrivacyQueryOptions = <TData = Awaited<ReturnType<typeof getPrivacy>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPrivacy>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPrivacyQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPrivacy>>> = ({ signal }) => getPrivacy({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPrivacy>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPrivacyQueryResult = NonNullable<Awaited<ReturnType<typeof getPrivacy>>>
+export type GetPrivacyQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Public donor SMS Privacy Policy
+ */
+
+export function useGetPrivacy<TData = Awaited<ReturnType<typeof getPrivacy>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPrivacy>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPrivacyQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetConScireWindowsUrl = (params?: GetConScireWindowsParams,) => {
   const normalizedParams = new URLSearchParams();
 

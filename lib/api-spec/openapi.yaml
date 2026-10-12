@@ -30,6 +30,30 @@ tags:
   - name: attend
     description: ATTEND allocation and delivery operations
 paths:
+  /terms:
+    get:
+      operationId: getTerms
+      summary: Public donor SMS Terms of Service
+      security: []
+      responses:
+        "200":
+          description: Donation Station HP Terms of Service in plain text
+          content:
+            text/plain:
+              schema:
+                type: string
+  /privacy:
+    get:
+      operationId: getPrivacy
+      summary: Public donor SMS Privacy Policy
+      security: []
+      responses:
+        "200":
+          description: Donation Station HP Privacy Policy in plain text
+          content:
+            text/plain:
+              schema:
+                type: string
   /con-scire/windows:
     get:
       operationId: getConScireWindows

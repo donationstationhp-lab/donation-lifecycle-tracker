@@ -9,6 +9,18 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Public donor SMS Terms of Service
+ */
+export const GetTermsResponse = zod.string()
+
+
+/**
+ * @summary Public donor SMS Privacy Policy
+ */
+export const GetPrivacyResponse = zod.string()
+
+
+/**
  * Scans UTC calendar dates, including today. Convergence is the digital root of attention plus intention plus purpose.
  * @summary Public Con-Scire cognitive calendar windows
  */
