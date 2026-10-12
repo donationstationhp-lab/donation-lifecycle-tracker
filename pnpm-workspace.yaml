@@ -81,6 +81,9 @@ overrides:
   fast-copy: 4.1.0
   markdown-it: 14.3.1
   source-map-js: 1.2.2
+  # Typography still pins parser 6. Limit its tested security migration to this
+  # parent; compatibility tests and a CSS comparison protect the generated styles.
+  "@tailwindcss/typography>postcss-selector-parser": 7.1.6
   nanoid: 3.3.18
   qs: 6.16.0
   # replit uses linux-x64 only, we can exclude all other platforms
