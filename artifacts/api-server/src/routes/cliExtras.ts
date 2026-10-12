@@ -19,6 +19,7 @@ import {
 } from "@workspace/db";
 import { isItemStage } from "../lib/itemLifecycle";
 import { itemRepository } from "../lib/itemRepository";
+import { lockItemDsCounter, reconcileItemDsCounter } from "../lib/itemIds";
 
 const router: IRouter = Router();
 
@@ -104,6 +105,7 @@ router.post("/import", async (req, res): Promise<void> => {
     };
 
     await db.transaction(async (tx) => {
+      await lockItemDsCounter(tx);
       await itemRepository.forTransaction(tx).upsertImported(values, now);
 
       if (!existingBeforeImport) {
@@ -115,6 +117,7 @@ router.post("/import", async (req, res): Promise<void> => {
           notes: "Imported item created",
         });
       }
+      await reconcileItemDsCounter(tx);
     });
 
     ids.push(values.id);

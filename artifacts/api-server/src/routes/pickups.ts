@@ -35,6 +35,7 @@ import {
   stageHistoryTable,
 } from "@workspace/db";
 import { itemRepository } from "../lib/itemRepository";
+import { allocateItemDsId, ItemIdCapacityError } from "../lib/itemIds";
 
 const router: IRouter = Router();
 
@@ -79,10 +80,6 @@ function outcomeToStatus(outcome: string): string | null {
     cancelled: "cancelled",
   };
   return statuses[outcome] ?? null;
-}
-
-function generateItemId(): string {
-  return `DS-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 function generateLotNumber(): string {
@@ -635,7 +632,12 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
   }
 
   const now = new Date();
-  const completion = await db.transaction(async (tx) => {
+  let completion: {
+    pickup: typeof pickupRequestsTable.$inferSelect;
+    item: Awaited<ReturnType<typeof itemRepository.insert>>;
+  } | null;
+  try {
+    completion = await db.transaction(async (tx) => {
     const repository = itemRepository.forTransaction(tx);
     const existingItem = await repository.findBySourcePickupId(pickup.id);
     if (existingItem) {
@@ -662,7 +664,7 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
 
     const item = await repository.insert({
         id: randomUUID(),
-        itemId: generateItemId(),
+        itemId: await allocateItemDsId(tx),
         name: body.data.itemsReceived,
         category: body.data.category ?? "Pickup Donation",
         tier: "R",
@@ -713,7 +715,14 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
     });
 
     return { pickup: completed, item };
-  });
+    });
+  } catch (error) {
+    if (error instanceof ItemIdCapacityError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 
   if (!completion) {
     const current = await getPickup(pickup.id);

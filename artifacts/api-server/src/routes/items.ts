@@ -16,13 +16,9 @@ import { isUniqueViolation } from "../lib/dbErrors";
 import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
 import { validateItemStageTransition } from "../lib/itemLifecycle";
 import { itemRepository } from "../lib/itemRepository";
+import { allocateItemDsId, ItemIdCapacityError } from "../lib/itemIds";
 
 const router: IRouter = Router();
-
-function generateItemId(): string {
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `DS-${num}`;
-}
 
 function generateLotNumber(): string {
   const num = Math.floor(1000 + Math.random() * 9000);
@@ -46,16 +42,19 @@ function toDateString(value: Date | undefined): string | null {
 // if no case-insensitive name match exists. Keeps intake (staff form, CLI,
 // public /donate form) working with a plain donor name while still linking
 // items to a tracked donor for lifecycle purposes.
-async function resolveDonorId(donorName: string): Promise<string> {
+async function resolveDonorId(
+  donorName: string,
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+): Promise<string> {
   const trimmed = donorName.trim();
-  const [existing] = await db
+  const [existing] = await tx
     .select({ id: donorsTable.id })
     .from(donorsTable)
     .where(ilike(donorsTable.name, trimmed));
   if (existing) return existing.id;
 
   const id = randomUUID();
-  await db.insert(donorsTable).values({ id, name: trimmed });
+  await tx.insert(donorsTable).values({ id, name: trimmed });
   return id;
 }
 
@@ -165,10 +164,8 @@ router.post("/items", async (req, res): Promise<void> => {
   }
 
   const id = randomUUID();
-  const itemId = generateItemId();
   const lotNumber = parsed.data.lotNumber ?? generateLotNumber();
   const powerConnectionReading = parsed.data.powerConnectionReading ?? computeNumerology(now);
-  const donorId = await resolveDonorId(parsed.data.donor);
   const historyParts = [
     "Item received at intake",
     req.body.notes ? `Notes: ${req.body.notes}` : null,
@@ -179,6 +176,8 @@ router.post("/items", async (req, res): Promise<void> => {
   try {
     item = await db.transaction(async (tx) => {
       const repository = itemRepository.forTransaction(tx);
+      const itemId = await allocateItemDsId(tx);
+      const donorId = await resolveDonorId(parsed.data.donor, tx);
       const created = await repository.insert({
           id,
           itemId,
@@ -221,8 +220,12 @@ router.post("/items", async (req, res): Promise<void> => {
       return created;
     });
   } catch (error) {
+    if (error instanceof ItemIdCapacityError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
     if (isUniqueViolation(error, "donation_items_item_id_unique")) {
-      res.status(409).json({ error: "Generated item identifier already exists; please retry" });
+      res.status(409).json({ error: "Item identifier already exists; please retry" });
       return;
     }
     throw error;

@@ -8,6 +8,7 @@ import { db, stageHistoryTable } from "@workspace/db";
 import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
 import { buildPublicResourceCatalog } from "../lib/publicItemLabels";
 import { itemRepository } from "../lib/itemRepository";
+import { allocateItemDsId, ItemIdCapacityError } from "../lib/itemIds";
 
 const router: IRouter = Router();
 
@@ -16,11 +17,6 @@ router.get("/public/resources", async (_req, res): Promise<void> => {
 
   res.json(buildPublicResourceCatalog(available));
 });
-
-function generateItemId(): string {
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `DS-${num}`;
-}
 
 function generateLotNumber(): string {
   const num = Math.floor(1000 + Math.random() * 9000);
@@ -71,7 +67,6 @@ router.post("/public/donate", async (req, res): Promise<void> => {
 
   const now = new Date();
   const id = randomUUID();
-  const itemId = generateItemId();
   const lotNumber = generateLotNumber();
 
   // Build a donor string — default to "Community Donor" when anonymous
@@ -89,7 +84,10 @@ router.post("/public/donate", async (req, res): Promise<void> => {
     .filter(Boolean)
     .join(" | ");
 
-  const item = await db.transaction(async (tx) => {
+  let item: Awaited<ReturnType<typeof itemRepository.insert>>;
+  try {
+    item = await db.transaction(async (tx) => {
+      const itemId = await allocateItemDsId(tx);
       const created = await itemRepository.forTransaction(tx).insert({
         id,
         itemId,
@@ -126,7 +124,14 @@ router.post("/public/donate", async (req, res): Promise<void> => {
       relatedItemId: id,
     });
     return created;
-  });
+    });
+  } catch (error) {
+    if (error instanceof ItemIdCapacityError) {
+      res.status(503).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 
   res.status(201).json({
     itemId: item.itemId,
