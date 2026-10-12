@@ -17,3 +17,4 @@
 - [Community ownership links](community-ownership-links.md) — private history requires explicit staff-mediated identity links, never public-code or contact-field inference.
 - [Vault service-token registration](vault-service-token-registration.md) — deployment sync must register the environment token hash and grant every required secret key.
 - [ATTEND workbook identities](attend-workbook-identities.md) — companion workbook entry numbers are separate from item UUIDs, DS IDs, and claim tracking codes.
+- [Tracker unification direction](tracker-unification-direction.md) — one backend with two interfaces; Organizations first, with live consolidation separately gated and authorized.
