@@ -17,6 +17,7 @@ import { TierBadge, StageChip, ConditionChip, TempZoneIcon, NumerologyReading } 
 import { ClaimStatusBadge } from './ClaimsList';
 import { TransferStatusBadge } from './TransfersList';
 import { format } from 'date-fns';
+import { SnowReview } from '@/components/SnowReview';
 
 const stageFlow: DonationItemStage[] = ['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed'];
 const stageLabels: Record<DonationItemStage, string> = {
@@ -226,6 +227,8 @@ export default function ItemDetail() {
               </div>
             </CardContent>
           </Card>
+
+          <SnowReview itemId={id} />
 
           <Card className="shadow-sm">
             <CardHeader>

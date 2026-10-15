@@ -1,8 +1,10 @@
-import { and, asc, desc, eq, ilike, inArray, like, or } from "drizzle-orm";
-import { db, donationItemsTable } from "@workspace/db";
+import { and, asc, desc, eq, ilike, inArray, like, or, sql } from "drizzle-orm";
+import { db, donationItemsTable, itemSnowTable } from "@workspace/db";
 import type { DonationItem, InsertDonationItem } from "@workspace/db";
+import { ensureAppItemIdentity } from "./itemIdentity";
 
 export type ItemListCriteria = {
+  awaitingSnowReview?: boolean;
   ids?: string[];
   stage?: string;
   tier?: string;
@@ -67,6 +69,15 @@ type ItemExecutor = typeof db | ItemTransaction;
 
 function conditionsFor(criteria: ItemListCriteria) {
   const conditions = [];
+  if (criteria.awaitingSnowReview !== undefined) {
+    const awaiting = sql`EXISTS (
+      SELECT 1 FROM ${itemSnowTable}
+      WHERE ${itemSnowTable.itemId} = ${donationItemsTable.id}
+        AND ${itemSnowTable.proposedTier} IS NOT NULL
+        AND ${itemSnowTable.acceptedTier} IS NULL
+    )`;
+    conditions.push(criteria.awaitingSnowReview ? awaiting : sql`NOT (${awaiting})`);
+  }
   if (criteria.ids) conditions.push(inArray(donationItemsTable.id, criteria.ids));
   if (criteria.stage) conditions.push(eq(donationItemsTable.stage, criteria.stage));
   if (criteria.tier) conditions.push(eq(donationItemsTable.tier, criteria.tier));
@@ -231,11 +242,13 @@ function createItemRepository(executor: ItemExecutor): ItemRepository {
     },
 
     async insert(values) {
+      await ensureAppItemIdentity(executor, values);
       const [item] = await executor.insert(donationItemsTable).values(values).returning();
       return item;
     },
 
     async upsertImported(values, now) {
+      await ensureAppItemIdentity(executor, values);
       await executor
         .insert(donationItemsTable)
         .values(values)

@@ -32,6 +32,7 @@ import ClaimsList from "@/pages/ClaimsList";
 import ClaimDetail from "@/pages/ClaimDetail";
 import TransfersList from "@/pages/TransfersList";
 import TransferDetail from "@/pages/TransferDetail";
+import SnowBacktest from "@/pages/SnowBacktest";
 import NotFound from "@/pages/not-found";
 import PublicFAQ from "@/pages/PublicFAQ";
 import PublicResources from "@/pages/PublicResources";
@@ -221,6 +222,7 @@ function AuthenticatedApp() {
           <Route path="/accounts" component={AccountsList} />
           <Route path="/community-ownership" component={CommunityOwnershipPage} />
           <Route path="/pending" component={PendingReview} />
+          <Route path="/snow-backtest" component={SnowBacktest} />
           <Route path="/calendar"><Schedule /></Route>
           <Route component={NotFound} />
         </Switch>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useListItems, DonationItemStage, DonationItemTier, ListItemsParams } from '@workspace/api-client-react';
+import { useListItems, getListItemsQueryKey, DonationItemStage, DonationItemTier, ListItemsParams } from '@workspace/api-client-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 
 export default function ItemsList() {
   const [stageTab, setStageTab] = useState<string>('all');
+  const [awaitingSnow, setAwaitingSnow] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedTier, setSelectedTier] = useState<DonationItemTier | null>(null);
 
@@ -20,8 +21,11 @@ export default function ItemsList() {
   if (stageTab !== 'all') params.stage = stageTab as DonationItemStage;
   if (selectedTier) params.tier = selectedTier;
   if (search.trim()) params.search = search;
+  if (awaitingSnow) params.awaitingSnowReview = 'true';
 
-  const { data: items, isLoading, isError } = useListItems(params);
+  const { data: items, isLoading, isError } = useListItems(params, {
+    query: { queryKey: getListItemsQueryKey(params), refetchOnMount: 'always', refetchOnWindowFocus: true, refetchInterval: 30000 },
+  });
 
   const tiers: DonationItemTier[] = ['T', 'I', 'E', 'R'];
 
@@ -70,6 +74,15 @@ export default function ItemsList() {
               <TierBadge tier={tier} />
             </button>
           ))}
+          <span className="mx-2 h-4 border-l border-border" />
+          <button
+            type="button"
+            aria-pressed={awaitingSnow}
+            onClick={() => setAwaitingSnow(!awaitingSnow)}
+            className={`text-xs font-medium px-2.5 py-1 rounded border whitespace-nowrap ${awaitingSnow ? 'bg-amber-100 border-amber-400 text-amber-900' : 'border-border text-muted-foreground hover:text-foreground'}`}
+          >
+            Awaiting S.N.O.W. review
+          </button>
           {selectedTier && (
             <Button variant="ghost" size="sm" onClick={() => setSelectedTier(null)} className="h-6 px-2 text-xs ml-2 text-muted-foreground">
               <FilterX className="w-3 h-3 mr-1" /> Clear
@@ -105,11 +118,11 @@ export default function ItemsList() {
             <Package className="w-12 h-12 mb-4 opacity-20" />
             <p className="text-lg font-medium text-foreground">No items found</p>
             <p className="text-sm">Try adjusting your filters or search query.</p>
-            {(search || selectedTier || stageTab !== 'all') && (
+            {(search || selectedTier || awaitingSnow || stageTab !== 'all') && (
               <Button 
                 variant="outline" 
                 className="mt-4" 
-                onClick={() => { setSearch(''); setSelectedTier(null); setStageTab('all'); }}
+                onClick={() => { setSearch(''); setSelectedTier(null); setStageTab('all'); setAwaitingSnow(false); }}
               >
                 Clear all filters
               </Button>

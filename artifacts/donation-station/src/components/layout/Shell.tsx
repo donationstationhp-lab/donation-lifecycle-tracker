@@ -1,6 +1,6 @@
 import { useEffect, useState, ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag, FileText, ArrowRightLeft, Users, Heart, CalendarDays, Globe, ShieldAlert, Recycle, Menu, X, Link as LinkIcon, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag, FileText, ArrowRightLeft, Users, Heart, CalendarDays, Globe, ShieldAlert, Recycle, Menu, X, Link as LinkIcon, Snowflake, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { UserButton } from '@clerk/react';
@@ -65,6 +65,7 @@ export function Shell({ children }: { children: ReactNode }) {
         { href: '/routes', label: 'Routes', icon: Truck },
         { href: '/calendar', label: 'Calendar', icon: CalendarDays },
         { href: '/expiring', label: 'Expiring', icon: AlertTriangle },
+        { href: '/snow-backtest', label: 'S.N.O.W. Backtest', icon: Snowflake },
       ]
     },
     {

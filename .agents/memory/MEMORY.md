@@ -19,3 +19,6 @@
 - [ATTEND workbook identities](attend-workbook-identities.md) — companion workbook entry numbers are separate from item UUIDs, DS IDs, and claim tracking codes.
 - [Tracker unification direction](tracker-unification-direction.md) — one backend with two interfaces; Organizations first, with live consolidation separately gated and authorized.
 - [DS number permanence](ds-number-permanence.md) — never reclaim committed item numbers; isolate allocation tests to avoid consuming the shared namespace.
+- [S.N.O.W. staff decisions](snow-staff-decisions.md) — preserve human acceptance; rules-v1 is authorized, AI is not; SURPLUS requires supply-versus-demand judgment.
+- [Notion identity imports](notion-identity-imports.md) — preserve exact DS and DS-L lineages; identity import does not authorize invented IDs or warehouse intake.
+- [Maintenance configuration](maintenance-environment.md) — a bare CLI can miss working API configuration; initialize normally before diagnosing missing Notion credentials.

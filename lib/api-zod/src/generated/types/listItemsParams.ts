@@ -5,11 +5,16 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+import type { ListItemsAwaitingSnowReview } from './listItemsAwaitingSnowReview';
 import type { ListItemsStage } from './listItemsStage';
 import type { ListItemsTemperatureZone } from './listItemsTemperatureZone';
 import type { ListItemsTier } from './listItemsTier';
 
 export type ListItemsParams = {
+/**
+ * Items with a S.N.O.W. proposal but no accepted S.N.O.W. tier
+ */
+awaitingSnowReview?: ListItemsAwaitingSnowReview;
 stage?: ListItemsStage;
 tier?: ListItemsTier;
 category?: string;

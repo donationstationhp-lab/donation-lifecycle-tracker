@@ -47,7 +47,12 @@ export async function reconcileItemDsCounter(tx: Transaction): Promise<number> {
   // Numeric casting also recognizes historical IDs with different zero padding.
   const result = await tx.execute<{ highest: string }>(sql`
     SELECT COALESCE(MAX(substring(item_id FROM 4)::numeric), 0)::text AS highest
-    FROM donation_items
+    FROM (
+      SELECT item_id FROM donation_items
+      UNION ALL SELECT display_id AS item_id FROM item_identities
+      UNION ALL SELECT source_item_id AS item_id FROM notion_item_snapshots
+      UNION ALL SELECT alias AS item_id FROM item_identity_aliases
+    ) AS reserved_ids
     WHERE item_id ~ '^DS-[0-9]+$'
   `);
   const highest = Number(result.rows[0]?.highest ?? 0);

@@ -40,7 +40,9 @@ test.before(async () => {
 
 test.beforeEach(async () => {
   await db.execute(sql`
-    TRUNCATE tracking_counters, donation_items, stage_history, donors,
+    TRUNCATE item_snow_history, item_snow, item_external_references,
+      item_identity_aliases, notion_item_snapshots, item_identities,
+      tracking_counters, donation_items, stage_history, donors,
       pickup_requests, service_activities
   `);
 });

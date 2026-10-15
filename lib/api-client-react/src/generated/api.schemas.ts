@@ -5,6 +5,190 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+export type SnowTier = typeof SnowTier[keyof typeof SnowTier];
+
+
+export const SnowTier = {
+  URGENT: 'URGENT',
+  STABLE: 'STABLE',
+  SURPLUS: 'SURPLUS',
+} as const;
+
+export interface SnowProposal {
+  id: string;
+  tier: SnowTier;
+  source: string;
+  proposedAt: string;
+  /** @nullable */
+  rationale: string | null;
+}
+
+export type SnowAcceptedDecision = typeof SnowAcceptedDecision[keyof typeof SnowAcceptedDecision];
+
+
+export const SnowAcceptedDecision = {
+  confirmed: 'confirmed',
+  overridden: 'overridden',
+  manual: 'manual',
+  notion_import: 'notion_import',
+} as const;
+
+export interface SnowAccepted {
+  tier: SnowTier;
+  by: string;
+  at: string;
+  decision: SnowAcceptedDecision;
+  source?: string;
+}
+
+/**
+ * @nullable
+ */
+export type SnowHistoryPreviousTier = typeof SnowHistoryPreviousTier[keyof typeof SnowHistoryPreviousTier] | null;
+
+
+export const SnowHistoryPreviousTier = {
+  URGENT: 'URGENT',
+  STABLE: 'STABLE',
+  SURPLUS: 'SURPLUS',
+} as const;
+
+export type SnowHistoryDecision = typeof SnowHistoryDecision[keyof typeof SnowHistoryDecision];
+
+
+export const SnowHistoryDecision = {
+  confirmed: 'confirmed',
+  overridden: 'overridden',
+  manual: 'manual',
+  notion_import: 'notion_import',
+} as const;
+
+export interface SnowHistory {
+  id: string;
+  version: number;
+  /** @nullable */
+  previousTier: SnowHistoryPreviousTier;
+  acceptedTier: SnowTier;
+  acceptedBy: string;
+  acceptedAt: string;
+  decision: SnowHistoryDecision;
+  source?: string;
+  /** @nullable */
+  reason: string | null;
+  proposal: SnowProposal | null;
+}
+
+export interface ItemSnowReview {
+  version: number;
+  proposal: SnowProposal | null;
+  accepted: SnowAccepted | null;
+  awaitingReview: boolean;
+  history: SnowHistory[];
+}
+
+export interface NotionImportResult {
+  read: number;
+  created: number;
+  matched: number;
+  acceptedImported: number;
+  nextDsNumber: number;
+  identities: string[];
+}
+
+export type ItemIdentityLookupIdentitiesItem = {
+  id: string;
+  /** @nullable */
+  displayId: string | null;
+  lineage: string;
+  name: string;
+  needsReview: boolean;
+  reviewFlags: string[];
+  createdAt: string;
+};
+
+export interface ItemIdentityLookup {
+  ambiguous: boolean;
+  identities: ItemIdentityLookupIdentitiesItem[];
+}
+
+export interface SnowRulesResult {
+  evaluated: number;
+  proposed: number;
+  abstained: number;
+  version: string;
+}
+
+export type NotionImportReportSummary = {
+  total: number;
+  agree: number;
+  different: number;
+  noProposal: number;
+  noAccepted: number;
+  needsReview: number;
+};
+
+export type NotionBacktestItemComparison = typeof NotionBacktestItemComparison[keyof typeof NotionBacktestItemComparison];
+
+
+export const NotionBacktestItemComparison = {
+  agree: 'agree',
+  different: 'different',
+  no_proposal: 'no_proposal',
+  no_accepted: 'no_accepted',
+} as const;
+
+export interface NotionBacktestItem {
+  identityId: string;
+  /** @nullable */
+  id: string | null;
+  /** @nullable */
+  displayId: string | null;
+  name: string;
+  category: string;
+  /** @nullable */
+  tier: string | null;
+  notionPageId: string;
+  /** @nullable */
+  acceptedFromNotion: string | null;
+  /** @nullable */
+  currentAccepted: string | null;
+  /** @nullable */
+  proposal: string | null;
+  rationale: string;
+  comparison: NotionBacktestItemComparison;
+  needsReview: boolean;
+  flags: string[];
+  notionEditedAt: string;
+  importedAt: string;
+}
+
+export interface NotionImportReport {
+  version: string;
+  generatedAt: string;
+  summary: NotionImportReportSummary;
+  items: NotionBacktestItem[];
+}
+
+export type SnowReviewInputAction = typeof SnowReviewInputAction[keyof typeof SnowReviewInputAction];
+
+
+export const SnowReviewInputAction = {
+  confirm: 'confirm',
+  override: 'override',
+} as const;
+
+export interface SnowReviewInput {
+  action: SnowReviewInputAction;
+  /** @minimum 0 */
+  expectedVersion: number;
+  tier?: SnowTier;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  reason?: string;
+}
+
 export type ConScireCalendarStage = typeof ConScireCalendarStage[keyof typeof ConScireCalendarStage];
 
 
@@ -1105,6 +1289,14 @@ export interface DeliveryRouteUpdate {
   stops?: RouteStop[];
 }
 
+export type LookupItemIdentityParams = {
+/**
+ * @minLength 1
+ * @maxLength 500
+ */
+key: string;
+};
+
 export type GetConScireWindowsParams = {
 stage?: GetConScireWindowsStage;
 /**
@@ -1132,12 +1324,24 @@ export type GetConScireWindows400 = {
 };
 
 export type ListItemsParams = {
+/**
+ * Items with a S.N.O.W. proposal but no accepted S.N.O.W. tier
+ */
+awaitingSnowReview?: ListItemsAwaitingSnowReview;
 stage?: ListItemsStage;
 tier?: ListItemsTier;
 category?: string;
 temperatureZone?: ListItemsTemperatureZone;
 search?: string;
 };
+
+export type ListItemsAwaitingSnowReview = typeof ListItemsAwaitingSnowReview[keyof typeof ListItemsAwaitingSnowReview];
+
+
+export const ListItemsAwaitingSnowReview = {
+  true: 'true',
+  false: 'false',
+} as const;
 
 export type ListItemsStage = typeof ListItemsStage[keyof typeof ListItemsStage];
 

@@ -53,6 +53,8 @@ import type {
   GetConScireWindows400,
   GetConScireWindowsParams,
   HealthStatus,
+  ItemIdentityLookup,
+  ItemSnowReview,
   ListAccountsParams,
   ListAttendDeliveryAlertsParams,
   ListClaimsParams,
@@ -62,6 +64,9 @@ import type {
   ListItemsParams,
   ListPickupsParams,
   ListTransfersParams,
+  LookupItemIdentityParams,
+  NotionImportReport,
+  NotionImportResult,
   PickupCompleteInput,
   PickupCompletionResponse,
   PickupContactAttemptInput,
@@ -81,6 +86,8 @@ import type {
   PublicTrackingVerificationRequestResponse,
   RecipientAccount,
   RecipientAccountInput,
+  SnowReviewInput,
+  SnowRulesResult,
   StageAdvance,
   StatusTransitionInput,
   Transfer,
@@ -114,6 +121,458 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getLookupItemIdentityUrl = (params: LookupItemIdentityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/item-identities/lookup?${stringifiedParams}` : `/api/item-identities/lookup`
+}
+
+/**
+ * @summary Staff exact lookup by original item ID, identity UUID, or Notion page UUID
+ */
+export const lookupItemIdentity = async (params: LookupItemIdentityParams, options?: Parameters<typeof customFetch>[1]): Promise<ItemIdentityLookup> => {
+
+  return customFetch<ItemIdentityLookup>(getLookupItemIdentityUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getLookupItemIdentityQueryKey = (params?: LookupItemIdentityParams,) => {
+    return [
+    `/api/item-identities/lookup`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getLookupItemIdentityQueryOptions = <TData = Awaited<ReturnType<typeof lookupItemIdentity>>, TError = ErrorType<ItemIdentityLookup>>(params: LookupItemIdentityParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof lookupItemIdentity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLookupItemIdentityQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof lookupItemIdentity>>> = ({ signal }) => lookupItemIdentity(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof lookupItemIdentity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type LookupItemIdentityQueryResult = NonNullable<Awaited<ReturnType<typeof lookupItemIdentity>>>
+export type LookupItemIdentityQueryError = ErrorType<ItemIdentityLookup>
+
+
+/**
+ * @summary Staff exact lookup by original item ID, identity UUID, or Notion page UUID
+ */
+
+export function useLookupItemIdentity<TData = Awaited<ReturnType<typeof lookupItemIdentity>>, TError = ErrorType<ItemIdentityLookup>>(
+ params: LookupItemIdentityParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof lookupItemIdentity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getLookupItemIdentityQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetNotionImportReportUrl = () => {
+
+
+
+
+  return `/api/notion-import/report`
+}
+
+/**
+ * @summary Staff-only identity import and rules-v1 backtest report
+ */
+export const getNotionImportReport = async ( options?: Parameters<typeof customFetch>[1]): Promise<NotionImportReport> => {
+
+  return customFetch<NotionImportReport>(getGetNotionImportReportUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNotionImportReportQueryKey = () => {
+    return [
+    `/api/notion-import/report`
+    ] as const;
+    }
+
+
+export const getGetNotionImportReportQueryOptions = <TData = Awaited<ReturnType<typeof getNotionImportReport>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotionImportReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotionImportReportQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotionImportReport>>> = ({ signal }) => getNotionImportReport({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotionImportReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNotionImportReportQueryResult = NonNullable<Awaited<ReturnType<typeof getNotionImportReport>>>
+export type GetNotionImportReportQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Staff-only identity import and rules-v1 backtest report
+ */
+
+export function useGetNotionImportReport<TData = Awaited<ReturnType<typeof getNotionImportReport>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotionImportReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNotionImportReportQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getImportNotionItemsUrl = () => {
+
+
+
+
+  return `/api/notion-import`
+}
+
+/**
+ * @summary Named supervisor reads all Notion Item Log pages into local identities
+ */
+export const importNotionItems = async ( options?: Parameters<typeof customFetch>[1]): Promise<NotionImportResult> => {
+
+  return customFetch<NotionImportResult>(getImportNotionItemsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getImportNotionItemsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importNotionItems>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importNotionItems>>, TError,void, TContext> => {
+
+const mutationKey = ['importNotionItems'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importNotionItems>>, void> = () => {
+
+
+          return  importNotionItems(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportNotionItemsMutationResult = NonNullable<Awaited<ReturnType<typeof importNotionItems>>>
+
+    export type ImportNotionItemsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Named supervisor reads all Notion Item Log pages into local identities
+ */
+export const useImportNotionItems = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importNotionItems>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importNotionItems>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getImportNotionItemsMutationOptions(options));
+    }
+
+export const getRunSnowRulesV1Url = () => {
+
+
+
+
+  return `/api/snow/rules-v1/run`
+}
+
+/**
+ * @summary Staff explicitly applies rules-v1 proposals to imported items
+ */
+export const runSnowRulesV1 = async ( options?: Parameters<typeof customFetch>[1]): Promise<SnowRulesResult> => {
+
+  return customFetch<SnowRulesResult>(getRunSnowRulesV1Url(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRunSnowRulesV1MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSnowRulesV1>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runSnowRulesV1>>, TError,void, TContext> => {
+
+const mutationKey = ['runSnowRulesV1'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runSnowRulesV1>>, void> = () => {
+
+
+          return  runSnowRulesV1(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunSnowRulesV1MutationResult = NonNullable<Awaited<ReturnType<typeof runSnowRulesV1>>>
+
+    export type RunSnowRulesV1MutationError = ErrorType<unknown>
+
+    /**
+ * @summary Staff explicitly applies rules-v1 proposals to imported items
+ */
+export const useRunSnowRulesV1 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSnowRulesV1>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runSnowRulesV1>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRunSnowRulesV1MutationOptions(options));
+    }
+
+export const getGetItemSnowUrl = (id: string,) => {
+
+
+
+
+  return `/api/items/${id}/snow`
+}
+
+/**
+ * @summary Staff-only S.N.O.W. proposal, accepted tier and audit history
+ */
+export const getItemSnow = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<ItemSnowReview> => {
+
+  return customFetch<ItemSnowReview>(getGetItemSnowUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetItemSnowQueryKey = (id: string,) => {
+    return [
+    `/api/items/${id}/snow`
+    ] as const;
+    }
+
+
+export const getGetItemSnowQueryOptions = <TData = Awaited<ReturnType<typeof getItemSnow>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getItemSnow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetItemSnowQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getItemSnow>>> = ({ signal }) => getItemSnow(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getItemSnow>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetItemSnowQueryResult = NonNullable<Awaited<ReturnType<typeof getItemSnow>>>
+export type GetItemSnowQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Staff-only S.N.O.W. proposal, accepted tier and audit history
+ */
+
+export function useGetItemSnow<TData = Awaited<ReturnType<typeof getItemSnow>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getItemSnow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetItemSnowQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewItemSnowUrl = (id: string,) => {
+
+
+
+
+  return `/api/items/${id}/snow`
+}
+
+/**
+ * @summary Explicit signed-in staff S.N.O.W. decision
+ */
+export const reviewItemSnow = async (id: string,
+    snowReviewInput: SnowReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<ItemSnowReview> => {
+
+  return customFetch<ItemSnowReview>(getReviewItemSnowUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(snowReviewInput)
+  }
+);}
+
+
+
+
+
+export const getReviewItemSnowMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewItemSnow>>, TError,{id: string;data: BodyType<SnowReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewItemSnow>>, TError,{id: string;data: BodyType<SnowReviewInput>}, TContext> => {
+
+const mutationKey = ['reviewItemSnow'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewItemSnow>>, {id: string;data: BodyType<SnowReviewInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewItemSnow(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewItemSnowMutationResult = NonNullable<Awaited<ReturnType<typeof reviewItemSnow>>>
+    export type ReviewItemSnowMutationBody = BodyType<SnowReviewInput>
+    export type ReviewItemSnowMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Explicit signed-in staff S.N.O.W. decision
+ */
+export const useReviewItemSnow = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewItemSnow>>, TError,{id: string;data: BodyType<SnowReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewItemSnow>>,
+        TError,
+        {id: string;data: BodyType<SnowReviewInput>},
+        TContext
+      > => {
+      return useMutation(getReviewItemSnowMutationOptions(options));
+    }
 
 export const getGetTermsUrl = () => {
 

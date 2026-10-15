@@ -134,7 +134,11 @@ router.get("/items", async (req, res): Promise<void> => {
       ? false
       : undefined;
   const items = await itemRepository.list(
-    { stage, tier, category, temperatureZone, search, pendingReview },
+    {
+      stage, tier, category, temperatureZone, search, pendingReview,
+      awaitingSnowReview: parsed.data.awaitingSnowReview === undefined
+        ? undefined : parsed.data.awaitingSnowReview === "true",
+    },
     { order: "createdAtDesc" },
   );
 

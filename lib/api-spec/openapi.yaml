@@ -30,6 +30,93 @@ tags:
   - name: attend
     description: ATTEND allocation and delivery operations
 paths:
+  /item-identities/lookup:
+    get:
+      operationId: lookupItemIdentity
+      tags: [Items]
+      summary: Staff exact lookup by original item ID, identity UUID, or Notion page UUID
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 500 }
+      responses:
+        "200":
+          description: One matching identity
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ItemIdentityLookup" }
+        "409":
+          description: More than one identity; staff review required, never automatically merged
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ItemIdentityLookup" }
+  /notion-import/report:
+    get:
+      operationId: getNotionImportReport
+      tags: [Items]
+      summary: Staff-only identity import and rules-v1 backtest report
+      responses:
+        "200":
+          description: Report from imported snapshots; never calls or writes Notion
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotionImportReport" }
+  /notion-import:
+    post:
+      operationId: importNotionItems
+      tags: [Items]
+      summary: Named supervisor reads all Notion Item Log pages into local identities
+      responses:
+        "200":
+          description: Import results (Notion is never written)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotionImportResult" }
+  /snow/rules-v1/run:
+    post:
+      operationId: runSnowRulesV1
+      tags: [Items]
+      summary: Staff explicitly applies rules-v1 proposals to imported items
+      responses:
+        "200":
+          description: Proposal-only evaluation results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnowRulesResult" }
+  /items/{id}/snow:
+    get:
+      operationId: getItemSnow
+      summary: Staff-only S.N.O.W. proposal, accepted tier and audit history
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Separate S.N.O.W. review state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ItemSnowReview" }
+    post:
+      operationId: reviewItemSnow
+      summary: Explicit signed-in staff S.N.O.W. decision
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SnowReviewInput" }
+      responses:
+        "200":
+          description: Saved decision with updated review state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ItemSnowReview" }
+        "409":
+          description: Review changed; refresh before deciding
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
   /terms:
     get:
       operationId: getTerms
@@ -111,6 +198,12 @@ paths:
       tags: [items]
       summary: List donation items
       parameters:
+        - name: awaitingSnowReview
+          in: query
+          description: Items with a S.N.O.W. proposal but no accepted S.N.O.W. tier
+          schema:
+            type: string
+            enum: ["true", "false"]
         - name: stage
           in: query
           schema:
@@ -1208,6 +1301,145 @@ paths:
                 $ref: "#/components/schemas/PublicImpactSummary"
 components:
   schemas:
+    SnowTier:
+      type: string
+      enum: [URGENT, STABLE, SURPLUS]
+    SnowProposal:
+      type: object
+      required: [id, tier, source, proposedAt, rationale]
+      properties:
+        id: { type: string }
+        tier: { $ref: "#/components/schemas/SnowTier" }
+        source: { type: string }
+        proposedAt: { type: string, format: date-time }
+        rationale: { type: [string, "null"] }
+    SnowAccepted:
+      type: object
+      required: [tier, by, at, decision]
+      properties:
+        tier: { $ref: "#/components/schemas/SnowTier" }
+        by: { type: string }
+        at: { type: string, format: date-time }
+        decision: { type: string, enum: [confirmed, overridden, manual, notion_import] }
+        source: { type: string }
+    SnowHistory:
+      type: object
+      required: [id, version, previousTier, acceptedTier, acceptedBy, acceptedAt, decision, reason, proposal]
+      properties:
+        id: { type: string }
+        version: { type: number, multipleOf: 1 }
+        previousTier: { type: [string, "null"], enum: [URGENT, STABLE, SURPLUS, null] }
+        acceptedTier: { $ref: "#/components/schemas/SnowTier" }
+        acceptedBy: { type: string }
+        acceptedAt: { type: string, format: date-time }
+        decision: { type: string, enum: [confirmed, overridden, manual, notion_import] }
+        source: { type: string }
+        reason: { type: [string, "null"] }
+        proposal:
+          anyOf:
+            - { $ref: "#/components/schemas/SnowProposal" }
+            - { type: "null" }
+    ItemSnowReview:
+      type: object
+      required: [version, proposal, accepted, awaitingReview, history]
+      properties:
+        version: { type: number, multipleOf: 1 }
+        proposal:
+          anyOf:
+            - { $ref: "#/components/schemas/SnowProposal" }
+            - { type: "null" }
+        accepted:
+          anyOf:
+            - { $ref: "#/components/schemas/SnowAccepted" }
+            - { type: "null" }
+        awaitingReview: { type: boolean }
+        history:
+          type: array
+          items: { $ref: "#/components/schemas/SnowHistory" }
+    NotionImportResult:
+      type: object
+      required: [read, created, matched, acceptedImported, nextDsNumber, identities]
+      properties:
+        read: { type: number, multipleOf: 1 }
+        created: { type: number, multipleOf: 1 }
+        matched: { type: number, multipleOf: 1 }
+        acceptedImported: { type: number, multipleOf: 1 }
+        nextDsNumber: { type: number, multipleOf: 1 }
+        identities: { type: array, items: { type: string } }
+    ItemIdentityLookup:
+      type: object
+      required: [ambiguous, identities]
+      properties:
+        ambiguous: { type: boolean }
+        identities:
+          type: array
+          items:
+            type: object
+            required: [id, displayId, lineage, name, needsReview, reviewFlags, createdAt]
+            properties:
+              id: { type: string }
+              displayId: { type: [string, "null"] }
+              lineage: { type: string }
+              name: { type: string }
+              needsReview: { type: boolean }
+              reviewFlags: { type: array, items: { type: string } }
+              createdAt: { type: string }
+    SnowRulesResult:
+      type: object
+      required: [evaluated, proposed, abstained, version]
+      properties:
+        evaluated: { type: number, multipleOf: 1 }
+        proposed: { type: number, multipleOf: 1 }
+        abstained: { type: number, multipleOf: 1 }
+        version: { type: string }
+    NotionImportReport:
+      type: object
+      required: [version, generatedAt, summary, items]
+      properties:
+        version: { type: string }
+        generatedAt: { type: string }
+        summary:
+          type: object
+          required: [total, agree, different, noProposal, noAccepted, needsReview]
+          properties:
+            total: { type: number, multipleOf: 1 }
+            agree: { type: number, multipleOf: 1 }
+            different: { type: number, multipleOf: 1 }
+            noProposal: { type: number, multipleOf: 1 }
+            noAccepted: { type: number, multipleOf: 1 }
+            needsReview: { type: number, multipleOf: 1 }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/NotionBacktestItem" }
+    NotionBacktestItem:
+      type: object
+      required: [identityId, id, displayId, name, category, tier, notionPageId, acceptedFromNotion, currentAccepted, proposal, rationale, comparison, needsReview, flags, notionEditedAt, importedAt]
+      properties:
+        identityId: { type: string }
+        id: { type: [string, "null"] }
+        displayId: { type: [string, "null"] }
+        name: { type: string }
+        category: { type: string }
+        tier: { type: [string, "null"] }
+        notionPageId: { type: string }
+        acceptedFromNotion: { type: [string, "null"] }
+        currentAccepted: { type: [string, "null"] }
+        proposal: { type: [string, "null"] }
+        rationale: { type: string }
+        comparison: { type: string, enum: [agree, different, no_proposal, no_accepted] }
+        needsReview: { type: boolean }
+        flags: { type: array, items: { type: string } }
+        notionEditedAt: { type: string }
+        importedAt: { type: string }
+    SnowReviewInput:
+      type: object
+      additionalProperties: false
+      required: [action, expectedVersion]
+      properties:
+        action: { type: string, enum: [confirm, override] }
+        expectedVersion: { type: number, multipleOf: 1, minimum: 0 }
+        tier: { $ref: "#/components/schemas/SnowTier" }
+        reason: { type: string, minLength: 1, maxLength: 500 }
     ConScireCalendar:
       type: object
       required: [days, startDate]

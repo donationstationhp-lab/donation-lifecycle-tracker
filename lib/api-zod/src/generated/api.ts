@@ -9,6 +9,240 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Staff exact lookup by original item ID, identity UUID, or Notion page UUID
+ */
+export const lookupItemIdentityQueryKeyMax = 500;
+
+
+
+export const LookupItemIdentityQueryParams = zod.object({
+  "key": zod.coerce.string().min(1).max(lookupItemIdentityQueryKeyMax)
+})
+
+export const LookupItemIdentityResponse = zod.object({
+  "ambiguous": zod.boolean(),
+  "identities": zod.array(zod.object({
+  "id": zod.string(),
+  "displayId": zod.string().nullable(),
+  "lineage": zod.string(),
+  "name": zod.string(),
+  "needsReview": zod.boolean(),
+  "reviewFlags": zod.array(zod.string()),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Staff-only identity import and rules-v1 backtest report
+ */
+export const getNotionImportReportResponseSummaryTotalMultipleOf = 1;
+
+export const getNotionImportReportResponseSummaryAgreeMultipleOf = 1;
+
+export const getNotionImportReportResponseSummaryDifferentMultipleOf = 1;
+
+export const getNotionImportReportResponseSummaryNoProposalMultipleOf = 1;
+
+export const getNotionImportReportResponseSummaryNoAcceptedMultipleOf = 1;
+
+export const getNotionImportReportResponseSummaryNeedsReviewMultipleOf = 1;
+
+
+
+export const GetNotionImportReportResponse = zod.object({
+  "version": zod.string(),
+  "generatedAt": zod.string(),
+  "summary": zod.object({
+  "total": zod.number().multipleOf(getNotionImportReportResponseSummaryTotalMultipleOf),
+  "agree": zod.number().multipleOf(getNotionImportReportResponseSummaryAgreeMultipleOf),
+  "different": zod.number().multipleOf(getNotionImportReportResponseSummaryDifferentMultipleOf),
+  "noProposal": zod.number().multipleOf(getNotionImportReportResponseSummaryNoProposalMultipleOf),
+  "noAccepted": zod.number().multipleOf(getNotionImportReportResponseSummaryNoAcceptedMultipleOf),
+  "needsReview": zod.number().multipleOf(getNotionImportReportResponseSummaryNeedsReviewMultipleOf)
+}),
+  "items": zod.array(zod.object({
+  "identityId": zod.string(),
+  "id": zod.string().nullable(),
+  "displayId": zod.string().nullable(),
+  "name": zod.string(),
+  "category": zod.string(),
+  "tier": zod.string().nullable(),
+  "notionPageId": zod.string(),
+  "acceptedFromNotion": zod.string().nullable(),
+  "currentAccepted": zod.string().nullable(),
+  "proposal": zod.string().nullable(),
+  "rationale": zod.string(),
+  "comparison": zod.enum(['agree', 'different', 'no_proposal', 'no_accepted']),
+  "needsReview": zod.boolean(),
+  "flags": zod.array(zod.string()),
+  "notionEditedAt": zod.string(),
+  "importedAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Named supervisor reads all Notion Item Log pages into local identities
+ */
+export const importNotionItemsResponseReadMultipleOf = 1;
+
+export const importNotionItemsResponseCreatedMultipleOf = 1;
+
+export const importNotionItemsResponseMatchedMultipleOf = 1;
+
+export const importNotionItemsResponseAcceptedImportedMultipleOf = 1;
+
+export const importNotionItemsResponseNextDsNumberMultipleOf = 1;
+
+
+
+export const ImportNotionItemsResponse = zod.object({
+  "read": zod.number().multipleOf(importNotionItemsResponseReadMultipleOf),
+  "created": zod.number().multipleOf(importNotionItemsResponseCreatedMultipleOf),
+  "matched": zod.number().multipleOf(importNotionItemsResponseMatchedMultipleOf),
+  "acceptedImported": zod.number().multipleOf(importNotionItemsResponseAcceptedImportedMultipleOf),
+  "nextDsNumber": zod.number().multipleOf(importNotionItemsResponseNextDsNumberMultipleOf),
+  "identities": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Staff explicitly applies rules-v1 proposals to imported items
+ */
+export const runSnowRulesV1ResponseEvaluatedMultipleOf = 1;
+
+export const runSnowRulesV1ResponseProposedMultipleOf = 1;
+
+export const runSnowRulesV1ResponseAbstainedMultipleOf = 1;
+
+
+
+export const RunSnowRulesV1Response = zod.object({
+  "evaluated": zod.number().multipleOf(runSnowRulesV1ResponseEvaluatedMultipleOf),
+  "proposed": zod.number().multipleOf(runSnowRulesV1ResponseProposedMultipleOf),
+  "abstained": zod.number().multipleOf(runSnowRulesV1ResponseAbstainedMultipleOf),
+  "version": zod.string()
+})
+
+
+/**
+ * @summary Staff-only S.N.O.W. proposal, accepted tier and audit history
+ */
+export const GetItemSnowParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const getItemSnowResponseVersionMultipleOf = 1;
+
+export const getItemSnowResponseHistoryItemVersionMultipleOf = 1;
+
+
+
+export const GetItemSnowResponse = zod.object({
+  "version": zod.number().multipleOf(getItemSnowResponseVersionMultipleOf),
+  "proposal": zod.union([zod.object({
+  "id": zod.string(),
+  "tier": zod.enum(['URGENT', 'STABLE', 'SURPLUS']),
+  "source": zod.string(),
+  "proposedAt": zod.coerce.date(),
+  "rationale": zod.string().nullable()
+}),zod.null()]),
+  "accepted": zod.union([zod.object({
+  "tier": zod.enum(['URGENT', 'STABLE', 'SURPLUS']),
+  "by": zod.string(),
+  "at": zod.coerce.date(),
+  "decision": zod.enum(['confirmed', 'overridden', 'manual', 'notion_import']),
+  "source": zod.string().optional()
+}),zod.null()]),
+  "awaitingReview": zod.boolean(),
+  "history": zod.array(zod.object({
+  "id": zod.string(),
+  "version": zod.number().multipleOf(getItemSnowResponseHistoryItemVersionMultipleOf),
+  "previousTier": zod.union([zod.literal('URGENT'),zod.literal('STABLE'),zod.literal('SURPLUS'),zod.literal(null)]).nullable(),
+  "acceptedTier": zod.enum(['URGENT', 'STABLE', 'SURPLUS']),
+  "acceptedBy": zod.string(),
+  "acceptedAt": zod.coerce.date(),
+  "decision": zod.enum(['confirmed', 'overridden', 'manual', 'notion_import']),
+  "source": zod.string().optional(),
+  "reason": zod.string().nullable(),
+  "proposal": zod.union([zod.object({
+  "id": zod.string(),
+  "tier": zod.enum(['URGENT', 'STABLE', 'SURPLUS']),
+  "source": zod.string(),
+  "proposedAt": zod.coerce.date(),
+  "rationale": zod.string().nullable()
+}),zod.null()])
+}))
+})
+
+
+/**
+ * @summary Explicit signed-in staff S.N.O.W. decision
+ */
+export const ReviewItemSnowParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const reviewItemSnowBodyExpectedVersionMin = 0;
+export const reviewItemSnowBodyExpectedVersionMultipleOf = 1;
+
+export const reviewItemSnowBodyReasonMax = 500;
+
+
+
+export const ReviewItemSnowBody = zod.object({
+  "action": zod.enum(['confirm', 'override']),
+  "expectedVersion": zod.number().min(reviewItemSnowBodyExpectedVersionMin).multipleOf(reviewItemSnowBodyExpectedVersionMultipleOf),
+  "tier": zod.enum(['URGENT', 'STABLE', 'SURPLUS']).optional(),
+  "reason": zod.string().min(1).max(reviewItemSnowBodyReasonMax).optional()
+})
+
+export const reviewItemSnowResponseVersionMultipleOf = 1;
+
+export const reviewItemSnowResponseHistoryItemVersionMultipleOf = 1;
+
+
+
+export const ReviewItemSnowResponse = zod.object({
+  "version": zod.number().multipleOf(reviewItemSnowResponseVersionMultipleOf),
+  "proposal": zod.union([zod.object({
+  "id": zod.string(),
+  "tier": zod.enum(['URGENT', 'STABLE', 'SURPLUS']),
+  "source": zod.string(),
+  "proposedAt": zod.coerce.date(),
+  "rationale": zod.string().nullable()
+}),zod.null()]),
+  "accepted": zod.union([zod.object({
+  "tier": zod.enum(['URGENT', 'STABLE', 'SURPLUS']),
+  "by": zod.string(),
+  "at": zod.coerce.date(),
+  "decision": zod.enum(['confirmed', 'overridden', 'manual', 'notion_import']),
+  "source": zod.string().optional()
+}),zod.null()]),
+  "awaitingReview": zod.boolean(),
+  "history": zod.array(zod.object({
+  "id": zod.string(),
+  "version": zod.number().multipleOf(reviewItemSnowResponseHistoryItemVersionMultipleOf),
+  "previousTier": zod.union([zod.literal('URGENT'),zod.literal('STABLE'),zod.literal('SURPLUS'),zod.literal(null)]).nullable(),
+  "acceptedTier": zod.enum(['URGENT', 'STABLE', 'SURPLUS']),
+  "acceptedBy": zod.string(),
+  "acceptedAt": zod.coerce.date(),
+  "decision": zod.enum(['confirmed', 'overridden', 'manual', 'notion_import']),
+  "source": zod.string().optional(),
+  "reason": zod.string().nullable(),
+  "proposal": zod.union([zod.object({
+  "id": zod.string(),
+  "tier": zod.enum(['URGENT', 'STABLE', 'SURPLUS']),
+  "source": zod.string(),
+  "proposedAt": zod.coerce.date(),
+  "rationale": zod.string().nullable()
+}),zod.null()])
+}))
+})
+
+
+/**
  * @summary Public donor SMS Terms of Service
  */
 export const GetTermsResponse = zod.string()
@@ -99,6 +333,7 @@ export const HealthCheckResponse = zod.object({
  * @summary List donation items
  */
 export const ListItemsQueryParams = zod.object({
+  "awaitingSnowReview": zod.enum(['true', 'false']).optional().describe('Items with a S.N.O.W. proposal but no accepted S.N.O.W. tier'),
   "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']).optional(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).optional(),
   "category": zod.coerce.string().optional(),
