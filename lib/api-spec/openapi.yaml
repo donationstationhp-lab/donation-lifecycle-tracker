@@ -30,6 +30,25 @@ tags:
   - name: attend
     description: ATTEND allocation and delivery operations
 paths:
+  /network/initialize-sites:
+    post:
+      operationId: initializeNetworkSites
+      summary: Named supervisor initializes the three standard agents without overwriting existing sites
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NetworkInitializationInput" }
+      responses:
+        "200":
+          description: Standard agents checked; only missing identities created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NetworkInitializationResult" }
+        "403":
+          description: A signed-in supervisor is required
+        "409":
+          description: Identity conflict; no sites changed
   /network:
     get:
       operationId: getNetwork
@@ -1407,6 +1426,17 @@ paths:
                 $ref: "#/components/schemas/PublicImpactSummary"
 components:
   schemas:
+    NetworkInitializationInput:
+      type: object
+      required: [confirmed]
+      properties:
+        confirmed: { type: boolean, enum: [true] }
+    NetworkInitializationResult:
+      type: object
+      required: [created, existing]
+      properties:
+        created: { type: number, multipleOf: 1, minimum: 0 }
+        existing: { type: number, multipleOf: 1, minimum: 0 }
     NetworkResult:
       type: object
       required: [id]

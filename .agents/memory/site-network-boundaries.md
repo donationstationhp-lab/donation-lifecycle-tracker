@@ -26,3 +26,18 @@ retroactive invented custody. Existing records predate the site network.
 **How to apply:** Resolve historical gaps only from staff-confirmed evidence.
 Treat scheduled movement as intent, not proof of receipt or physical relocation;
 a future current-stock/Placement projection requires an explicit custody design.
+
+Production network initialization must be an explicit supervisor action, not
+automatic startup seeding or copying all Development rows into Production.
+For Replit-managed PostgreSQL, the supported Publish flow applies the schema
+diff; do not introduce a separate production schema-push script or startup DDL.
+
+**Why:** The owner requested safe production activation that never overwrites
+existing sites or duplicates identities. Schema readiness and business seed
+data are different release concerns; copying Development data would endanger
+unrelated live records.
+
+**How to apply:** Keep production schema changes in the managed Publish flow.
+Require a deliberate supervisor action for missing standard-site records, stop
+atomically on identity conflicts, and never use "overwrite production data" to
+populate the three sites.

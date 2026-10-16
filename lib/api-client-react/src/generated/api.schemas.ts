@@ -5,6 +5,17 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+export interface NetworkInitializationInput {
+  confirmed: true;
+}
+
+export interface NetworkInitializationResult {
+  /** @minimum 0 */
+  created: number;
+  /** @minimum 0 */
+  existing: number;
+}
+
 export interface NetworkResult {
   id: string;
 }

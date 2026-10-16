@@ -71,6 +71,8 @@ import type {
   ListTransfersParams,
   LookupItemIdentityParams,
   NetworkCommand,
+  NetworkInitializationInput,
+  NetworkInitializationResult,
   NetworkResult,
   NetworkSnapshot,
   NotionImportReport,
@@ -129,6 +131,77 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getInitializeNetworkSitesUrl = () => {
+
+
+
+
+  return `/api/network/initialize-sites`
+}
+
+/**
+ * @summary Named supervisor initializes the three standard agents without overwriting existing sites
+ */
+export const initializeNetworkSites = async (networkInitializationInput: NetworkInitializationInput, options?: Parameters<typeof customFetch>[1]): Promise<NetworkInitializationResult> => {
+
+  return customFetch<NetworkInitializationResult>(getInitializeNetworkSitesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(networkInitializationInput)
+  }
+);}
+
+
+
+
+
+export const getInitializeNetworkSitesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initializeNetworkSites>>, TError,{data: BodyType<NetworkInitializationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof initializeNetworkSites>>, TError,{data: BodyType<NetworkInitializationInput>}, TContext> => {
+
+const mutationKey = ['initializeNetworkSites'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof initializeNetworkSites>>, {data: BodyType<NetworkInitializationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  initializeNetworkSites(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InitializeNetworkSitesMutationResult = NonNullable<Awaited<ReturnType<typeof initializeNetworkSites>>>
+    export type InitializeNetworkSitesMutationBody = BodyType<NetworkInitializationInput>
+    export type InitializeNetworkSitesMutationError = ErrorType<void>
+
+    /**
+ * @summary Named supervisor initializes the three standard agents without overwriting existing sites
+ */
+export const useInitializeNetworkSites = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof initializeNetworkSites>>, TError,{data: BodyType<NetworkInitializationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof initializeNetworkSites>>,
+        TError,
+        {data: BodyType<NetworkInitializationInput>},
+        TContext
+      > => {
+      return useMutation(getInitializeNetworkSitesMutationOptions(options));
+    }
 
 export const getGetNetworkUrl = () => {
 

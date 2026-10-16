@@ -10,6 +10,7 @@ import { errMsg, useNetwork, useNetworkCommand } from '@/hooks/use-network';
 import { Empty, NativeSelect, NetworkError, NetworkLoading, Section, agentName } from '@/components/network/bits';
 import { AgentFormDialog } from '@/components/network/AgentForm';
 import { DayFormDialog, type DayPreset } from '@/components/network/DayForm';
+import { InitializeSites } from '@/components/network/InitializeSites';
 
 function ShelfRow({ id, code, zone, agents }: { id: string; code: string; zone: string; agents: NetworkAgent[] }) {
   const { toast } = useToast();
@@ -100,6 +101,7 @@ export default function Network() {
         </div>
       </div>
 
+      <InitializeSites />
       <Section title={`Sites (${data.agents.length})`} testId="section-agents">
         {data.agents.length === 0 ? <Empty title="No sites yet" body="Add the first site to start recording days and receipts." /> : (
           <div className="grid gap-3 md:grid-cols-2">

@@ -93,6 +93,28 @@ async function review(id: string, decision = "approved") {
 function receive(id: string, details: DonationOfferDetails = original) {
   return request(`/donation-offers/${id}/receive`, { detailsVerified: true, receivedDetails: details, receivingAgentId: "fixture-agent" }, "staff");
 }
+test("offer physical receipt requires a deliberately selected valid receiving site before issuing any DS number", async () => {
+  const offer = await submit();
+  await review(offer.id);
+  await db.insert(agentsTable).values({
+    id: "fixture-planned-site", number: 2, fullName: "Synthetic planned", shortName: "Planned",
+    address: "Synthetic address", type: "CIA-provided", status: "planned",
+  });
+  for (const receivingAgentId of [undefined, "", "nonexistent-site", "fixture-planned-site"]) {
+    const response = await request(`/donation-offers/${offer.id}/receive`, {
+      detailsVerified: true, receivedDetails: original, receivingAgentId,
+    }, "staff");
+    assert.equal(response.status, 400);
+    assert.equal(await counter(), 6396);
+    assert.equal((await db.select().from(donationItemsTable)).length, 0);
+    assert.equal((await db.select().from(agentDaysTable)).length, 0);
+  }
+  const accepted = await receive(offer.id);
+  assert.equal(accepted.status, 200);
+  const [item] = await db.select().from(donationItemsTable);
+  assert.equal(item.receivingAgentId, "fixture-agent");
+  assert.equal(await counter(), 6397);
+});
 async function counter() {
   const [row] = await db.select().from(trackingCountersTable).where(eq(trackingCountersTable.name, "item_ds"));
   return row?.nextNumber;

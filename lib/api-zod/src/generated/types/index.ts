@@ -132,6 +132,8 @@ export * from './networkEventInputDirection';
 export * from './networkEventInputKind';
 export * from './networkEventInputRecordingMode';
 export * from './networkGoods';
+export * from './networkInitializationInput';
+export * from './networkInitializationResult';
 export * from './networkItem';
 export * from './networkLocation';
 export * from './networkMissingDay';

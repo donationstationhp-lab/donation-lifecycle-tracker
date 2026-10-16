@@ -9,6 +9,27 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Named supervisor initializes the three standard agents without overwriting existing sites
+ */
+export const InitializeNetworkSitesBody = zod.object({
+  "confirmed": zod.literal(true)
+})
+
+export const initializeNetworkSitesResponseCreatedMin = 0;
+export const initializeNetworkSitesResponseCreatedMultipleOf = 1;
+
+export const initializeNetworkSitesResponseExistingMin = 0;
+export const initializeNetworkSitesResponseExistingMultipleOf = 1;
+
+
+
+export const InitializeNetworkSitesResponse = zod.object({
+  "created": zod.number().min(initializeNetworkSitesResponseCreatedMin).multipleOf(initializeNetworkSitesResponseCreatedMultipleOf),
+  "existing": zod.number().min(initializeNetworkSitesResponseExistingMin).multipleOf(initializeNetworkSitesResponseExistingMultipleOf)
+})
+
+
+/**
  * @summary Staff-only shared network records
  */
 export const getNetworkResponseAgentsItemOneFullNameMax = 200;

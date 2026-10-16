@@ -82,6 +82,22 @@ function post(path: string, body: unknown) {
     body: JSON.stringify(path === "/items" ? { receivingAgentId: "fixture-agent", ...(body as object) } : body),
   });
 }
+test("staff intake rejects missing or invalid receiving site before allocating a DS number", async () => {
+  const body = {
+    name: "Synthetic site-validation item", category: "equipment", condition: "good",
+    donor: "Synthetic donor", lotNumber: "LOT-SYNTHETIC", tier: "R",
+  };
+  await setCounter(6396);
+  for (const receivingAgentId of [undefined, "", "nonexistent-site"]) {
+    const response = await fetch(baseUrl + "/items", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...body, receivingAgentId }),
+    });
+    assert.equal(response.status, 400);
+    assert.equal(await nextCounter(), 6396);
+    assert.equal((await db.select().from(donationItemsTable)).length, 0);
+  }
+});
 
 async function seedPickup() {
   const id = randomUUID();

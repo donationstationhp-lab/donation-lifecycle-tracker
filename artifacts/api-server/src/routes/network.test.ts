@@ -52,3 +52,25 @@ test("automation cannot impersonate named staff; assigned staff and supervisor r
     assert.equal(response.status, 400);
   }
 });
+test("standard site initialization is supervisor-only and requires explicit confirmation", async () => {
+  for (const role of [null, "unassigned", "community", "staff"]) {
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (role) headers["x-fixture-role"] = role;
+    const response = await fetch(`${base}/network/initialize-sites`, {
+      method: "POST", headers, body: JSON.stringify({ confirmed: true }),
+    });
+    assert.equal(response.status, role ? 403 : 401);
+  }
+  const automation = await fetch(`${base}/network/initialize-sites`, {
+    method: "POST", headers: { "content-type": "application/json", "x-api-key": "synthetic-network-key" },
+    body: JSON.stringify({ confirmed: true }),
+  });
+  assert.equal(automation.status, 403);
+  for (const body of [{}, { confirmed: false }]) {
+    const response = await fetch(`${base}/network/initialize-sites`, {
+      method: "POST", headers: { "content-type": "application/json", "x-fixture-role": "supervisor" },
+      body: JSON.stringify(body),
+    });
+    assert.equal(response.status, 400);
+  }
+});

@@ -79,5 +79,42 @@ in Development. Seeding is transactional/idempotent, preserves staff edits, and
 stops on number/name identity conflicts. It does not seed partner organizations.
 It is not run automatically in Production.
 
+### Published site initialization
+
+After publishing, a signed-in **supervisor** opens **Network → Supervisor site
+setup → Initialize standard sites**, reviews the three sites, checks the explicit
+confirmation, and confirms initialization. Staff without the supervisor role and
+API-key automation cannot perform this action. The server enforces this; the
+button's visibility is not the security boundary.
+
+The action and Development CLI share the same initializer. It serializes against
+new agent numbering, locks site edits during reconciliation, validates all three
+number/name identities before inserting anything, then creates only missing
+sites in one transaction. A conflict returns 409 and rolls back the whole action.
+Reruns preserve IDs and every field of matching sites, including staff edits to
+address, notes and SKU. A renamed numbered site is a conflict, not an invitation
+to recreate or overwrite it. Concurrent initialization cannot create duplicates.
+No organization, inventory, agent-day, DS/claim-counter or Notion writes occur.
+
+### Production schema readiness
+
+For this Replit-managed PostgreSQL app, Publish applies the development-to-
+production schema diff; development **rows** are not copied by default. The new
+network schema must be present before the new API uses it, but a separate manual
+production migration is not required. Review the additive schema diff in Publish:
+`agents`, `agent_days`, `locations.agent_id`, `donation_items.receiving_agent_id`,
+`recipient_accounts.network_profile`, and the service ledger's `from_agent_id`,
+`to_agent_id`, `network_details`. Keep the existing production data; do not select
+the option to overwrite production with development data. Do not add startup DDL
+or change the build command to push the production schema.
+
+Read-only inspection of the managed production database before this release
+found none of these network structures. This check uses the managed production
+connection; it does not independently fingerprint the published process's
+secret-backed database connection. After publishing, verify the schema update
+and supervisor access, initialize sites through the action, and verify the three
+agents on the published Network page before resuming receipts. Do not use the
+manual Add site form to create numbered sites before this initialization.
+
 Notion writes remain disabled. T.I.E.R., S.N.O.W., DS/DS-L identities, the DS
 allocator and claim-based transfer behavior are unchanged.
