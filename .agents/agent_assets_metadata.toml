@@ -14,3 +14,31 @@ mtime_ms = 1791084176094
 storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:43f34b6e-1a79-445b-b0fa-8b04e3cf75a5/5f530015-5e89-431d-a8be-5fe73a56e354/bb2a0dbc-2b0d-4df7-a268-a3c632c91ae1"
 storage_version_token = "1791084176841808"
 content_type = "text/plain"
+
+[[outputs]]
+id = "wLBT-iSs7kFPbNA3Wqzxo"
+uri = "file://generated-artifacts/donation-station-account-move-2026-10-16.zip"
+type = "unspecified"
+title = "Private account-move backups and restore guide"
+description = "Separate Development and Production application-data exports, current schema, table counts, checksums, and restore instructions. Contains personal operational data: keep private and out of GitHub. No application credentials or OTP hashes included."
+logical_id = "6df30f5d-1ccd-4efb-ac24-a87d0811eb2a"
+content_hash = "sha256:9a3c990828dec42d188b25894a132e45837e917e48bb781eb182dc37faf85751"
+size = 102941
+mtime_ms = 1792192240065
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:43f34b6e-1a79-445b-b0fa-8b04e3cf75a5/6df30f5d-1ccd-4efb-ac24-a87d0811eb2a/af44f2ac-59e2-41c2-8982-9018ad826a67"
+storage_version_token = "1792192246242318"
+content_type = "application/octet-stream"
+
+[[outputs]]
+id = "bM1U1ZpL45_Mbi4PdlSNX"
+uri = "file://generated-artifacts/account-move-2026-10-16/table-counts.csv"
+type = "table"
+title = "Development and Production table counts"
+description = "Aggregate counts only for the migration snapshots; missing network tables in Production are labeled absent."
+logical_id = "b71620da-834a-48f1-93ec-2de1b4f083fc"
+content_hash = "sha256:92f6e9454234debf27820cd6e34732117e4c9ef7bd19ea38ba39402b50ca5c4a"
+size = 845
+mtime_ms = 1792192240054
+storage_uri = "gcs://replit-rams-assets-kirk/rams/assets/repl:43f34b6e-1a79-445b-b0fa-8b04e3cf75a5/b71620da-834a-48f1-93ec-2de1b4f083fc/0cf2c0a0-a0d7-4efa-a87d-f22d146ac1bb"
+storage_version_token = "1792192247088193"
+content_type = "text/csv"
