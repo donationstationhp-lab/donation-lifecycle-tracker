@@ -10,6 +10,8 @@ import type { DonationItemInputTemperatureZone } from './donationItemInputTemper
 import type { DonationItemInputTier } from './donationItemInputTier';
 
 export interface DonationItemInput {
+  /** @minLength 1 */
+  receivingAgentId: string;
   name: string;
   category: string;
   tier: DonationItemInputTier;

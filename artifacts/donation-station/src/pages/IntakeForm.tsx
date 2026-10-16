@@ -11,6 +11,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, ArrowLeft, Dna } from 'lucide-react';
 import { Link } from 'wouter';
+import { AgentSelect } from '@/components/network/AgentSelect';
+import { useQueryClient } from '@tanstack/react-query';
+import { getGetNetworkQueryKey } from '@workspace/api-client-react';
 import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
@@ -33,6 +36,8 @@ export default function IntakeForm() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const createItem = useCreateItem();
+  const qc = useQueryClient();
+  const [receivingAgentId, setReceivingAgentId] = useState('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,6 +69,10 @@ export default function IntakeForm() {
   };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    if (!receivingAgentId) {
+      toast({ title: 'Receiving site required', description: 'Choose the site that received this item.', variant: 'destructive' });
+      return;
+    }
     const lotNumber = values.lotNumber || generateLotNumber();
     
     // Clean up empty optional strings to undefined
@@ -79,9 +88,11 @@ export default function IntakeForm() {
       data: {
         ...cleanValues,
         lotNumber,
+        receivingAgentId,
       } as any 
     }, {
       onSuccess: (data) => {
+        qc.invalidateQueries({ queryKey: getGetNetworkQueryKey() });
         toast({
           title: "Item Logged",
           description: `Successfully intaken ${data.itemId}`,
@@ -232,6 +243,8 @@ export default function IntakeForm() {
                 </FormItem>
               )} />
               
+              <div className="md:col-span-2"><AgentSelect value={receivingAgentId} onChange={setReceivingAgentId} id="intake-receiving-agent" /></div>
+
               <FormField control={form.control} name="location" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Current Location (Optional)</FormLabel>

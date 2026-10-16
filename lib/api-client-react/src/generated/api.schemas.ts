@@ -5,6 +5,365 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+export interface NetworkResult {
+  id: string;
+}
+
+export type NetworkAgentInputType = typeof NetworkAgentInputType[keyof typeof NetworkAgentInputType];
+
+
+export const NetworkAgentInputType = {
+  'CIA-provided': 'CIA-provided',
+  'host-permitted': 'host-permitted',
+} as const;
+
+export type NetworkAgentInputStatus = typeof NetworkAgentInputStatus[keyof typeof NetworkAgentInputStatus];
+
+
+export const NetworkAgentInputStatus = {
+  active: 'active',
+  seasonal: 'seasonal',
+  planned: 'planned',
+} as const;
+
+export interface NetworkAgentInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  fullName: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  shortName: string;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  address: string;
+  type: NetworkAgentInputType;
+  status: NetworkAgentInputStatus;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  sku?: string | null;
+  /** @maxLength 4000 */
+  notes: string;
+}
+
+export type NetworkAgent = NetworkAgentInput & {
+  id: string;
+  number: number;
+  owner: string;
+  operator: string;
+  joinedOn: string;
+};
+
+export type NetworkPartnerProfileVisibility = typeof NetworkPartnerProfileVisibility[keyof typeof NetworkPartnerProfileVisibility];
+
+
+export const NetworkPartnerProfileVisibility = {
+  Within: 'Within',
+  With: 'With',
+  Beyond: 'Beyond',
+} as const;
+
+export type NetworkPartnerProfileNodeStatus = typeof NetworkPartnerProfileNodeStatus[keyof typeof NetworkPartnerProfileNodeStatus];
+
+
+export const NetworkPartnerProfileNodeStatus = {
+  profile_needed: 'profile needed',
+  active: 'active',
+  paused: 'paused',
+} as const;
+
+export interface NetworkPartnerProfile {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  organizationType: string;
+  /** @maxLength 200 */
+  area: string;
+  /** @maxLength 300 */
+  contactChannel: string;
+  /** @maxLength 500 */
+  website: string;
+  /** @maxLength 1000 */
+  hours: string;
+  /** @maxLength 2000 */
+  accepts: string;
+  /** @maxLength 2000 */
+  refuses: string;
+  /** @maxLength 1000 */
+  capacity: string;
+  /** @maxLength 1000 */
+  urgentSignal: string;
+  /** @maxLength 1000 */
+  surplusSignal: string;
+  /** @maxLength 1000 */
+  idleSignal: string;
+  visibility: NetworkPartnerProfileVisibility;
+  nodeStatus: NetworkPartnerProfileNodeStatus;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  dateJoined: string;
+}
+
+export interface NetworkPartnerInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  profile: NetworkPartnerProfile;
+}
+
+export type NetworkPartner = NetworkPartnerInput & {
+  id: string;
+};
+
+export type NetworkDayInputState = typeof NetworkDayInputState[keyof typeof NetworkDayInputState];
+
+
+export const NetworkDayInputState = {
+  Intake: 'Intake',
+  Idle: 'Idle',
+  Closed: 'Closed',
+} as const;
+
+export interface NetworkDayInput {
+  /** @minLength 1 */
+  agentId: string;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  day: string;
+  state: NetworkDayInputState;
+}
+
+export type NetworkDay = NetworkDayInput & ({
+  id: string;
+  itemCount: number;
+  /** @nullable */
+  firstDs: string | null;
+  /** @nullable */
+  lastDs: string | null;
+});
+
+export interface NetworkGoods {
+  itemId?: string;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  description: string;
+  /**
+     * @minimum 0.001
+     * @maximum 1000000
+     */
+  quantity: number;
+  /**
+     * @minLength 1
+     * @maxLength 50
+     */
+  unit: string;
+}
+
+export type NetworkEventInputKind = typeof NetworkEventInputKind[keyof typeof NetworkEventInputKind];
+
+
+export const NetworkEventInputKind = {
+  internal_move: 'internal_move',
+  supply_transfer: 'supply_transfer',
+} as const;
+
+export type NetworkEventInputDirection = typeof NetworkEventInputDirection[keyof typeof NetworkEventInputDirection];
+
+
+export const NetworkEventInputDirection = {
+  outgoing: 'outgoing',
+  incoming: 'incoming',
+} as const;
+
+export type NetworkEventInputRecordingMode = typeof NetworkEventInputRecordingMode[keyof typeof NetworkEventInputRecordingMode];
+
+
+export const NetworkEventInputRecordingMode = {
+  live: 'live',
+  after_transfer: 'after transfer',
+  scheduled: 'scheduled',
+} as const;
+
+export type NetworkEventInputActingEntity = typeof NetworkEventInputActingEntity[keyof typeof NetworkEventInputActingEntity];
+
+
+export const NetworkEventInputActingEntity = {
+  Donation_Station: 'Donation Station',
+  Communities_in_Action: 'Communities in Action',
+} as const;
+
+export interface NetworkEventInput {
+  /** @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ */
+  requestId: string;
+  kind: NetworkEventInputKind;
+  /** @minLength 1 */
+  agentId: string;
+  toAgentId?: string;
+  organizationId?: string;
+  /** @maxLength 60 */
+  individualSource?: string;
+  direction?: NetworkEventInputDirection;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  eventDate: string;
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  items: NetworkGoods[];
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  containerCount: number;
+  /**
+     * @minimum 0
+     * @maximum 10000000
+     * @nullable
+     */
+  estimatedPounds: number | null;
+  recordingMode: NetworkEventInputRecordingMode;
+  actingEntity: NetworkEventInputActingEntity;
+}
+
+export type NetworkAcknowledgmentInputAcknowledgment = typeof NetworkAcknowledgmentInputAcknowledgment[keyof typeof NetworkAcknowledgmentInputAcknowledgment];
+
+
+export const NetworkAcknowledgmentInputAcknowledgment = {
+  pending: 'pending',
+  confirmed: 'confirmed',
+  confirmed_with_differences: 'confirmed with differences',
+} as const;
+
+export interface NetworkAcknowledgmentInput {
+  acknowledgment: NetworkAcknowledgmentInputAcknowledgment;
+  /** @maxLength 2000 */
+  note: string;
+}
+
+export type NetworkCommandAction = typeof NetworkCommandAction[keyof typeof NetworkCommandAction];
+
+
+export const NetworkCommandAction = {
+  createAgent: 'createAgent',
+  updateAgent: 'updateAgent',
+  createPartner: 'createPartner',
+  updatePartner: 'updatePartner',
+  logDay: 'logDay',
+  recordEvent: 'recordEvent',
+  acknowledge: 'acknowledge',
+  assignLocation: 'assignLocation',
+  createLocation: 'createLocation',
+} as const;
+
+export type NetworkShelfInputTempZone = typeof NetworkShelfInputTempZone[keyof typeof NetworkShelfInputTempZone];
+
+
+export const NetworkShelfInputTempZone = {
+  ambient: 'ambient',
+  refrigerated: 'refrigerated',
+  frozen: 'frozen',
+} as const;
+
+export interface NetworkShelfInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  code: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  zone: string;
+  /** @minLength 1 */
+  agentId: string;
+  /** @maxLength 1000 */
+  description?: string;
+  /**
+     * @minimum 0
+     * @maximum 10000000
+     * @nullable
+     */
+  capacity?: number | null;
+  tempZone?: NetworkShelfInputTempZone;
+}
+
+export interface NetworkCommand {
+  action: NetworkCommandAction;
+  id?: string;
+  agentId?: string;
+  agent?: NetworkAgentInput;
+  partner?: NetworkPartnerInput;
+  day?: NetworkDayInput;
+  event?: NetworkEventInput;
+  acknowledgment?: NetworkAcknowledgmentInput;
+  location?: NetworkShelfInput;
+}
+
+export interface NetworkEvent {
+  id: string;
+  kind: string;
+  /** @nullable */
+  fromAgentId: string | null;
+  /** @nullable */
+  toAgentId: string | null;
+  /** @nullable */
+  organizationId: string | null;
+  direction?: string;
+  individualSource?: string;
+  eventDate: string;
+  items: NetworkGoods[];
+  containerCount: number;
+  /** @nullable */
+  estimatedPounds: number | null;
+  recordingMode: string;
+  actingEntity: string;
+  acknowledgment: string;
+  acknowledgmentNote: string;
+}
+
+export interface NetworkItem {
+  id: string;
+  itemId: string;
+  name: string;
+  /** @nullable */
+  receivingAgentId: string | null;
+}
+
+export interface NetworkLocation {
+  id: string;
+  code: string;
+  zone: string;
+  /** @nullable */
+  agentId: string | null;
+}
+
+export interface NetworkMissingDay {
+  agentId: string;
+  day: string;
+}
+
+export interface NetworkSnapshot {
+  agents: NetworkAgent[];
+  partners: NetworkPartner[];
+  days: NetworkDay[];
+  missingDays: NetworkMissingDay[];
+  events: NetworkEvent[];
+  items: NetworkItem[];
+  locations: NetworkLocation[];
+  today: string;
+}
+
 export type DonationOfferInputCondition = typeof DonationOfferInputCondition[keyof typeof DonationOfferInputCondition];
 
 
@@ -116,6 +475,8 @@ export interface DonationOfferReviewInput {
 }
 
 export interface DonationOfferReceiptInput {
+  /** @minLength 1 */
+  receivingAgentId: string;
   detailsVerified: true;
   receivedDetails: DonationOfferInput;
 }
@@ -823,6 +1184,8 @@ export const DonationItemStage = {
 } as const;
 
 export interface DonationItem {
+  /** @nullable */
+  receivingAgentId?: string | null;
   id: string;
   /** Human-readable ID in format DS-XXXX */
   itemId: string;
@@ -957,6 +1320,8 @@ export const DonationItemInputTemperatureZone = {
 } as const;
 
 export interface DonationItemInput {
+  /** @minLength 1 */
+  receivingAgentId: string;
   name: string;
   category: string;
   tier: DonationItemInputTier;

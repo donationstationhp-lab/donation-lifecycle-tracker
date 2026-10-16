@@ -1,6 +1,6 @@
 import { useEffect, useState, ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag, FileText, ArrowRightLeft, Users, Heart, CalendarDays, Globe, ShieldAlert, Recycle, Menu, X, Link as LinkIcon, Snowflake, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardCheck, Flag, FileText, ArrowRightLeft, Users, Heart, CalendarDays, Globe, ShieldAlert, Recycle, Menu, X, Link as LinkIcon, Snowflake, Network as NetworkIcon, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { UserButton } from '@clerk/react';
@@ -77,6 +77,7 @@ export function Shell({ children }: { children: ReactNode }) {
       items: [
         { href: '/donors', label: 'Donors', icon: Heart },
         { href: '/accounts', label: 'Accounts', icon: Users },
+        { href: '/network', label: 'Network', icon: NetworkIcon },
         { href: '/community-ownership', label: 'Ownership', icon: LinkIcon },
       ]
     }

@@ -6,6 +6,7 @@ import {
 import { itemRepository } from "./itemRepository";
 import { allocateItemDsId } from "./itemIds";
 import { recordAcknowledgment, recordServiceActivity } from "./serviceActivities";
+import { recordAgentReceipt } from "./network";
 
 export class DonationOfferError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -44,7 +45,7 @@ function powerConnectionReading(date: Date): string {
   return String(sum);
 }
 
-export async function receiveDonationOffer(id: string, details: DonationOfferDetails, actor: string) {
+export async function receiveDonationOffer(id: string, details: DonationOfferDetails, actor: string, receivingAgentId: string) {
   return db.transaction(async (tx) => {
     const [offer] = await tx.select().from(donationSubmissionsTable)
       .where(eq(donationSubmissionsTable.id, id)).for("update");
@@ -59,12 +60,13 @@ export async function receiveDonationOffer(id: string, details: DonationOfferDet
       throw new DonationOfferError(409, "Only approved offers may be physically received.");
     }
     const now = new Date();
+    await recordAgentReceipt(tx, receivingAgentId, actor, now);
     // Lock order: submission, then existing central allocator. No new mint.
     const displayId = await allocateItemDsId(tx);
     const itemId = randomUUID();
     const quantity = details.quantity ?? 1;
     const item = await repository.insert({
-      id: itemId, itemId: displayId,
+      id: itemId, itemId: displayId, receivingAgentId,
       name: quantity > 1 ? `${details.name.trim()} (×${quantity})` : details.name.trim(),
       category: details.category?.trim() || "General", tier: "R",
       condition: details.condition ?? "good",

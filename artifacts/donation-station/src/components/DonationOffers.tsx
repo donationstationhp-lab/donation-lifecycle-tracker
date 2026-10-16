@@ -20,6 +20,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AgentSelect } from '@/components/network/AgentSelect';
+import { getGetNetworkQueryKey } from '@workspace/api-client-react';
 import { useToast } from '@/hooks/use-toast';
 
 type Status = DonationOffer['status'];
@@ -105,6 +107,7 @@ function ReceiveForm({ offer, onClose }: { offer: DonationOffer; onClose: () => 
   const [form, setForm] = useState<FormState>(() => toForm(offer.offeredDetails));
   const [checked, setChecked] = useState<Set<FieldKey>>(new Set());
   const [confirmed, setConfirmed] = useState(false);
+  const [receivingAgentId, setReceivingAgentId] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -124,6 +127,7 @@ function ReceiveForm({ offer, onClose }: { offer: DonationOffer; onClose: () => 
     if (busy) return;
     setError(null);
     const qty = Number(form.quantity);
+    if (!receivingAgentId) return setError('Choose the receiving site.');
     if (!form.name.trim()) return setError('Name is required.');
     if (!Number.isInteger(qty) || qty < 1) return setError('Quantity must be a whole number of at least 1.');
     if (form.expiryDate && !/^\d{4}-\d{2}-\d{2}$/.test(form.expiryDate)) return setError('Expiry date must be YYYY-MM-DD.');
@@ -144,8 +148,9 @@ function ReceiveForm({ offer, onClose }: { offer: DonationOffer; onClose: () => 
     };
     setBusy(true);
     try {
-      const item = await receive.mutateAsync({ id: offer.id, data: { detailsVerified: true, receivedDetails } });
+      const item = await receive.mutateAsync({ id: offer.id, data: { receivingAgentId, detailsVerified: true, receivedDetails } });
       toast({ title: 'Receipt confirmed', description: `Inventory record ${item.itemId} created.` });
+      qc.invalidateQueries({ queryKey: getGetNetworkQueryKey() });
       ['/api/items', '/api/dashboard', 'dashboard', 'pending-count', 'pending-items'].forEach((k) =>
         qc.invalidateQueries({ queryKey: k.startsWith('/') ? [k] : [k] }));
       qc.invalidateQueries({ queryKey: getListDonationOffersQueryKey() });
@@ -172,6 +177,7 @@ function ReceiveForm({ offer, onClose }: { offer: DonationOffer; onClose: () => 
         <Details d={offer.offeredDetails} />
       </div>
       <div className="space-y-4">
+        <AgentSelect value={receivingAgentId} onChange={setReceivingAgentId} id="receipt-receiving-agent" />
         <ReceiptField field="name" label="Name" verified={checked.has('name')} onVerify={(v) => mark('name', v)}>
           <Input id="receipt-name" value={form.name} onChange={(e) => set('name', e.target.value)} />
         </ReceiptField>

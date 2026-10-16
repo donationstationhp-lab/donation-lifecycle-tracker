@@ -1,9 +1,11 @@
 import { pgTable, text, real, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { agentsTable } from "./agents";
 
 export const locationsTable = pgTable("locations", {
   id: text("id").primaryKey(),
+  agentId: text("agent_id").references(() => agentsTable.id),
   code: text("code").notNull().unique(),
   zone: text("zone").notNull(),
   capacity: real("capacity"),

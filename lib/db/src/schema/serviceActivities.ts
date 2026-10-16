@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -11,12 +12,24 @@ import { appointmentsTable } from "./appointments";
 import { claimsTable, recipientAccountsTable } from "./attendLifecycle";
 import { donationItemsTable } from "./donationItems";
 import { pickupRequestsTable } from "./pickupRequests";
+import { agentsTable } from "./agents";
 
 export const serviceActivitiesTable = pgTable(
   "service_activities",
   {
     id: text("id").primaryKey(),
     activityType: text("activity_type").notNull(),
+    fromAgentId: text("from_agent_id").references(() => agentsTable.id),
+    toAgentId: text("to_agent_id").references(() => agentsTable.id),
+    networkDetails: jsonb("network_details").$type<{
+      eventDate: string; items: Array<{ itemId?: string; description: string; quantity: number; unit: string }>;
+      containerCount: number; estimatedPounds: number | null;
+      direction?: "outgoing" | "incoming"; individualSource?: string;
+      recordingMode: "live" | "after transfer" | "scheduled";
+      actingEntity: "Donation Station" | "Communities in Action";
+      acknowledgment: "pending" | "confirmed" | "confirmed with differences";
+      acknowledgmentNote: string;
+    }>(),
     loopStage: text("loop_stage").notNull(),
     relatedItemId: text("related_item_id").references(() => donationItemsTable.id, { onDelete: "set null" }),
     relatedClaimId: text("related_claim_id").references(() => claimsTable.id, { onDelete: "set null" }),

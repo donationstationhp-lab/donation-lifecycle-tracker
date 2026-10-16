@@ -70,6 +70,9 @@ import type {
   ListPickupsParams,
   ListTransfersParams,
   LookupItemIdentityParams,
+  NetworkCommand,
+  NetworkResult,
+  NetworkSnapshot,
   NotionImportReport,
   NotionImportResult,
   PickupCompleteInput,
@@ -126,6 +129,154 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetNetworkUrl = () => {
+
+
+
+
+  return `/api/network`
+}
+
+/**
+ * @summary Staff-only shared network records
+ */
+export const getNetwork = async ( options?: Parameters<typeof customFetch>[1]): Promise<NetworkSnapshot> => {
+
+  return customFetch<NetworkSnapshot>(getGetNetworkUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNetworkQueryKey = () => {
+    return [
+    `/api/network`
+    ] as const;
+    }
+
+
+export const getGetNetworkQueryOptions = <TData = Awaited<ReturnType<typeof getNetwork>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetwork>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNetworkQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNetwork>>> = ({ signal }) => getNetwork({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNetwork>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNetworkQueryResult = NonNullable<Awaited<ReturnType<typeof getNetwork>>>
+export type GetNetworkQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Staff-only shared network records
+ */
+
+export function useGetNetwork<TData = Awaited<ReturnType<typeof getNetwork>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNetwork>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNetworkQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveNetworkUrl = () => {
+
+
+
+
+  return `/api/network`
+}
+
+/**
+ * @summary Explicit staff network command
+ */
+export const saveNetwork = async (networkCommand: NetworkCommand, options?: Parameters<typeof customFetch>[1]): Promise<NetworkResult> => {
+
+  return customFetch<NetworkResult>(getSaveNetworkUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(networkCommand)
+  }
+);}
+
+
+
+
+
+export const getSaveNetworkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveNetwork>>, TError,{data: BodyType<NetworkCommand>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveNetwork>>, TError,{data: BodyType<NetworkCommand>}, TContext> => {
+
+const mutationKey = ['saveNetwork'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveNetwork>>, {data: BodyType<NetworkCommand>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveNetwork(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveNetworkMutationResult = NonNullable<Awaited<ReturnType<typeof saveNetwork>>>
+    export type SaveNetworkMutationBody = BodyType<NetworkCommand>
+    export type SaveNetworkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Explicit staff network command
+ */
+export const useSaveNetwork = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveNetwork>>, TError,{data: BodyType<NetworkCommand>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveNetwork>>,
+        TError,
+        {data: BodyType<NetworkCommand>},
+        TContext
+      > => {
+      return useMutation(getSaveNetworkMutationOptions(options));
+    }
 
 export const getSubmitDonationOfferUrl = () => {
 

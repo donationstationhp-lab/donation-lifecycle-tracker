@@ -9,6 +9,299 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Staff-only shared network records
+ */
+export const getNetworkResponseAgentsItemOneFullNameMax = 200;
+
+export const getNetworkResponseAgentsItemOneShortNameMax = 100;
+
+export const getNetworkResponseAgentsItemOneAddressMax = 300;
+
+export const getNetworkResponseAgentsItemOneSkuMax = 100;
+
+export const getNetworkResponseAgentsItemOneNotesMax = 4000;
+
+export const getNetworkResponseAgentsItemTwoNumberMultipleOf = 1;
+
+export const getNetworkResponsePartnersItemOneNameMax = 200;
+
+export const getNetworkResponsePartnersItemOneProfileOrganizationTypeMax = 100;
+
+export const getNetworkResponsePartnersItemOneProfileAreaMax = 200;
+
+export const getNetworkResponsePartnersItemOneProfileContactChannelMax = 300;
+
+export const getNetworkResponsePartnersItemOneProfileWebsiteMax = 500;
+
+export const getNetworkResponsePartnersItemOneProfileHoursMax = 1000;
+
+export const getNetworkResponsePartnersItemOneProfileAcceptsMax = 2000;
+
+export const getNetworkResponsePartnersItemOneProfileRefusesMax = 2000;
+
+export const getNetworkResponsePartnersItemOneProfileCapacityMax = 1000;
+
+export const getNetworkResponsePartnersItemOneProfileUrgentSignalMax = 1000;
+
+export const getNetworkResponsePartnersItemOneProfileSurplusSignalMax = 1000;
+
+export const getNetworkResponsePartnersItemOneProfileIdleSignalMax = 1000;
+
+export const getNetworkResponsePartnersItemOneProfileVisibilityDefault = `With`;
+export const getNetworkResponsePartnersItemOneProfileDateJoinedRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+export const getNetworkResponseDaysItemOneDayRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getNetworkResponseEventsItemItemsItemDescriptionMax = 300;
+
+export const getNetworkResponseEventsItemItemsItemQuantityMin = 0.001;
+export const getNetworkResponseEventsItemItemsItemQuantityMax = 1000000;
+
+export const getNetworkResponseEventsItemItemsItemUnitMax = 50;
+
+
+
+export const GetNetworkResponse = zod.object({
+  "agents": zod.array(zod.object({
+  "fullName": zod.string().min(1).max(getNetworkResponseAgentsItemOneFullNameMax),
+  "shortName": zod.string().min(1).max(getNetworkResponseAgentsItemOneShortNameMax),
+  "address": zod.string().min(1).max(getNetworkResponseAgentsItemOneAddressMax),
+  "type": zod.enum(['CIA-provided', 'host-permitted']),
+  "status": zod.enum(['active', 'seasonal', 'planned']),
+  "sku": zod.string().max(getNetworkResponseAgentsItemOneSkuMax).nullish(),
+  "notes": zod.string().max(getNetworkResponseAgentsItemOneNotesMax)
+}).and(zod.object({
+  "id": zod.string(),
+  "number": zod.number().multipleOf(getNetworkResponseAgentsItemTwoNumberMultipleOf),
+  "owner": zod.string(),
+  "operator": zod.string(),
+  "joinedOn": zod.string()
+}))),
+  "partners": zod.array(zod.object({
+  "name": zod.string().min(1).max(getNetworkResponsePartnersItemOneNameMax),
+  "profile": zod.object({
+  "organizationType": zod.string().min(1).max(getNetworkResponsePartnersItemOneProfileOrganizationTypeMax),
+  "area": zod.string().max(getNetworkResponsePartnersItemOneProfileAreaMax),
+  "contactChannel": zod.string().max(getNetworkResponsePartnersItemOneProfileContactChannelMax),
+  "website": zod.string().max(getNetworkResponsePartnersItemOneProfileWebsiteMax),
+  "hours": zod.string().max(getNetworkResponsePartnersItemOneProfileHoursMax),
+  "accepts": zod.string().max(getNetworkResponsePartnersItemOneProfileAcceptsMax),
+  "refuses": zod.string().max(getNetworkResponsePartnersItemOneProfileRefusesMax),
+  "capacity": zod.string().max(getNetworkResponsePartnersItemOneProfileCapacityMax),
+  "urgentSignal": zod.string().max(getNetworkResponsePartnersItemOneProfileUrgentSignalMax),
+  "surplusSignal": zod.string().max(getNetworkResponsePartnersItemOneProfileSurplusSignalMax),
+  "idleSignal": zod.string().max(getNetworkResponsePartnersItemOneProfileIdleSignalMax),
+  "visibility": zod.enum(['Within', 'With', 'Beyond']).default(getNetworkResponsePartnersItemOneProfileVisibilityDefault),
+  "nodeStatus": zod.enum(['profile needed', 'active', 'paused']),
+  "dateJoined": zod.string().regex(getNetworkResponsePartnersItemOneProfileDateJoinedRegExp)
+})
+}).and(zod.object({
+  "id": zod.string()
+}))),
+  "days": zod.array(zod.object({
+  "agentId": zod.string().min(1),
+  "day": zod.string().regex(getNetworkResponseDaysItemOneDayRegExp),
+  "state": zod.enum(['Intake', 'Idle', 'Closed'])
+}).and(zod.object({
+  "id": zod.string(),
+  "itemCount": zod.number(),
+  "firstDs": zod.string().nullable(),
+  "lastDs": zod.string().nullable()
+}))),
+  "missingDays": zod.array(zod.object({
+  "agentId": zod.string(),
+  "day": zod.string()
+})),
+  "events": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "fromAgentId": zod.string().nullable(),
+  "toAgentId": zod.string().nullable(),
+  "organizationId": zod.string().nullable(),
+  "direction": zod.string().optional(),
+  "individualSource": zod.string().optional(),
+  "eventDate": zod.string(),
+  "items": zod.array(zod.object({
+  "itemId": zod.string().optional(),
+  "description": zod.string().min(1).max(getNetworkResponseEventsItemItemsItemDescriptionMax),
+  "quantity": zod.number().min(getNetworkResponseEventsItemItemsItemQuantityMin).max(getNetworkResponseEventsItemItemsItemQuantityMax),
+  "unit": zod.string().min(1).max(getNetworkResponseEventsItemItemsItemUnitMax)
+})),
+  "containerCount": zod.number(),
+  "estimatedPounds": zod.number().nullable(),
+  "recordingMode": zod.string(),
+  "actingEntity": zod.string(),
+  "acknowledgment": zod.string(),
+  "acknowledgmentNote": zod.string()
+})),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "itemId": zod.string(),
+  "name": zod.string(),
+  "receivingAgentId": zod.string().nullable()
+})),
+  "locations": zod.array(zod.object({
+  "id": zod.string(),
+  "code": zod.string(),
+  "zone": zod.string(),
+  "agentId": zod.string().nullable()
+})),
+  "today": zod.string()
+})
+
+
+/**
+ * @summary Explicit staff network command
+ */
+export const saveNetworkBodyAgentFullNameMax = 200;
+
+export const saveNetworkBodyAgentShortNameMax = 100;
+
+export const saveNetworkBodyAgentAddressMax = 300;
+
+export const saveNetworkBodyAgentSkuMax = 100;
+
+export const saveNetworkBodyAgentNotesMax = 4000;
+
+export const saveNetworkBodyPartnerNameMax = 200;
+
+export const saveNetworkBodyPartnerProfileOrganizationTypeMax = 100;
+
+export const saveNetworkBodyPartnerProfileAreaMax = 200;
+
+export const saveNetworkBodyPartnerProfileContactChannelMax = 300;
+
+export const saveNetworkBodyPartnerProfileWebsiteMax = 500;
+
+export const saveNetworkBodyPartnerProfileHoursMax = 1000;
+
+export const saveNetworkBodyPartnerProfileAcceptsMax = 2000;
+
+export const saveNetworkBodyPartnerProfileRefusesMax = 2000;
+
+export const saveNetworkBodyPartnerProfileCapacityMax = 1000;
+
+export const saveNetworkBodyPartnerProfileUrgentSignalMax = 1000;
+
+export const saveNetworkBodyPartnerProfileSurplusSignalMax = 1000;
+
+export const saveNetworkBodyPartnerProfileIdleSignalMax = 1000;
+
+export const saveNetworkBodyPartnerProfileVisibilityDefault = `With`;
+export const saveNetworkBodyPartnerProfileDateJoinedRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+export const saveNetworkBodyDayDayRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const saveNetworkBodyEventRequestIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+
+export const saveNetworkBodyEventIndividualSourceMax = 60;
+
+export const saveNetworkBodyEventEventDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const saveNetworkBodyEventItemsItemDescriptionMax = 300;
+
+export const saveNetworkBodyEventItemsItemQuantityMin = 0.001;
+export const saveNetworkBodyEventItemsItemQuantityMax = 1000000;
+
+export const saveNetworkBodyEventItemsItemUnitMax = 50;
+
+export const saveNetworkBodyEventItemsMax = 100;
+
+export const saveNetworkBodyEventContainerCountMin = 0;
+export const saveNetworkBodyEventContainerCountMax = 1000000;
+export const saveNetworkBodyEventContainerCountMultipleOf = 1;
+
+export const saveNetworkBodyEventEstimatedPoundsMin = 0;
+export const saveNetworkBodyEventEstimatedPoundsMax = 10000000;
+
+export const saveNetworkBodyAcknowledgmentNoteMax = 2000;
+
+export const saveNetworkBodyLocationCodeMax = 100;
+
+export const saveNetworkBodyLocationZoneMax = 100;
+
+
+export const saveNetworkBodyLocationDescriptionMax = 1000;
+
+export const saveNetworkBodyLocationCapacityMin = 0;
+export const saveNetworkBodyLocationCapacityMax = 10000000;
+
+
+
+export const SaveNetworkBody = zod.object({
+  "action": zod.enum(['createAgent', 'updateAgent', 'createPartner', 'updatePartner', 'logDay', 'recordEvent', 'acknowledge', 'assignLocation', 'createLocation']),
+  "id": zod.string().optional(),
+  "agentId": zod.string().optional(),
+  "agent": zod.object({
+  "fullName": zod.string().min(1).max(saveNetworkBodyAgentFullNameMax),
+  "shortName": zod.string().min(1).max(saveNetworkBodyAgentShortNameMax),
+  "address": zod.string().min(1).max(saveNetworkBodyAgentAddressMax),
+  "type": zod.enum(['CIA-provided', 'host-permitted']),
+  "status": zod.enum(['active', 'seasonal', 'planned']),
+  "sku": zod.string().max(saveNetworkBodyAgentSkuMax).nullish(),
+  "notes": zod.string().max(saveNetworkBodyAgentNotesMax)
+}).optional(),
+  "partner": zod.object({
+  "name": zod.string().min(1).max(saveNetworkBodyPartnerNameMax),
+  "profile": zod.object({
+  "organizationType": zod.string().min(1).max(saveNetworkBodyPartnerProfileOrganizationTypeMax),
+  "area": zod.string().max(saveNetworkBodyPartnerProfileAreaMax),
+  "contactChannel": zod.string().max(saveNetworkBodyPartnerProfileContactChannelMax),
+  "website": zod.string().max(saveNetworkBodyPartnerProfileWebsiteMax),
+  "hours": zod.string().max(saveNetworkBodyPartnerProfileHoursMax),
+  "accepts": zod.string().max(saveNetworkBodyPartnerProfileAcceptsMax),
+  "refuses": zod.string().max(saveNetworkBodyPartnerProfileRefusesMax),
+  "capacity": zod.string().max(saveNetworkBodyPartnerProfileCapacityMax),
+  "urgentSignal": zod.string().max(saveNetworkBodyPartnerProfileUrgentSignalMax),
+  "surplusSignal": zod.string().max(saveNetworkBodyPartnerProfileSurplusSignalMax),
+  "idleSignal": zod.string().max(saveNetworkBodyPartnerProfileIdleSignalMax),
+  "visibility": zod.enum(['Within', 'With', 'Beyond']).default(saveNetworkBodyPartnerProfileVisibilityDefault),
+  "nodeStatus": zod.enum(['profile needed', 'active', 'paused']),
+  "dateJoined": zod.string().regex(saveNetworkBodyPartnerProfileDateJoinedRegExp)
+})
+}).optional(),
+  "day": zod.object({
+  "agentId": zod.string().min(1),
+  "day": zod.string().regex(saveNetworkBodyDayDayRegExp),
+  "state": zod.enum(['Intake', 'Idle', 'Closed'])
+}).optional(),
+  "event": zod.object({
+  "requestId": zod.string().regex(saveNetworkBodyEventRequestIdRegExp),
+  "kind": zod.enum(['internal_move', 'supply_transfer']),
+  "agentId": zod.string().min(1),
+  "toAgentId": zod.string().optional(),
+  "organizationId": zod.string().optional(),
+  "individualSource": zod.string().max(saveNetworkBodyEventIndividualSourceMax).optional(),
+  "direction": zod.enum(['outgoing', 'incoming']).optional(),
+  "eventDate": zod.string().regex(saveNetworkBodyEventEventDateRegExp),
+  "items": zod.array(zod.object({
+  "itemId": zod.string().optional(),
+  "description": zod.string().min(1).max(saveNetworkBodyEventItemsItemDescriptionMax),
+  "quantity": zod.number().min(saveNetworkBodyEventItemsItemQuantityMin).max(saveNetworkBodyEventItemsItemQuantityMax),
+  "unit": zod.string().min(1).max(saveNetworkBodyEventItemsItemUnitMax)
+})).min(1).max(saveNetworkBodyEventItemsMax),
+  "containerCount": zod.number().min(saveNetworkBodyEventContainerCountMin).max(saveNetworkBodyEventContainerCountMax).multipleOf(saveNetworkBodyEventContainerCountMultipleOf),
+  "estimatedPounds": zod.number().min(saveNetworkBodyEventEstimatedPoundsMin).max(saveNetworkBodyEventEstimatedPoundsMax).nullable(),
+  "recordingMode": zod.enum(['live', 'after transfer', 'scheduled']),
+  "actingEntity": zod.enum(['Donation Station', 'Communities in Action'])
+}).optional(),
+  "acknowledgment": zod.object({
+  "acknowledgment": zod.enum(['pending', 'confirmed', 'confirmed with differences']),
+  "note": zod.string().max(saveNetworkBodyAcknowledgmentNoteMax)
+}).optional(),
+  "location": zod.object({
+  "code": zod.string().min(1).max(saveNetworkBodyLocationCodeMax),
+  "zone": zod.string().min(1).max(saveNetworkBodyLocationZoneMax),
+  "agentId": zod.string().min(1),
+  "description": zod.string().max(saveNetworkBodyLocationDescriptionMax).optional(),
+  "capacity": zod.number().min(saveNetworkBodyLocationCapacityMin).max(saveNetworkBodyLocationCapacityMax).nullish(),
+  "tempZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional()
+}).optional()
+})
+
+export const SaveNetworkResponse = zod.object({
+  "id": zod.string()
+})
+
+
+/**
  * @summary Submit an offer without creating inventory or allocating a DS number
  */
 export const submitDonationOfferBodyNameMax = 300;
@@ -220,6 +513,7 @@ export const ReceiveDonationOfferParams = zod.object({
   "id": zod.coerce.string()
 })
 
+
 export const receiveDonationOfferBodyReceivedDetailsNameMax = 300;
 
 export const receiveDonationOfferBodyReceivedDetailsDonorNameMax = 500;
@@ -239,6 +533,7 @@ export const receiveDonationOfferBodyReceivedDetailsNotesMax = 5000;
 
 
 export const ReceiveDonationOfferBody = zod.object({
+  "receivingAgentId": zod.string().min(1),
   "detailsVerified": zod.literal(true),
   "receivedDetails": zod.object({
   "name": zod.string().min(1).max(receiveDonationOfferBodyReceivedDetailsNameMax),
@@ -256,6 +551,7 @@ export const ReceiveDonationOfferBody = zod.object({
 })
 
 export const ReceiveDonationOfferResponse = zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -650,6 +946,7 @@ export const ListItemsQueryParams = zod.object({
 })
 
 export const ListItemsResponseItem = zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -676,9 +973,11 @@ export const ListItemsResponse = zod.array(ListItemsResponseItem)
 /**
  * @summary Create a new donation item (intake)
  */
+
 export const createItemBodyTemperatureZoneDefault = `ambient`;
 
 export const CreateItemBody = zod.object({
+  "receivingAgentId": zod.string().min(1),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']),
@@ -695,6 +994,7 @@ export const CreateItemBody = zod.object({
 })
 
 export const CreateItemResponse = zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -725,6 +1025,7 @@ export const GetItemParams = zod.object({
 })
 
 export const GetItemResponse = zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -790,6 +1091,7 @@ export const UpdateItemBody = zod.object({
 })
 
 export const UpdateItemResponse = zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -840,6 +1142,7 @@ export const AdvanceItemStageBody = zod.object({
 })
 
 export const AdvanceItemStageResponse = zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -867,6 +1170,7 @@ export const AdvanceItemStageResponse = zod.object({
  */
 export const ListExpiringItemsResponse = zod.object({
   "expired": zod.array(zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -891,6 +1195,7 @@ export const ListExpiringItemsResponse = zod.object({
   "daysUntilExpiry": zod.number()
 }))),
   "critical": zod.array(zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -915,6 +1220,7 @@ export const ListExpiringItemsResponse = zod.object({
   "daysUntilExpiry": zod.number()
 }))),
   "warning": zod.array(zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -939,6 +1245,7 @@ export const ListExpiringItemsResponse = zod.object({
   "daysUntilExpiry": zod.number()
 }))),
   "watch": zod.array(zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -1029,6 +1336,7 @@ export const GetDonorResponse = zod.object({
   "createdAt": zod.coerce.date()
 }).and(zod.object({
   "items": zod.array(zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -1067,6 +1375,7 @@ export const GetDashboardResponse = zod.object({
   "count": zod.number()
 })),
   "recentItems": zod.array(zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -1288,6 +1597,7 @@ export const GetRouteResponse = zod.object({
   "stopOrder": zod.number(),
   "notes": zod.string().nullish(),
   "item": zod.union([zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),
@@ -1855,6 +2165,7 @@ export const CompletePickupResponse = zod.object({
 }))
 })),
   "item": zod.object({
+  "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
   "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
   "name": zod.string(),

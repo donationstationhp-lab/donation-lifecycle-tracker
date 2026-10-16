@@ -1,3 +1,5 @@
+import { recordAgentReceipt } from "../lib/network";
+import { NetworkError } from "../lib/networkRules";
 import { Router, type IRouter } from "express";
 import { eq, ilike } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -180,10 +182,12 @@ router.post("/items", async (req, res): Promise<void> => {
   try {
     item = await db.transaction(async (tx) => {
       const repository = itemRepository.forTransaction(tx);
+      await recordAgentReceipt(tx, parsed.data.receivingAgentId, res.locals.staffUserId ?? "staff", now);
       const itemId = await allocateItemDsId(tx);
       const donorId = await resolveDonorId(parsed.data.donor, tx);
       const created = await repository.insert({
           id,
+          receivingAgentId: parsed.data.receivingAgentId,
           itemId,
           name: parsed.data.name,
           category: parsed.data.category,
@@ -224,6 +228,9 @@ router.post("/items", async (req, res): Promise<void> => {
       return created;
     });
   } catch (error) {
+    if (error instanceof NetworkError) {
+      res.status(error.status).json({ error: error.message }); return;
+    }
     if (error instanceof ItemIdCapacityError) {
       res.status(503).json({ error: error.message });
       return;

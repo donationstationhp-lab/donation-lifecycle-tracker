@@ -1,3 +1,4 @@
+import networkRouter from "./network";
 import { Router, type IRouter } from "express";
 import { apiKeyAuth, requireStaff } from "../middlewares/apiKeyAuth";
 import healthRouter, { protectedHealthRouter } from "./health";
@@ -46,6 +47,7 @@ router.use(itemsRouter);
 router.use(donationOffersRouter);
 router.use(itemSnowRouter);
 router.use(notionImportRouter);
+router.use(networkRouter);
 router.use(donorsRouter);
 router.use(dashboardRouter);
 router.use(deliveryRoutesRouter);

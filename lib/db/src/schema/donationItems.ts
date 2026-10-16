@@ -2,11 +2,13 @@ import { pgTable, text, real, timestamp, date, boolean, uniqueIndex } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { donorsTable } from "./donors";
+import { agentsTable } from "./agents";
 
 export const donationItemsTable = pgTable(
   "donation_items",
   {
     id: text("id").primaryKey(),
+    receivingAgentId: text("receiving_agent_id").references(() => agentsTable.id),
     itemId: text("item_id").notNull().unique(),
     name: text("name").notNull(),
     category: text("category").notNull(),

@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { sql } from "drizzle-orm";
@@ -21,6 +22,14 @@ export const recipientAccountsTable = pgTable(
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     type: text("type").notNull(),
+    // Only organizational facts. Legacy individual accounts remain unchanged.
+    networkProfile: jsonb("network_profile").$type<{
+      organizationType: string; area: string; contactChannel: string; website: string;
+      hours: string; accepts: string; refuses: string; capacity: string;
+      urgentSignal: string; surplusSignal: string; idleSignal: string;
+      visibility: "Within" | "With" | "Beyond";
+      nodeStatus: "profile needed" | "active" | "paused"; dateJoined: string;
+    }>(),
     contactName: text("contact_name"),
     contactEmail: text("contact_email"),
     contactPhone: text("contact_phone"),

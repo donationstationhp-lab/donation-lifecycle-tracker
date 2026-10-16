@@ -33,6 +33,10 @@ import ClaimDetail from "@/pages/ClaimDetail";
 import TransfersList from "@/pages/TransfersList";
 import TransferDetail from "@/pages/TransferDetail";
 import SnowBacktest from "@/pages/SnowBacktest";
+import Network from "@/pages/Network";
+import NetworkAgent from "@/pages/NetworkAgent";
+import NetworkPartners from "@/pages/NetworkPartners";
+import NetworkPartner from "@/pages/NetworkPartner";
 import NotFound from "@/pages/not-found";
 import PublicFAQ from "@/pages/PublicFAQ";
 import PublicResources from "@/pages/PublicResources";
@@ -221,6 +225,10 @@ function AuthenticatedApp() {
           <Route path="/routes/:id" component={RouteDetail} />
           <Route path="/accounts" component={AccountsList} />
           <Route path="/community-ownership" component={CommunityOwnershipPage} />
+          <Route path="/network" component={Network} />
+          <Route path="/network/agents/:id" component={NetworkAgent} />
+          <Route path="/network/partners" component={NetworkPartners} />
+          <Route path="/network/partners/:id" component={NetworkPartner} />
           <Route path="/pending" component={PendingReview} />
           <Route path="/snow-backtest" component={SnowBacktest} />
           <Route path="/calendar"><Schedule /></Route>

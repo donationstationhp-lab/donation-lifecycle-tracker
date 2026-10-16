@@ -4,7 +4,7 @@ import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import {
-  db, donationItemsTable, donorsTable, pickupRequestsTable, trackingCountersTable,
+  db, donationItemsTable, donorsTable, pickupRequestsTable, trackingCountersTable, agentsTable,
 } from "@workspace/db";
 import itemsRouter from "./items";
 import publicRouter from "./publicRoutes";
@@ -43,8 +43,12 @@ test.beforeEach(async () => {
     TRUNCATE item_snow_history, item_snow, item_external_references,
       item_identity_aliases, notion_item_snapshots, item_identities,
       tracking_counters, donation_items, stage_history, donors,
-      pickup_requests, service_activities, donation_submissions
+      pickup_requests, service_activities, donation_submissions, agents, agent_days
   `);
+  await db.insert(agentsTable).values({
+    id: "fixture-agent", number: 1, fullName: "Synthetic site", shortName: "Site",
+    address: "Synthetic address", type: "CIA-provided", status: "active",
+  });
 });
 
 test.after(async () => {
@@ -75,7 +79,7 @@ async function nextCounter() {
 function post(path: string, body: unknown) {
   return fetch(baseUrl + path, {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(path === "/items" ? { receivingAgentId: "fixture-agent", ...(body as object) } : body),
   });
 }
 

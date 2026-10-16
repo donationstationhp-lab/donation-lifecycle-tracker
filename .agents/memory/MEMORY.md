@@ -18,6 +18,7 @@
 - [Vault service-token registration](vault-service-token-registration.md) — deployment sync must register the environment token hash and grant every required secret key.
 - [ATTEND workbook identities](attend-workbook-identities.md) — companion workbook entry numbers are separate from item UUIDs, DS IDs, and claim tracking codes.
 - [Tracker unification direction](tracker-unification-direction.md) — one backend with two interfaces; Organizations first, with live consolidation separately gated and authorized.
+- [Site network boundaries](site-network-boundaries.md) — own agents differ from partner nodes; receiving provenance is not current placement, and historical site assignments need evidence.
 - [DS number permanence](ds-number-permanence.md) — never reclaim committed item numbers; isolate allocation tests to avoid consuming the shared namespace.
 - [S.N.O.W. staff decisions](snow-staff-decisions.md) — preserve human acceptance and rule history; catering food has a narrow same-day rule; SURPLUS is staff-only.
 - [Notion identity imports](notion-identity-imports.md) — preserve exact DS and DS-L lineages; identity import does not authorize invented IDs or warehouse intake.

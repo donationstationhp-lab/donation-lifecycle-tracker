@@ -8,6 +8,8 @@
 import type { DonationOfferInput } from './donationOfferInput';
 
 export interface DonationOfferReceiptInput {
+  /** @minLength 1 */
+  receivingAgentId: string;
   detailsVerified: true;
   receivedDetails: DonationOfferInput;
 }

@@ -7,6 +7,7 @@ import {
   DonationOfferError, receiveDonationOffer, reviewDonationOffer, validOfferDate,
 } from "../lib/donationOffers";
 import { ItemIdCapacityError } from "../lib/itemIds";
+import { NetworkError } from "../lib/networkRules";
 
 const router: IRouter = Router();
 router.use(requireStaff);
@@ -48,9 +49,9 @@ router.post("/donation-offers/:id/receive", async (req, res): Promise<void> => {
     return;
   }
   try {
-    res.json(await receiveDonationOffer(String(req.params.id), parsed.data.receivedDetails, res.locals.staffUserId));
+    res.json(await receiveDonationOffer(String(req.params.id), parsed.data.receivedDetails, res.locals.staffUserId, parsed.data.receivingAgentId));
   } catch (error) {
-    if (error instanceof DonationOfferError) {
+    if (error instanceof DonationOfferError || error instanceof NetworkError) {
       res.status(error.status).json({ error: error.message }); return;
     }
     if (error instanceof ItemIdCapacityError) {

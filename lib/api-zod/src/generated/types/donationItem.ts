@@ -11,6 +11,8 @@ import type { DonationItemTemperatureZone } from './donationItemTemperatureZone'
 import type { DonationItemTier } from './donationItemTier';
 
 export interface DonationItem {
+  /** @nullable */
+  receivingAgentId?: string | null;
   id: string;
   /** Human-readable ID in format DS-XXXX */
   itemId: string;

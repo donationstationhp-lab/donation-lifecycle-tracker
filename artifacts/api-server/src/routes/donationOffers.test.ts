@@ -6,7 +6,7 @@ import { eq, sql } from "drizzle-orm";
 import {
   db, donationItemsTable, donationSubmissionsTable, itemIdentitiesTable,
   stageHistoryTable, serviceActivitiesTable, trackingCountersTable,
-  type DonationOfferDetails,
+  type DonationOfferDetails, agentsTable, agentDaysTable,
 } from "@workspace/db";
 import { isolateTestDatabase } from "../test/databaseIsolation";
 import { createApiKeyAuth } from "../middlewares/apiKeyAuth";
@@ -51,7 +51,11 @@ test.before(async () => {
 });
 test.beforeEach(async () => {
   await db.execute(sql`TRUNCATE donation_submissions, donation_items, item_identities,
-    stage_history, service_activities, tracking_counters`);
+    stage_history, service_activities, tracking_counters, agents, agent_days`);
+  await db.insert(agentsTable).values({
+    id: "fixture-agent", number: 1, fullName: "Synthetic site", shortName: "Site",
+    address: "Synthetic address", type: "CIA-provided", status: "active",
+  });
   await db.insert(trackingCountersTable).values({ name: "item_ds", nextNumber: 6396 });
 });
 test.after(async () => {
@@ -87,7 +91,7 @@ async function review(id: string, decision = "approved") {
   return request(`/donation-offers/${id}/review`, { decision, by: "forged-actor" }, "staff");
 }
 function receive(id: string, details: DonationOfferDetails = original) {
-  return request(`/donation-offers/${id}/receive`, { detailsVerified: true, receivedDetails: details }, "staff");
+  return request(`/donation-offers/${id}/receive`, { detailsVerified: true, receivedDetails: details, receivingAgentId: "fixture-agent" }, "staff");
 }
 async function counter() {
   const [row] = await db.select().from(trackingCountersTable).where(eq(trackingCountersTable.name, "item_ds"));
