@@ -40,6 +40,17 @@ async function start(): Promise<void> {
       "Validated Notion Item Log schema",
     );
 
+    const { grantConfiguredStaffAccess } = await import("./lib/staffAccessGrants");
+    const staffGrants = await grantConfiguredStaffAccess();
+    const staffGrantCounts = Object.fromEntries(
+      [...new Set(staffGrants)].map((status) => [status, staffGrants.filter((s) => s === status).length]),
+    );
+    if (staffGrants.some((status) => ["failed", "unverified", "ambiguous", "revoked"].includes(status))) {
+      logger.warn({ counts: staffGrantCounts }, "Some configured staff access grants require attention");
+    } else if (staffGrants.length > 0) {
+      logger.info({ counts: staffGrantCounts }, "Configured staff access checked in this Clerk environment");
+    }
+
     const [
       { default: app },
       { startAttendOutboxRetryWorker },
