@@ -6,6 +6,8 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "preview:smoke": "tsx ./src/preview-smoke.ts",
+    "preflight": "tsx ./src/preflight.ts",
+    "test:preflight": "tsx --test ./src/preflight.test.ts",
     "migrate-attend-claims": "tsx ./src/migrate-attend-claims.ts",
     "backfill-claim-tracking-codes": "tsx ./src/backfill-claim-tracking-codes.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
