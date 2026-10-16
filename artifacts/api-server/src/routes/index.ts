@@ -4,6 +4,7 @@ import healthRouter, { protectedHealthRouter } from "./health";
 import publicRoutes from "./publicRoutes";
 import publicTrackRouter from "./publicTrack";
 import itemsRouter from "./items";
+import donationOffersRouter from "./donationOffers";
 import itemSnowRouter from "./itemSnow";
 import notionImportRouter from "./notionImport";
 import donorsRouter from "./donors";
@@ -42,6 +43,7 @@ router.use(requireStaff);
 router.use(protectedHealthRouter); // /health (database-independent)
 router.use(requireDatabase);
 router.use(itemsRouter);
+router.use(donationOffersRouter);
 router.use(itemSnowRouter);
 router.use(notionImportRouter);
 router.use(donorsRouter);

@@ -24,11 +24,29 @@ Assign a permanent DS number only when staff confirms physical receipt, not
 merely when staff approves an offer. Existing DS and DS-L identifiers remain
 unchanged, including those already assigned to historical submissions.
 
+The owner subsequently confirmed the donor-facing format `SUB-<UUID>` and
+required approval before physical receipt. Original offers and staff-corrected
+received facts must remain separate; approval alone never creates inventory.
+
 **Why:** An offer or an approved plan does not establish that physical goods
 have entered custody. The owner confirmed this boundary when resolving the
 baseline audit's design conflicts.
 
-**How to apply:** Treat this as the approved target for a separately authorized
-implementation. Do not infer an approved prefix, submission schema, or
-migration strategy from this decision. Do not reinterpret an existing approval
-button as proof of receipt without an explicit receipt-confirmation workflow.
+**How to apply:** Preserve the distinction between offers and goods received in
+future workflow changes. Do not reinterpret a legacy approval button as proof
+of receipt, retroactively reclassify historical inventory, or mint replacement
+DS/DS-L identities. A submission reference never proves record ownership.
+
+## Verification scope
+
+Treat the promise not to consume shared identifiers as applying to claim
+tracking numbers as well as item DS numbers when choosing tests.
+
+**Why:** A broad compatibility run reserved shared development claim numbers
+even after synthetic records were removed. Fixture cleanup alone did not mean
+the test had no lasting database effect.
+
+**How to apply:** Before a broad regression run, verify that every allocating
+test uses an isolated schema/counter or a completely rolled-back transaction.
+Prefer targeted isolated checks until that is true. Never reset a shared
+counter to hide a test side effect or reclaim the reserved numbers.

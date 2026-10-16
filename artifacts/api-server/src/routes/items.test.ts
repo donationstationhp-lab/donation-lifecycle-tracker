@@ -43,7 +43,7 @@ test.beforeEach(async () => {
     TRUNCATE item_snow_history, item_snow, item_external_references,
       item_identity_aliases, notion_item_snapshots, item_identities,
       tracking_counters, donation_items, stage_history, donors,
-      pickup_requests, service_activities
+      pickup_requests, service_activities, donation_submissions
   `);
 });
 
@@ -160,7 +160,7 @@ test("last four-digit ID is allocated once and exhaustion leaves the counter int
   assert.equal(await nextCounter(), 10_000);
 });
 
-test("staff intake, public intake and pickup completion share one allocator", async () => {
+test("staff intake and pickup completion share the allocator; public offers allocate nothing", async () => {
   const historical = itemValues("DS-1000");
   await db.insert(donationItemsTable).values(historical);
   await setCounter(1);
@@ -174,15 +174,16 @@ test("staff intake, public intake and pickup completion share one allocator", as
     post(`/pickups/${pickupId}/complete`, { itemsReceived: "Pickup allocation check" }),
   ]);
   assert.deepEqual(responses.map((response) => response.status), [201, 201, 200]);
-  const [staff, publicItem, pickup] = await Promise.all(responses.map((response) => response.json())) as [
-    { itemId: string }, { itemId: string }, { item: { itemId: string } },
+  const [staff, publicOffer, pickup] = await Promise.all(responses.map((response) => response.json())) as [
+    { itemId: string }, { reference: string; itemId?: string }, { item: { itemId: string } },
   ];
-  assert.deepEqual([staff.itemId, publicItem.itemId, pickup.item.itemId].sort(),
-    ["DS-1001", "DS-1002", "DS-1003"]);
+  assert.match(publicOffer.reference, /^SUB-/);
+  assert.equal(publicOffer.itemId, undefined);
+  assert.deepEqual([staff.itemId, pickup.item.itemId].sort(), ["DS-1001", "DS-1002"]);
   const [unchanged] = await db.select().from(donationItemsTable)
     .where(eq(donationItemsTable.id, historical.id));
   assert.equal(unchanged.itemId, "DS-1000");
-  assert.equal(await nextCounter(), 1_004);
+  assert.equal(await nextCounter(), 1_003);
 });
 
 test("concurrent pickup completion returns one item without consuming two IDs", async () => {
@@ -209,20 +210,24 @@ test("CLI import keeps its identity and advances subsequent intake beyond it", a
   const rerun = await post("/import", [historical]);
   assert.equal(rerun.status, 200);
   assert.equal((await db.select().from(donationItemsTable)).length, 1);
-  const intake = await post("/public/donate", { name: "After import" });
+  const intake = await post("/items", {
+    name: "After import", category: "equipment", condition: "good", donor: "Synthetic donor",
+    lotNumber: "LOT-TEST",
+  });
   assert.equal(intake.status, 201);
   const intakeBody = await intake.json() as { itemId: string };
   assert.equal(intakeBody.itemId, "DS-4001");
 });
 
-test("all three intake paths return a clear capacity error without creating an item", async () => {
+test("physical intake rejects capacity exhaustion; public offers remain available", async () => {
   await setCounter(10_000);
   const pickupId = await seedPickup();
   const responses = await Promise.all([
     post("/items", { name: "Capacity check", category: "equipment", condition: "good", donor: "Synthetic donor", lotNumber: "LOT-TEST" }),
-    post("/public/donate", { name: "Capacity check" }),
     post(`/pickups/${pickupId}/complete`, { itemsReceived: "Capacity check" }),
   ]);
+  const offer = await post("/public/donate", { name: "Capacity check" });
+  assert.equal(offer.status, 201);
   for (const response of responses) {
     assert.equal(response.status, 503);
     assert.deepEqual(await response.json(), { error: new ItemIdCapacityError().message });

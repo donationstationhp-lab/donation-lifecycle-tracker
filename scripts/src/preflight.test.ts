@@ -42,8 +42,13 @@ function fixture(overrides: Record<string, unknown> = {}) {
 }
 
 test("schema expectations come from the real Drizzle exports, without app startup", () => {
-  assert.equal(new Set(expected.map((c) => c.table)).size, 34);
+  assert.equal(new Set(expected.map((c) => c.table)).size, 35);
   assert.ok(expected.some((c) => c.table === "tracking_counters" && c.name === "next_number"));
+  const offerColumns = expected.filter((c) => c.table === "donation_submissions");
+  for (const name of [
+    "reference", "status", "offered_details", "received_details", "received_item_id",
+    "reviewed_by", "reviewed_at", "received_by", "received_at",
+  ]) assert.ok(offerColumns.some((c) => c.name === name), `Missing offer column ${name}`);
 });
 
 test("catalog comparison reports missing, extra and incompatible columns", () => {

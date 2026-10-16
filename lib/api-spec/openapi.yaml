@@ -30,6 +30,77 @@ tags:
   - name: attend
     description: ATTEND allocation and delivery operations
 paths:
+  /public/donate:
+    post:
+      operationId: submitDonationOffer
+      tags: [items]
+      summary: Submit an offer without creating inventory or allocating a DS number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DonationOfferInput" }
+      responses:
+        "201":
+          description: Offer submitted, not physically received
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DonationOfferConfirmation" }
+  /donation-offers:
+    get:
+      operationId: listDonationOffers
+      tags: [items]
+      summary: Staff-only donation offer review queue
+      responses:
+        "200":
+          description: Offers, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DonationOffer" }
+  /donation-offers/{id}/review:
+    post:
+      operationId: reviewDonationOffer
+      tags: [items]
+      summary: Staff approval or decline; never creates inventory
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DonationOfferReviewInput" }
+      responses:
+        "200":
+          description: Reviewed offer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DonationOffer" }
+        "409":
+          description: Offer is no longer awaiting review
+  /donation-offers/{id}/receive:
+    post:
+      operationId: receiveDonationOffer
+      tags: [items]
+      summary: Confirm physical receipt of an approved offer, idempotently
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DonationOfferReceiptInput" }
+      responses:
+        "200":
+          description: Newly received or previously linked inventory item
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DonationItem" }
+        "409":
+          description: Only approved offers may be received
+        "503":
+          description: Item numbering capacity unavailable; transaction rolled back
   /item-identities/lookup:
     get:
       operationId: lookupItemIdentity
@@ -1312,6 +1383,56 @@ paths:
                 $ref: "#/components/schemas/PublicImpactSummary"
 components:
   schemas:
+    DonationOfferInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 300 }
+        donorName: { type: string, maxLength: 500 }
+        category: { type: string, maxLength: 100 }
+        condition: { type: string, enum: [excellent, good, fair, poor] }
+        quantity: { type: number, multipleOf: 1, minimum: 1, maximum: 100000 }
+        perishable: { type: boolean }
+        expiryDate: { type: ["string", "null"], pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
+        temperatureZone: { type: string, enum: [ambient, refrigerated, frozen] }
+        weight: { type: ["number", "null"], minimum: 0 }
+        origin: { type: ["string", "null"], maxLength: 1000 }
+        notes: { type: string, maxLength: 5000 }
+    DonationOfferConfirmation:
+      type: object
+      required: [reference, message]
+      properties:
+        reference: { type: string, pattern: "^SUB-[0-9a-f-]{36}$" }
+        message: { type: string, enum: ["Offer submitted—not yet received"] }
+    DonationOffer:
+      type: object
+      required: [id, reference, status, offeredDetails, receivedDetails, receivedItemId, reviewedBy, reviewedAt, receivedBy, receivedAt, createdAt]
+      properties:
+        id: { type: string }
+        reference: { type: string }
+        status: { type: string, enum: [submitted, approved, declined, received] }
+        offeredDetails: { $ref: "#/components/schemas/DonationOfferInput" }
+        receivedDetails:
+          anyOf:
+            - { $ref: "#/components/schemas/DonationOfferInput" }
+            - { type: "null" }
+        receivedItemId: { type: ["string", "null"] }
+        reviewedBy: { type: ["string", "null"] }
+        reviewedAt: { type: ["string", "null"], format: date-time }
+        receivedBy: { type: ["string", "null"] }
+        receivedAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    DonationOfferReviewInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [approved, declined] }
+    DonationOfferReceiptInput:
+      type: object
+      required: [detailsVerified, receivedDetails]
+      properties:
+        detailsVerified: { type: boolean, enum: [true] }
+        receivedDetails: { $ref: "#/components/schemas/DonationOfferInput" }
     SnowTier:
       type: string
       enum: [URGENT, STABLE, SURPLUS]
@@ -1905,7 +2026,7 @@ components:
           description: "T=Time, I=Intelligence, E=Energy, R=Resources"
         condition:
           type: string
-          enum: [good, fair, poor]
+          enum: [excellent, good, fair, poor]
         donor:
           type: string
         recipient:

@@ -1,0 +1,80 @@
+Confirmed: use **`SUB-<UUID>`** as the donor-facing reference, distinct from DS and DS-L IDs. Here’s the Replit-ready implementation brief:
+
+```text
+TASK: Separate public donation offers from physically received inventory.
+
+WORKSPACE
+- Work in the currently open Donation-Lifecycle-Tracker Replit project.
+- Reconfirm branch and HEAD before editing. The baseline audit reported branch
+  `notion-backend`; do not switch to or pull from GitHub `main`.
+- Use the audited Replit workspace as the provisional baseline. If it has changed
+  materially since the audit, stop and report the difference.
+- Do not commit, push, deploy, or change secrets.
+
+SCOPE
+Implement this only for NEW submissions through the existing public donation form.
+Do not alter existing records or historical submissions.
+
+1. SUBMISSIONS
+- Add a `donation_submissions` table using current Drizzle/database conventions.
+- Store the existing form details, a unique donor-facing reference in the format
+  `SUB-<UUID>`, review status, optional link to the resulting inventory item,
+  and staff review/receipt timestamps and actors.
+- Keep the original submitted offer details. If staff corrects details at receipt,
+  preserve the original offer and record the received/corrected values separately.
+- Do not create an inventory item, item identity, stage history, receipt activity,
+  or DS number when an offer is submitted or approved.
+- The donor confirmation must show the reference and the exact message:
+  “Offer submitted—not yet received”.
+
+2. STAFF REVIEW
+- Add a Donation Offers queue within the existing staff review area, reusing
+  existing authentication and authorization.
+- Staff can approve or decline an offer. Approval means permission to proceed;
+  it does not mean the goods have been received.
+- Declining an offer must not create inventory or allocate a DS number.
+- Enforce review-state rules on the server, not only in the UI.
+
+3. PHYSICAL RECEIPT
+- Add an explicit staff-only “Confirm physical receipt” action.
+- Allow receipt only for an approved offer. Staff must verify or correct the
+  received item details before confirming.
+- In one database transaction:
+  a. Lock the submission row.
+  b. If it already links to a received item, return that same item.
+  c. Allocate an ID through the existing DS allocator, using the same transaction.
+  d. Create the inventory item, identity, stage history, and receipt activity.
+  e. Link the submission to the item and record the authenticated staff member
+     and receipt time.
+- Enforce one item per submission with a database uniqueness constraint as well
+  as row locking. Repeated or concurrent confirmation must return the same item.
+- A failed transaction must leave no partial records and must not consume a DS ID.
+
+4. PRESERVE EXISTING BEHAVIOR
+- Leave existing DS/DS-L records, historical submissions, staff intake, and
+  pickup-completion flows unchanged.
+- Preserve the DS counter high-water mark and current allocator behavior. Do not
+  reset, renumber, reclaim IDs, or change the current numbering limit.
+- Keep the existing single-row item/batch semantics; normalized multi-item
+  receipts are out of scope.
+- Make no changes to Notion sync, authentication, SMS, or the five-bone model.
+- If a preflight command or schema-check test now exists, update it for the new
+  table. Do not add unrelated infrastructure.
+
+5. TESTS
+Use fixtures/mocks and, for transaction tests, an isolated test database/schema
+with its own counter—not the shared numbering namespace. Verify:
+- Submission, approval, and decline allocate no DS IDs and create no inventory.
+- Only approved offers can be physically received.
+- Receipt creates exactly one linked item with identity, stage history, and
+  receipt activity.
+- Repeated and concurrent receipt confirmations return the same item.
+- Transaction failure leaves no partial records and does not advance the counter.
+- Existing IDs, counter behavior, staff intake, and pickup completion are unchanged.
+- Public responses reveal no staff-only details or sensitive staff data.
+
+After implementation, report changed files, schema changes, test results, and
+any unresolved assumptions. Stop without committing, pushing, or deploying.
+```
+
+One important boundary is explicit here: **approval does not create the item; confirmed physical receipt does.**

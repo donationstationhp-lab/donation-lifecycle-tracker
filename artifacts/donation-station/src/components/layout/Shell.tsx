@@ -4,7 +4,7 @@ import { LayoutDashboard, Package, AlertTriangle, Truck, Plus, Clock, ClipboardC
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { UserButton } from '@clerk/react';
-import { customFetch } from '@workspace/api-client-react';
+import { customFetch, useListDonationOffers, getListDonationOffersQueryKey } from '@workspace/api-client-react';
 
 function usePendingCount() {
   const { data } = useQuery<unknown[]>({
@@ -16,7 +16,11 @@ function usePendingCount() {
     refetchInterval: 30000,
     staleTime: 15000,
   });
-  return Array.isArray(data) ? data.length : 0;
+  const { data: offers } = useListDonationOffers({
+    query: { queryKey: getListDonationOffersQueryKey(), refetchInterval: 30000, staleTime: 15000 },
+  });
+  const submittedOffers = Array.isArray(offers) ? offers.filter((o) => o.status === 'submitted').length : 0;
+  return (Array.isArray(data) ? data.length : 0) + submittedOffers;
 }
 
 type NavItem = {

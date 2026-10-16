@@ -9,6 +9,276 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Submit an offer without creating inventory or allocating a DS number
+ */
+export const submitDonationOfferBodyNameMax = 300;
+
+export const submitDonationOfferBodyDonorNameMax = 500;
+
+export const submitDonationOfferBodyCategoryMax = 100;
+
+export const submitDonationOfferBodyQuantityMax = 100000;
+export const submitDonationOfferBodyQuantityMultipleOf = 1;
+
+export const submitDonationOfferBodyExpiryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const submitDonationOfferBodyWeightMin = 0;
+
+export const submitDonationOfferBodyOriginMax = 1000;
+
+export const submitDonationOfferBodyNotesMax = 5000;
+
+
+
+export const SubmitDonationOfferBody = zod.object({
+  "name": zod.string().min(1).max(submitDonationOfferBodyNameMax),
+  "donorName": zod.string().max(submitDonationOfferBodyDonorNameMax).optional(),
+  "category": zod.string().max(submitDonationOfferBodyCategoryMax).optional(),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']).optional(),
+  "quantity": zod.number().min(1).max(submitDonationOfferBodyQuantityMax).multipleOf(submitDonationOfferBodyQuantityMultipleOf).optional(),
+  "perishable": zod.boolean().optional(),
+  "expiryDate": zod.string().regex(submitDonationOfferBodyExpiryDateRegExp).nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().min(submitDonationOfferBodyWeightMin).nullish(),
+  "origin": zod.string().max(submitDonationOfferBodyOriginMax).nullish(),
+  "notes": zod.string().max(submitDonationOfferBodyNotesMax).optional()
+})
+
+export const submitDonationOfferResponseReferenceRegExp = new RegExp('^SUB-[0-9a-f-]{36}$');
+
+
+export const SubmitDonationOfferResponse = zod.object({
+  "reference": zod.string().regex(submitDonationOfferResponseReferenceRegExp),
+  "message": zod.enum(['Offer submitted—not yet received'])
+})
+
+
+/**
+ * @summary Staff-only donation offer review queue
+ */
+export const listDonationOffersResponseOfferedDetailsNameMax = 300;
+
+export const listDonationOffersResponseOfferedDetailsDonorNameMax = 500;
+
+export const listDonationOffersResponseOfferedDetailsCategoryMax = 100;
+
+export const listDonationOffersResponseOfferedDetailsQuantityMax = 100000;
+export const listDonationOffersResponseOfferedDetailsQuantityMultipleOf = 1;
+
+export const listDonationOffersResponseOfferedDetailsExpiryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const listDonationOffersResponseOfferedDetailsWeightMin = 0;
+
+export const listDonationOffersResponseOfferedDetailsOriginMax = 1000;
+
+export const listDonationOffersResponseOfferedDetailsNotesMax = 5000;
+
+export const listDonationOffersResponseReceivedDetailsOneNameMax = 300;
+
+export const listDonationOffersResponseReceivedDetailsOneDonorNameMax = 500;
+
+export const listDonationOffersResponseReceivedDetailsOneCategoryMax = 100;
+
+export const listDonationOffersResponseReceivedDetailsOneQuantityMax = 100000;
+export const listDonationOffersResponseReceivedDetailsOneQuantityMultipleOf = 1;
+
+export const listDonationOffersResponseReceivedDetailsOneExpiryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const listDonationOffersResponseReceivedDetailsOneWeightMin = 0;
+
+export const listDonationOffersResponseReceivedDetailsOneOriginMax = 1000;
+
+export const listDonationOffersResponseReceivedDetailsOneNotesMax = 5000;
+
+
+
+export const ListDonationOffersResponseItem = zod.object({
+  "id": zod.string(),
+  "reference": zod.string(),
+  "status": zod.enum(['submitted', 'approved', 'declined', 'received']),
+  "offeredDetails": zod.object({
+  "name": zod.string().min(1).max(listDonationOffersResponseOfferedDetailsNameMax),
+  "donorName": zod.string().max(listDonationOffersResponseOfferedDetailsDonorNameMax).optional(),
+  "category": zod.string().max(listDonationOffersResponseOfferedDetailsCategoryMax).optional(),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']).optional(),
+  "quantity": zod.number().min(1).max(listDonationOffersResponseOfferedDetailsQuantityMax).multipleOf(listDonationOffersResponseOfferedDetailsQuantityMultipleOf).optional(),
+  "perishable": zod.boolean().optional(),
+  "expiryDate": zod.string().regex(listDonationOffersResponseOfferedDetailsExpiryDateRegExp).nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().min(listDonationOffersResponseOfferedDetailsWeightMin).nullish(),
+  "origin": zod.string().max(listDonationOffersResponseOfferedDetailsOriginMax).nullish(),
+  "notes": zod.string().max(listDonationOffersResponseOfferedDetailsNotesMax).optional()
+}),
+  "receivedDetails": zod.union([zod.object({
+  "name": zod.string().min(1).max(listDonationOffersResponseReceivedDetailsOneNameMax),
+  "donorName": zod.string().max(listDonationOffersResponseReceivedDetailsOneDonorNameMax).optional(),
+  "category": zod.string().max(listDonationOffersResponseReceivedDetailsOneCategoryMax).optional(),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']).optional(),
+  "quantity": zod.number().min(1).max(listDonationOffersResponseReceivedDetailsOneQuantityMax).multipleOf(listDonationOffersResponseReceivedDetailsOneQuantityMultipleOf).optional(),
+  "perishable": zod.boolean().optional(),
+  "expiryDate": zod.string().regex(listDonationOffersResponseReceivedDetailsOneExpiryDateRegExp).nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().min(listDonationOffersResponseReceivedDetailsOneWeightMin).nullish(),
+  "origin": zod.string().max(listDonationOffersResponseReceivedDetailsOneOriginMax).nullish(),
+  "notes": zod.string().max(listDonationOffersResponseReceivedDetailsOneNotesMax).optional()
+}),zod.null()]),
+  "receivedItemId": zod.string().nullable(),
+  "reviewedBy": zod.string().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "receivedBy": zod.string().nullable(),
+  "receivedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+export const ListDonationOffersResponse = zod.array(ListDonationOffersResponseItem)
+
+
+/**
+ * @summary Staff approval or decline; never creates inventory
+ */
+export const ReviewDonationOfferParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ReviewDonationOfferBody = zod.object({
+  "decision": zod.enum(['approved', 'declined'])
+})
+
+export const reviewDonationOfferResponseOfferedDetailsNameMax = 300;
+
+export const reviewDonationOfferResponseOfferedDetailsDonorNameMax = 500;
+
+export const reviewDonationOfferResponseOfferedDetailsCategoryMax = 100;
+
+export const reviewDonationOfferResponseOfferedDetailsQuantityMax = 100000;
+export const reviewDonationOfferResponseOfferedDetailsQuantityMultipleOf = 1;
+
+export const reviewDonationOfferResponseOfferedDetailsExpiryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const reviewDonationOfferResponseOfferedDetailsWeightMin = 0;
+
+export const reviewDonationOfferResponseOfferedDetailsOriginMax = 1000;
+
+export const reviewDonationOfferResponseOfferedDetailsNotesMax = 5000;
+
+export const reviewDonationOfferResponseReceivedDetailsOneNameMax = 300;
+
+export const reviewDonationOfferResponseReceivedDetailsOneDonorNameMax = 500;
+
+export const reviewDonationOfferResponseReceivedDetailsOneCategoryMax = 100;
+
+export const reviewDonationOfferResponseReceivedDetailsOneQuantityMax = 100000;
+export const reviewDonationOfferResponseReceivedDetailsOneQuantityMultipleOf = 1;
+
+export const reviewDonationOfferResponseReceivedDetailsOneExpiryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const reviewDonationOfferResponseReceivedDetailsOneWeightMin = 0;
+
+export const reviewDonationOfferResponseReceivedDetailsOneOriginMax = 1000;
+
+export const reviewDonationOfferResponseReceivedDetailsOneNotesMax = 5000;
+
+
+
+export const ReviewDonationOfferResponse = zod.object({
+  "id": zod.string(),
+  "reference": zod.string(),
+  "status": zod.enum(['submitted', 'approved', 'declined', 'received']),
+  "offeredDetails": zod.object({
+  "name": zod.string().min(1).max(reviewDonationOfferResponseOfferedDetailsNameMax),
+  "donorName": zod.string().max(reviewDonationOfferResponseOfferedDetailsDonorNameMax).optional(),
+  "category": zod.string().max(reviewDonationOfferResponseOfferedDetailsCategoryMax).optional(),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']).optional(),
+  "quantity": zod.number().min(1).max(reviewDonationOfferResponseOfferedDetailsQuantityMax).multipleOf(reviewDonationOfferResponseOfferedDetailsQuantityMultipleOf).optional(),
+  "perishable": zod.boolean().optional(),
+  "expiryDate": zod.string().regex(reviewDonationOfferResponseOfferedDetailsExpiryDateRegExp).nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().min(reviewDonationOfferResponseOfferedDetailsWeightMin).nullish(),
+  "origin": zod.string().max(reviewDonationOfferResponseOfferedDetailsOriginMax).nullish(),
+  "notes": zod.string().max(reviewDonationOfferResponseOfferedDetailsNotesMax).optional()
+}),
+  "receivedDetails": zod.union([zod.object({
+  "name": zod.string().min(1).max(reviewDonationOfferResponseReceivedDetailsOneNameMax),
+  "donorName": zod.string().max(reviewDonationOfferResponseReceivedDetailsOneDonorNameMax).optional(),
+  "category": zod.string().max(reviewDonationOfferResponseReceivedDetailsOneCategoryMax).optional(),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']).optional(),
+  "quantity": zod.number().min(1).max(reviewDonationOfferResponseReceivedDetailsOneQuantityMax).multipleOf(reviewDonationOfferResponseReceivedDetailsOneQuantityMultipleOf).optional(),
+  "perishable": zod.boolean().optional(),
+  "expiryDate": zod.string().regex(reviewDonationOfferResponseReceivedDetailsOneExpiryDateRegExp).nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().min(reviewDonationOfferResponseReceivedDetailsOneWeightMin).nullish(),
+  "origin": zod.string().max(reviewDonationOfferResponseReceivedDetailsOneOriginMax).nullish(),
+  "notes": zod.string().max(reviewDonationOfferResponseReceivedDetailsOneNotesMax).optional()
+}),zod.null()]),
+  "receivedItemId": zod.string().nullable(),
+  "reviewedBy": zod.string().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "receivedBy": zod.string().nullable(),
+  "receivedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Confirm physical receipt of an approved offer, idempotently
+ */
+export const ReceiveDonationOfferParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const receiveDonationOfferBodyReceivedDetailsNameMax = 300;
+
+export const receiveDonationOfferBodyReceivedDetailsDonorNameMax = 500;
+
+export const receiveDonationOfferBodyReceivedDetailsCategoryMax = 100;
+
+export const receiveDonationOfferBodyReceivedDetailsQuantityMax = 100000;
+export const receiveDonationOfferBodyReceivedDetailsQuantityMultipleOf = 1;
+
+export const receiveDonationOfferBodyReceivedDetailsExpiryDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const receiveDonationOfferBodyReceivedDetailsWeightMin = 0;
+
+export const receiveDonationOfferBodyReceivedDetailsOriginMax = 1000;
+
+export const receiveDonationOfferBodyReceivedDetailsNotesMax = 5000;
+
+
+
+export const ReceiveDonationOfferBody = zod.object({
+  "detailsVerified": zod.literal(true),
+  "receivedDetails": zod.object({
+  "name": zod.string().min(1).max(receiveDonationOfferBodyReceivedDetailsNameMax),
+  "donorName": zod.string().max(receiveDonationOfferBodyReceivedDetailsDonorNameMax).optional(),
+  "category": zod.string().max(receiveDonationOfferBodyReceivedDetailsCategoryMax).optional(),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']).optional(),
+  "quantity": zod.number().min(1).max(receiveDonationOfferBodyReceivedDetailsQuantityMax).multipleOf(receiveDonationOfferBodyReceivedDetailsQuantityMultipleOf).optional(),
+  "perishable": zod.boolean().optional(),
+  "expiryDate": zod.string().regex(receiveDonationOfferBodyReceivedDetailsExpiryDateRegExp).nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().min(receiveDonationOfferBodyReceivedDetailsWeightMin).nullish(),
+  "origin": zod.string().max(receiveDonationOfferBodyReceivedDetailsOriginMax).nullish(),
+  "notes": zod.string().max(receiveDonationOfferBodyReceivedDetailsNotesMax).optional()
+})
+})
+
+export const ReceiveDonationOfferResponse = zod.object({
+  "id": zod.string(),
+  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "name": zod.string(),
+  "category": zod.string(),
+  "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
+  "donor": zod.string(),
+  "recipient": zod.string().nullish(),
+  "location": zod.string().nullish(),
+  "expiryDate": zod.coerce.date().nullish(),
+  "temperatureZone": zod.enum(['ambient', 'refrigerated', 'frozen']).optional(),
+  "weight": zod.number().nullish(),
+  "origin": zod.string().nullish(),
+  "lotNumber": zod.string().describe('Lot number in format LOT-XXXX'),
+  "powerConnectionReading": zod.string(),
+  "sourcePickupId": zod.string().nullish().describe('Numerology reading on intake date'),
+  "stage": zod.enum(['intake', 'qc', 'storage', 'matched', 'scheduled', 'distributed', 'closed']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Staff exact lookup by original item ID, identity UUID, or Notion page UUID
  */
 export const lookupItemIdentityQueryKeyMax = 500;
@@ -385,7 +655,7 @@ export const ListItemsResponseItem = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -430,7 +700,7 @@ export const CreateItemResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -460,7 +730,7 @@ export const GetItemResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -525,7 +795,7 @@ export const UpdateItemResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -575,7 +845,7 @@ export const AdvanceItemStageResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -602,7 +872,7 @@ export const ListExpiringItemsResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -626,7 +896,7 @@ export const ListExpiringItemsResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -650,7 +920,7 @@ export const ListExpiringItemsResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -674,7 +944,7 @@ export const ListExpiringItemsResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -764,7 +1034,7 @@ export const GetDonorResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -802,7 +1072,7 @@ export const GetDashboardResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -1023,7 +1293,7 @@ export const GetRouteResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),
@@ -1590,7 +1860,7 @@ export const CompletePickupResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
-  "condition": zod.enum(['good', 'fair', 'poor']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "donor": zod.string(),
   "recipient": zod.string().nullish(),
   "location": zod.string().nullish(),

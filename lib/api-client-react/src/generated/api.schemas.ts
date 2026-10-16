@@ -5,6 +5,121 @@
  * Donation Station API
  * OpenAPI spec version: 0.1.0
  */
+export type DonationOfferInputCondition = typeof DonationOfferInputCondition[keyof typeof DonationOfferInputCondition];
+
+
+export const DonationOfferInputCondition = {
+  excellent: 'excellent',
+  good: 'good',
+  fair: 'fair',
+  poor: 'poor',
+} as const;
+
+export type DonationOfferInputTemperatureZone = typeof DonationOfferInputTemperatureZone[keyof typeof DonationOfferInputTemperatureZone];
+
+
+export const DonationOfferInputTemperatureZone = {
+  ambient: 'ambient',
+  refrigerated: 'refrigerated',
+  frozen: 'frozen',
+} as const;
+
+export interface DonationOfferInput {
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  name: string;
+  /** @maxLength 500 */
+  donorName?: string;
+  /** @maxLength 100 */
+  category?: string;
+  condition?: DonationOfferInputCondition;
+  /**
+     * @minimum 1
+     * @maximum 100000
+     */
+  quantity?: number;
+  perishable?: boolean;
+  /**
+     * @nullable
+     * @pattern ^\d{4}-\d{2}-\d{2}$
+     */
+  expiryDate?: string | null;
+  temperatureZone?: DonationOfferInputTemperatureZone;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  weight?: number | null;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  origin?: string | null;
+  /** @maxLength 5000 */
+  notes?: string;
+}
+
+export type DonationOfferConfirmationMessage = typeof DonationOfferConfirmationMessage[keyof typeof DonationOfferConfirmationMessage];
+
+
+export const DonationOfferConfirmationMessage = {
+  'Offer_submitted—not_yet_received': 'Offer submitted—not yet received',
+} as const;
+
+export interface DonationOfferConfirmation {
+  /** @pattern ^SUB-[0-9a-f-]{36}$ */
+  reference: string;
+  message: DonationOfferConfirmationMessage;
+}
+
+export type DonationOfferStatus = typeof DonationOfferStatus[keyof typeof DonationOfferStatus];
+
+
+export const DonationOfferStatus = {
+  submitted: 'submitted',
+  approved: 'approved',
+  declined: 'declined',
+  received: 'received',
+} as const;
+
+export interface DonationOffer {
+  id: string;
+  reference: string;
+  status: DonationOfferStatus;
+  offeredDetails: DonationOfferInput;
+  receivedDetails: DonationOfferInput | null;
+  /** @nullable */
+  receivedItemId: string | null;
+  /** @nullable */
+  reviewedBy: string | null;
+  /** @nullable */
+  reviewedAt: string | null;
+  /** @nullable */
+  receivedBy: string | null;
+  /** @nullable */
+  receivedAt: string | null;
+  createdAt: string;
+}
+
+export type DonationOfferReviewInputDecision = typeof DonationOfferReviewInputDecision[keyof typeof DonationOfferReviewInputDecision];
+
+
+export const DonationOfferReviewInputDecision = {
+  approved: 'approved',
+  declined: 'declined',
+} as const;
+
+export interface DonationOfferReviewInput {
+  decision: DonationOfferReviewInputDecision;
+}
+
+export interface DonationOfferReceiptInput {
+  detailsVerified: true;
+  receivedDetails: DonationOfferInput;
+}
+
 export type SnowTier = typeof SnowTier[keyof typeof SnowTier];
 
 
@@ -679,6 +794,7 @@ export type DonationItemCondition = typeof DonationItemCondition[keyof typeof Do
 
 
 export const DonationItemCondition = {
+  excellent: 'excellent',
   good: 'good',
   fair: 'fair',
   poor: 'poor',

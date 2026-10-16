@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { customFetch } from '@workspace/api-client-react';
+import DonationOffers from '@/components/DonationOffers';
 
 interface DonationItem {
   id: string;
@@ -50,7 +51,7 @@ function ConditionLabel({ condition }: { condition: string }) {
   );
 }
 
-export default function PendingReview() {
+function LegacyPendingReview() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -247,6 +248,15 @@ export default function PendingReview() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+export default function PendingReview() {
+  return (
+    <div className="space-y-10">
+      <DonationOffers />
+      <LegacyPendingReview />
     </div>
   );
 }

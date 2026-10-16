@@ -10,6 +10,7 @@ export type DonationItemCondition = typeof DonationItemCondition[keyof typeof Do
 
 
 export const DonationItemCondition = {
+  excellent: 'excellent',
   good: 'good',
   fair: 'fair',
   poor: 'poor',

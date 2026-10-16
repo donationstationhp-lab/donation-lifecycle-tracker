@@ -45,6 +45,11 @@ import type {
   DonationItemDetail,
   DonationItemInput,
   DonationItemUpdate,
+  DonationOffer,
+  DonationOfferConfirmation,
+  DonationOfferInput,
+  DonationOfferReceiptInput,
+  DonationOfferReviewInput,
   Donor,
   DonorDetail,
   DonorInput,
@@ -121,6 +126,298 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getSubmitDonationOfferUrl = () => {
+
+
+
+
+  return `/api/public/donate`
+}
+
+/**
+ * @summary Submit an offer without creating inventory or allocating a DS number
+ */
+export const submitDonationOffer = async (donationOfferInput: DonationOfferInput, options?: Parameters<typeof customFetch>[1]): Promise<DonationOfferConfirmation> => {
+
+  return customFetch<DonationOfferConfirmation>(getSubmitDonationOfferUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(donationOfferInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitDonationOfferMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitDonationOffer>>, TError,{data: BodyType<DonationOfferInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitDonationOffer>>, TError,{data: BodyType<DonationOfferInput>}, TContext> => {
+
+const mutationKey = ['submitDonationOffer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitDonationOffer>>, {data: BodyType<DonationOfferInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitDonationOffer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitDonationOfferMutationResult = NonNullable<Awaited<ReturnType<typeof submitDonationOffer>>>
+    export type SubmitDonationOfferMutationBody = BodyType<DonationOfferInput>
+    export type SubmitDonationOfferMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit an offer without creating inventory or allocating a DS number
+ */
+export const useSubmitDonationOffer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitDonationOffer>>, TError,{data: BodyType<DonationOfferInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitDonationOffer>>,
+        TError,
+        {data: BodyType<DonationOfferInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitDonationOfferMutationOptions(options));
+    }
+
+export const getListDonationOffersUrl = () => {
+
+
+
+
+  return `/api/donation-offers`
+}
+
+/**
+ * @summary Staff-only donation offer review queue
+ */
+export const listDonationOffers = async ( options?: Parameters<typeof customFetch>[1]): Promise<DonationOffer[]> => {
+
+  return customFetch<DonationOffer[]>(getListDonationOffersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDonationOffersQueryKey = () => {
+    return [
+    `/api/donation-offers`
+    ] as const;
+    }
+
+
+export const getListDonationOffersQueryOptions = <TData = Awaited<ReturnType<typeof listDonationOffers>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDonationOffers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDonationOffersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDonationOffers>>> = ({ signal }) => listDonationOffers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDonationOffers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDonationOffersQueryResult = NonNullable<Awaited<ReturnType<typeof listDonationOffers>>>
+export type ListDonationOffersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Staff-only donation offer review queue
+ */
+
+export function useListDonationOffers<TData = Awaited<ReturnType<typeof listDonationOffers>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDonationOffers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDonationOffersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewDonationOfferUrl = (id: string,) => {
+
+
+
+
+  return `/api/donation-offers/${id}/review`
+}
+
+/**
+ * @summary Staff approval or decline; never creates inventory
+ */
+export const reviewDonationOffer = async (id: string,
+    donationOfferReviewInput: DonationOfferReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<DonationOffer> => {
+
+  return customFetch<DonationOffer>(getReviewDonationOfferUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(donationOfferReviewInput)
+  }
+);}
+
+
+
+
+
+export const getReviewDonationOfferMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewDonationOffer>>, TError,{id: string;data: BodyType<DonationOfferReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewDonationOffer>>, TError,{id: string;data: BodyType<DonationOfferReviewInput>}, TContext> => {
+
+const mutationKey = ['reviewDonationOffer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewDonationOffer>>, {id: string;data: BodyType<DonationOfferReviewInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewDonationOffer(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewDonationOfferMutationResult = NonNullable<Awaited<ReturnType<typeof reviewDonationOffer>>>
+    export type ReviewDonationOfferMutationBody = BodyType<DonationOfferReviewInput>
+    export type ReviewDonationOfferMutationError = ErrorType<void>
+
+    /**
+ * @summary Staff approval or decline; never creates inventory
+ */
+export const useReviewDonationOffer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewDonationOffer>>, TError,{id: string;data: BodyType<DonationOfferReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewDonationOffer>>,
+        TError,
+        {id: string;data: BodyType<DonationOfferReviewInput>},
+        TContext
+      > => {
+      return useMutation(getReviewDonationOfferMutationOptions(options));
+    }
+
+export const getReceiveDonationOfferUrl = (id: string,) => {
+
+
+
+
+  return `/api/donation-offers/${id}/receive`
+}
+
+/**
+ * @summary Confirm physical receipt of an approved offer, idempotently
+ */
+export const receiveDonationOffer = async (id: string,
+    donationOfferReceiptInput: DonationOfferReceiptInput, options?: Parameters<typeof customFetch>[1]): Promise<DonationItem> => {
+
+  return customFetch<DonationItem>(getReceiveDonationOfferUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(donationOfferReceiptInput)
+  }
+);}
+
+
+
+
+
+export const getReceiveDonationOfferMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveDonationOffer>>, TError,{id: string;data: BodyType<DonationOfferReceiptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof receiveDonationOffer>>, TError,{id: string;data: BodyType<DonationOfferReceiptInput>}, TContext> => {
+
+const mutationKey = ['receiveDonationOffer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof receiveDonationOffer>>, {id: string;data: BodyType<DonationOfferReceiptInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  receiveDonationOffer(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReceiveDonationOfferMutationResult = NonNullable<Awaited<ReturnType<typeof receiveDonationOffer>>>
+    export type ReceiveDonationOfferMutationBody = BodyType<DonationOfferReceiptInput>
+    export type ReceiveDonationOfferMutationError = ErrorType<void>
+
+    /**
+ * @summary Confirm physical receipt of an approved offer, idempotently
+ */
+export const useReceiveDonationOffer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveDonationOffer>>, TError,{id: string;data: BodyType<DonationOfferReceiptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof receiveDonationOffer>>,
+        TError,
+        {id: string;data: BodyType<DonationOfferReceiptInput>},
+        TContext
+      > => {
+      return useMutation(getReceiveDonationOfferMutationOptions(options));
+    }
 
 export const getLookupItemIdentityUrl = (params: LookupItemIdentityParams,) => {
   const normalizedParams = new URLSearchParams();

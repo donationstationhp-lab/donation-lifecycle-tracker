@@ -10,10 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useSubmitDonationOffer } from '@workspace/api-client-react';
 import { Card, CardContent } from '@/components/ui/card';
 
-// We bypass the API-key-injecting client and call the public endpoint directly.
-const API_BASE = '/api';
 
 interface FormState {
   name: string;
@@ -33,9 +32,10 @@ const INITIAL: FormState = {
 
 export default function Donate() {
   const [form, setForm] = useState<FormState>(INITIAL);
-  const [submitting, setSubmitting] = useState(false);
+  const submitOffer = useSubmitDonationOffer();
+  const submitting = submitOffer.isPending;
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ lotNumber: string; itemId: string } | null>(null);
+  const [success, setSuccess] = useState<{ reference: string; message: string } | null>(null);
 
   function set(field: keyof FormState, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -50,35 +50,24 @@ export default function Donate() {
       return;
     }
 
-    setSubmitting(true);
+    if (submitting) return;
     try {
-      const res = await fetch(`${API_BASE}/public/donate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = await submitOffer.mutateAsync({
+        data: {
           donorName: form.contact || undefined,
-          name: form.name,
-          condition: form.condition,
+          name: form.name.trim(),
+          condition: form.condition as 'excellent' | 'good' | 'fair',
           quantity: parseInt(form.quantity, 10) || 1,
-          notes:
-            form.logistics === 'pickup'
-              ? 'Needs pickup'
-              : 'Will be dropped off',
-        }),
+          notes: form.logistics === 'pickup' ? 'Needs pickup' : 'Will be dropped off',
+        },
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? 'Something went wrong. Please try again.');
+      if (!data || typeof data.reference !== 'string' || !data.reference.startsWith('SUB-')) {
+        setError('We could not confirm your offer. Please try again.');
         return;
       }
-
-      setSuccess({ lotNumber: data.lotNumber, itemId: data.itemId });
+      setSuccess({ reference: data.reference, message: data.message });
     } catch {
-      setError('Could not reach the server. Please check your connection and try again.');
-    } finally {
-      setSubmitting(false);
+      setError('Could not submit your offer. Please check your connection and try again.');
     }
   }
 
@@ -102,13 +91,13 @@ export default function Donate() {
                   </div>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground mb-2">
-                  Thank you — logged tonight. Our team will review it and follow up if they need anything else.
+                  {success.message}
                 </h2>
 
                 <div className="bg-muted/30 rounded-xl border border-border p-6 mb-8 mt-6 shadow-inner">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Your lot number</p>
-                  <p className="text-4xl font-mono font-bold text-primary tracking-wider">{success.lotNumber}</p>
-                  <p className="text-xs font-medium text-muted-foreground mt-2">Item ID: {success.itemId}</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Your offer reference</p>
+                  <p className="text-lg sm:text-xl font-mono font-bold text-primary break-all">{success.reference}</p>
+                  <p className="text-xs font-medium text-muted-foreground mt-2">Keep this reference. Our team will review your offer and follow up.</p>
                 </div>
 
                 <Button
