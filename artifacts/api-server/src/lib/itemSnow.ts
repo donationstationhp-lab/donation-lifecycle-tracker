@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod/v4";
-import { db, itemIdentitiesTable, itemSnowTable, itemSnowHistoryTable, type ItemSnow } from "@workspace/db";
+import { db, itemIdentitiesTable, itemSnowTable, itemSnowHistoryTable, itemSnowProposalHistoryTable, type ItemSnow } from "@workspace/db";
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -18,6 +18,8 @@ export async function readItemSnow(tx: Transaction, itemId: string) {
   const [row] = await tx.select().from(itemSnowTable).where(eq(itemSnowTable.itemId, itemId));
   const history = await tx.select().from(itemSnowHistoryTable)
     .where(eq(itemSnowHistoryTable.itemId, itemId)).orderBy(desc(itemSnowHistoryTable.version));
+  const proposalHistory = await tx.select().from(itemSnowProposalHistoryTable)
+    .where(eq(itemSnowProposalHistoryTable.itemId, itemId)).orderBy(desc(itemSnowProposalHistoryTable.proposedAt));
   return {
     version: row?.version ?? 0,
     proposal: snowProposal(row),
@@ -27,6 +29,7 @@ export async function readItemSnow(tx: Transaction, itemId: string) {
     } : null,
     awaitingReview: !!row?.proposedTier && !row?.acceptedTier,
     history,
+    proposalHistory,
   };
 }
 
@@ -49,9 +52,21 @@ export async function recordSnowProposal(
   if (!item) throw new Error("Item not found");
   await tx.insert(itemSnowTable).values({ itemId }).onConflictDoNothing();
   const [current] = await tx.select().from(itemSnowTable).where(eq(itemSnowTable.itemId, itemId));
+  if (current.proposalId && current.proposedTier && current.proposalSource && current.proposedAt) {
+    await tx.insert(itemSnowProposalHistoryTable).values({
+      id: current.proposalId, itemId, tier: current.proposedTier, source: current.proposalSource,
+      proposedAt: current.proposedAt, rationale: current.proposalRationale,
+    }).onConflictDoNothing();
+  }
+  const proposalId = randomUUID();
+  const proposedAt = new Date();
   await tx.update(itemSnowTable).set({
-    version: current.version + 1, proposalId: randomUUID(),
+    version: current.version + 1, proposalId,
     proposedTier: data.tier, proposalSource: data.source,
-    proposedAt: new Date(), proposalRationale: data.rationale ?? null,
+    proposedAt, proposalRationale: data.rationale ?? null,
   }).where(eq(itemSnowTable.itemId, itemId));
+  await tx.insert(itemSnowProposalHistoryTable).values({
+    id: proposalId, itemId, tier: data.tier, source: data.source,
+    proposedAt, rationale: data.rationale ?? null,
+  });
 }

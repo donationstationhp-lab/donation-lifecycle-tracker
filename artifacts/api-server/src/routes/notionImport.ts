@@ -27,6 +27,13 @@ router.post("/snow/rules-v1/run", async (_req, res) => {
   res.json(await runImportedSnowRules());
 });
 
+router.post("/snow/rules-v2/run", async (_req, res) => {
+  if (res.locals.authMethod !== "clerk" || !res.locals.staffUserId) {
+    res.status(403).json({ error: "Named staff sign-in required" }); return;
+  }
+  res.json(await runImportedSnowRules("rules-v2"));
+});
+
 router.get("/item-identities/lookup", async (req, res) => {
   const key = typeof req.query.key === "string" ? req.query.key : "";
   if (!key || key.length > 500) { res.status(400).json({ error: "An exact item ID, identity UUID, or Notion page UUID is required" }); return; }

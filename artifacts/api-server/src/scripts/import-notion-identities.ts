@@ -36,7 +36,7 @@ async function main() {
   }
   console.log(JSON.stringify({ imported, identityLookupsVerified: true }, null, 2));
   if (process.argv.includes("--propose")) {
-    const proposals = await runImportedSnowRules();
+    const proposals = await runImportedSnowRules("rules-v2");
     const report = await notionBacktestReport();
     console.log(JSON.stringify({
       proposals, summary: report.summary,

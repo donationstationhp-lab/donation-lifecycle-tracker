@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@clerk/react';
 import {
-  useGetNotionImportReport, getGetNotionImportReportQueryKey, useRunSnowRulesV1, useImportNotionItems,
+  useGetNotionImportReport, getGetNotionImportReportQueryKey, useRunSnowRulesV2, useImportNotionItems,
   type NotionBacktestItem,
 } from '@workspace/api-client-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,7 +54,7 @@ export default function SnowBacktest() {
   const { user } = useUser();
   const isSupervisor = user?.publicMetadata.role === 'supervisor';
   const { data, isLoading, isError, refetch, isFetching } = useGetNotionImportReport();
-  const run = useRunSnowRulesV1();
+  const run = useRunSnowRulesV2();
   const imp = useImportNotionItems();
   const [filter, setFilter] = useState<Filter>('all');
   const [q, setQ] = useState('');
@@ -91,14 +91,14 @@ export default function SnowBacktest() {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">S.N.O.W. Backtest</h1>
-          <p className="text-sm text-muted-foreground">Notion identity import and rules-v1 historical comparison. Staff only.</p>
+          <p className="text-sm text-muted-foreground">Notion identity import and rules-v1 versus rules-v2 historical comparison. Staff only.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => refetch()} disabled={isFetching} data-testid="button-refresh-report">
             <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Reload report
           </Button>
           <Button variant="outline" onClick={doRun} disabled={run.isPending} data-testid="button-run-rules">
-            {run.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />} Run rules-v1 proposals
+            {run.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />} Run rules-v2 proposals
           </Button>
           <Button onClick={() => setConfirmImport(true)} disabled={!isSupervisor || imp.isPending} title={isSupervisor ? undefined : 'Named supervisor only'} data-testid="button-import-notion">
             <Download className="w-4 h-4 mr-2" /> Import from Notion
@@ -111,7 +111,8 @@ export default function SnowBacktest() {
           <p className="font-semibold flex items-center gap-2"><Info className="w-4 h-4" /> How to read this report</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>This is a historical comparison, not food safety clearance and not a live consumption recommendation.</li>
-            <li>rules-v1 never proposes SURPLUS. It gives no proposal for unknown facts or non-food items. No AI is involved.</li>
+            <li>rules-v2 adds freshly prepared perishable catering, restaurant, or kitchen food without label/date evidence: URGENT, same-day distribution only.</li>
+            <li>Neither version proposes SURPLUS. Unknown facts otherwise cause abstention; non-food receives no proposal. No AI is involved. Comparisons and filters use v2; v1 remains visible alongside it.</li>
             <li>Homemade, unlabeled, or undated food is proposed URGENT for same-day distribution; homemade food has a 3-day ceiling from receipt. This does not change expiry dates.</li>
             <li>Importing and running proposals are separate actions. Loading this page does neither; the report can be re-evaluated without calling Notion.</li>
             {!isSupervisor && <li>Import requires a named supervisor. You can view the report and run a proposal-only batch.</li>}
@@ -159,7 +160,7 @@ export default function SnowBacktest() {
                 <thead>
                   <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground border-b">
                     <th className="py-2 pr-3">Source ID</th><th className="pr-3">Name</th><th className="pr-3">T.I.E.R.</th>
-                    <th className="pr-3">Accepted (Notion)</th><th className="pr-3">Rules-v1 proposal</th><th className="pr-3">Comparison</th><th className="pr-3">Flags</th><th className="pr-3">Snapshot</th><th />
+                    <th className="pr-3">Accepted (Notion)</th><th className="pr-3">Proposals: v1 vs v2</th><th className="pr-3">v2 comparison</th><th className="pr-3">Flags</th><th className="pr-3">Snapshot</th><th />
                   </tr>
                 </thead>
                 <tbody>
@@ -175,10 +176,15 @@ export default function SnowBacktest() {
                             ? <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary inline-flex items-center gap-1" data-testid={`link-notion-${i.identityId}`}>Notion page <ExternalLink className="w-3 h-3" /></a>
                             : <span className="text-xs text-muted-foreground">No valid Notion link</span>}
                         </td>
-                        <td className="pr-3 py-2">{i.tier ?? <span className="text-muted-foreground">—</span>}</td>
+                        <td className="pr-3 py-2">{i.tier ?? <span className="text-muted-foreground">—</span>}
+                          {i.tierConfirmation && <p className="text-xs text-muted-foreground max-w-[200px]">{i.tierConfirmation}</p>}</td>
                         <td className="pr-3 py-2">{i.acceptedFromNotion ?? <span className="text-muted-foreground">None</span>}
                           {i.currentAccepted !== i.acceptedFromNotion && <p className="text-xs text-muted-foreground">Now: {i.currentAccepted ?? 'None'}</p>}</td>
-                        <td className="pr-3 py-2">{i.proposal ?? <span className="text-muted-foreground">No proposal</span>}
+                        <td className="pr-3 py-2">
+                          <p className="font-medium">v1: {i.proposalV1 ?? 'No proposal'}</p>
+                          <CompareBadge c={i.comparisonV1} />
+                          <p className="text-xs text-muted-foreground max-w-[220px]">{i.rationaleV1}</p>
+                          <p className="font-medium mt-2">v2: {i.proposal ?? 'No proposal'}</p>
                           {i.rationale && <p className="text-xs text-muted-foreground max-w-[220px]">{i.rationale}</p>}</td>
                         <td className="pr-3 py-2 space-y-1"><CompareBadge c={i.comparison} />{i.needsReview && <Badge className="bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-100 block w-fit">Needs review</Badge>}</td>
                         <td className="pr-3 py-2"><div className="flex flex-wrap gap-1 max-w-[160px]">{i.flags.map(f => <Badge key={f} variant="secondary" className="text-[10px]">{f}</Badge>)}</div></td>

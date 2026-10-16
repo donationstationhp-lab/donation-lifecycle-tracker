@@ -23,6 +23,15 @@ export interface SnowProposal {
   rationale: string | null;
 }
 
+export interface SnowProposalHistory {
+  id: string;
+  tier: string;
+  source: string;
+  proposedAt: string;
+  /** @nullable */
+  rationale: string | null;
+}
+
 export type SnowAcceptedDecision = typeof SnowAcceptedDecision[keyof typeof SnowAcceptedDecision];
 
 
@@ -83,6 +92,7 @@ export interface ItemSnowReview {
   proposal: SnowProposal | null;
   accepted: SnowAccepted | null;
   awaitingReview: boolean;
+  proposalHistory?: SnowProposalHistory[];
   history: SnowHistory[];
 }
 
@@ -127,6 +137,16 @@ export type NotionImportReportSummary = {
   needsReview: number;
 };
 
+export type NotionBacktestItemComparisonV1 = typeof NotionBacktestItemComparisonV1[keyof typeof NotionBacktestItemComparisonV1];
+
+
+export const NotionBacktestItemComparisonV1 = {
+  agree: 'agree',
+  different: 'different',
+  no_proposal: 'no_proposal',
+  no_accepted: 'no_accepted',
+} as const;
+
 export type NotionBacktestItemComparison = typeof NotionBacktestItemComparison[keyof typeof NotionBacktestItemComparison];
 
 
@@ -147,6 +167,14 @@ export interface NotionBacktestItem {
   category: string;
   /** @nullable */
   tier: string | null;
+  /** @nullable */
+  tierFromNotion: string | null;
+  /** @nullable */
+  tierConfirmation: string | null;
+  /** @nullable */
+  proposalV1: string | null;
+  rationaleV1: string;
+  comparisonV1: NotionBacktestItemComparisonV1;
   notionPageId: string;
   /** @nullable */
   acceptedFromNotion: string | null;

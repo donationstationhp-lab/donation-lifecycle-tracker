@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test, { after } from "node:test";
 import { randomUUID } from "node:crypto";
 import express from "express";
+import type { ReplitConnectors } from "@replit/connectors-sdk";
 import { eq } from "drizzle-orm";
 import { attendDeliveryAlertsTable, db, notificationOutboxTable, pool } from "@workspace/db";
 import attendRouter from "../routes/attend";
@@ -12,10 +13,82 @@ import {
   retryAttendOutboxBatch,
   sanitizeAttendDeliveryError,
   withAttendSheetAppendLock,
+  GoogleSheetsAttendAdapter,
 } from "./attendSheets";
 
 after(async () => {
   await pool.end();
+});
+
+test("sheet-side dedupe: normal append, lost response retry, and existing duplicate rows", async (t) => {
+  for (const mode of ["normal", "lost-response", "existing-duplicates"] as const) {
+    await t.test(mode, async () => {
+      const id = randomUUID();
+      const key = `attend-idempotency-test:${id}`;
+      const row = [id, "claim.submitted", "claim", id, key, "{}", "2026-10-16T00:00:00Z"];
+      const saved: string[][] = mode === "existing-duplicates" ? [[...row], [...row]] : [];
+      let appendCalls = 0;
+      let lookupCalls = 0;
+      let now = new Date("2037-10-16T00:00:00Z");
+      const proxy = {
+        async proxy(_connector: string, path: string, options: { method: string; body?: { values: string[][] } }) {
+          if (options.method === "GET") {
+            lookupCalls++;
+            assert.ok(path.includes("/values/"));
+            return Response.json({ values: saved });
+          }
+          assert.equal(options.method, "POST");
+          assert.ok(path.includes(":append"));
+          appendCalls++;
+          saved.push(...options.body!.values);
+          // The external write succeeded, but its response never reached us.
+          if (mode === "lost-response" && appendCalls === 1) throw new Error("lost response");
+          return Response.json({ updates: { updatedRows: 1 } });
+        },
+      };
+      const adapter = new GoogleSheetsAttendAdapter(proxy as unknown as ReplitConnectors,
+        { spreadsheetId: "synthetic-sheet", range: "'ATTEND Events'!A:G" });
+      await db.insert(notificationOutboxTable).values({
+        id, eventType: "claim.submitted", aggregateType: "claim", aggregateId: id,
+        dedupeKey: key, payload: "{}",
+      });
+      try {
+        const options = { now: () => now, retryBaseDelayMs: 100 };
+        await deliverAttendOutbox(id, adapter, options);
+        if (mode === "lost-response") {
+          const [failed] = await db.select().from(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
+          assert.equal(failed.status, "failed");
+          assert.equal(saved.length, 1);
+          now = new Date(now.getTime() + 100);
+          await deliverAttendOutbox(id, adapter, options);
+        }
+        const [sent] = await db.select().from(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
+        assert.equal(sent.status, "sent");
+        assert.equal(sent.lastError, null);
+        assert.equal(sent.attempts, mode === "lost-response" ? 2 : 1);
+        assert.equal(lookupCalls, mode === "lost-response" ? 2 : 1);
+        assert.equal(appendCalls, mode === "existing-duplicates" ? 0 : 1);
+        assert.equal(saved.length, mode === "existing-duplicates" ? 2 : 1);
+        assert.ok(saved.every((r) => r[4] === key));
+      } finally {
+        await db.delete(notificationOutboxTable).where(eq(notificationOutboxTable.id, id));
+      }
+    });
+  }
+});
+
+test("a failed sheet dedupe lookup fails closed without appending", async () => {
+  let appends = 0;
+  const proxy = {
+    async proxy(_connector: string, _path: string, options: { method: string }) {
+      if (options.method === "GET") return new Response("", { status: 401 });
+      appends++;
+      return Response.json({});
+    },
+  };
+  const adapter = new GoogleSheetsAttendAdapter(proxy as unknown as ReplitConnectors, { spreadsheetId: "synthetic-sheet" });
+  await assert.rejects(adapter.append(["id", "claim.submitted", "claim", "id", "key", "{}", "date"]), /lookup failed \(401\)/);
+  assert.equal(appends, 0);
 });
 
 test("only pending or failed outbox records are eligible for an append lease", () => {

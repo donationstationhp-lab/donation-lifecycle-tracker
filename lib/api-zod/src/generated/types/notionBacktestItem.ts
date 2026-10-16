@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { NotionBacktestItemComparison } from './notionBacktestItemComparison';
+import type { NotionBacktestItemComparisonV1 } from './notionBacktestItemComparisonV1';
 
 export interface NotionBacktestItem {
   identityId: string;
@@ -17,6 +18,14 @@ export interface NotionBacktestItem {
   category: string;
   /** @nullable */
   tier: string | null;
+  /** @nullable */
+  tierFromNotion: string | null;
+  /** @nullable */
+  tierConfirmation: string | null;
+  /** @nullable */
+  proposalV1: string | null;
+  rationaleV1: string;
+  comparisonV1: NotionBacktestItemComparisonV1;
   notionPageId: string;
   /** @nullable */
   acceptedFromNotion: string | null;

@@ -55,7 +55,7 @@ paths:
     get:
       operationId: getNotionImportReport
       tags: [Items]
-      summary: Staff-only identity import and rules-v1 backtest report
+      summary: Staff-only identity import and rules-v1 versus rules-v2 backtest report
       responses:
         "200":
           description: Report from imported snapshots; never calls or writes Notion
@@ -81,6 +81,17 @@ paths:
       responses:
         "200":
           description: Proposal-only evaluation results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnowRulesResult" }
+  /snow/rules-v2/run:
+    post:
+      operationId: runSnowRulesV2
+      tags: [Items]
+      summary: Staff explicitly applies rules-v2 proposals to imported items
+      responses:
+        "200":
+          description: Proposal-only run; acceptance is never changed
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SnowRulesResult" }
@@ -1313,6 +1324,15 @@ components:
         source: { type: string }
         proposedAt: { type: string, format: date-time }
         rationale: { type: [string, "null"] }
+    SnowProposalHistory:
+      type: object
+      required: [id, tier, source, proposedAt, rationale]
+      properties:
+        id: { type: string }
+        tier: { type: string }
+        source: { type: string }
+        proposedAt: { type: string }
+        rationale: { type: [string, "null"] }
     SnowAccepted:
       type: object
       required: [tier, by, at, decision]
@@ -1353,6 +1373,9 @@ components:
             - { $ref: "#/components/schemas/SnowAccepted" }
             - { type: "null" }
         awaitingReview: { type: boolean }
+        proposalHistory:
+          type: array
+          items: { $ref: "#/components/schemas/SnowProposalHistory" }
         history:
           type: array
           items: { $ref: "#/components/schemas/SnowHistory" }
@@ -1413,7 +1436,7 @@ components:
           items: { $ref: "#/components/schemas/NotionBacktestItem" }
     NotionBacktestItem:
       type: object
-      required: [identityId, id, displayId, name, category, tier, notionPageId, acceptedFromNotion, currentAccepted, proposal, rationale, comparison, needsReview, flags, notionEditedAt, importedAt]
+      required: [identityId, id, displayId, name, category, tier, tierFromNotion, tierConfirmation, proposalV1, rationaleV1, comparisonV1, notionPageId, acceptedFromNotion, currentAccepted, proposal, rationale, comparison, needsReview, flags, notionEditedAt, importedAt]
       properties:
         identityId: { type: string }
         id: { type: [string, "null"] }
@@ -1421,6 +1444,11 @@ components:
         name: { type: string }
         category: { type: string }
         tier: { type: [string, "null"] }
+        tierFromNotion: { type: [string, "null"] }
+        tierConfirmation: { type: [string, "null"] }
+        proposalV1: { type: [string, "null"] }
+        rationaleV1: { type: string }
+        comparisonV1: { type: string, enum: [agree, different, no_proposal, no_accepted] }
         notionPageId: { type: string }
         acceptedFromNotion: { type: [string, "null"] }
         currentAccepted: { type: [string, "null"] }

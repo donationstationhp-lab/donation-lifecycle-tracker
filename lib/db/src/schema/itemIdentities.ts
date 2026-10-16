@@ -41,6 +41,8 @@ export const notionItemSnapshotsTable = pgTable("notion_item_snapshots", {
   receivedDate: text("received_date"),
   expiryDate: text("expiry_date"),
   notes: text("notes").notNull(),
+  source: text("source"),
+  donor: text("donor"),
   acceptedTierFromNotion: text("accepted_tier_from_notion"),
   notionEditedAt: timestamp("notion_edited_at", { withTimezone: true }).notNull(),
   importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),

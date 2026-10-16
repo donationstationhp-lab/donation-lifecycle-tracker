@@ -17,6 +17,16 @@ the stale worker overwrite the new worker's state.
 and expired-processing recovery, recheck the claim token immediately before the
 external call, and persist success while the shared delivery lock is still held.
 
+Destination deduplication is also required: the outbox's unique key cannot
+prevent an external append from succeeding before the local sent-state commit
+fails. Check the destination key under the same append lock before retrying;
+lookup failure must fail closed, not imply an empty destination.
+
+**Why:** External sheet writes cannot be rolled back with a PostgreSQL
+transaction, so a lost response or database commit can otherwise duplicate an
+already-delivered event. Different databases or unrelated writers do not share
+the advisory lock and require separate coordination.
+
 Create an operator alert in the same transaction that changes a delivery to its
 final failed state, and enforce one alert per outbox row with a database
 uniqueness constraint.

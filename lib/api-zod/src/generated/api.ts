@@ -34,7 +34,7 @@ export const LookupItemIdentityResponse = zod.object({
 
 
 /**
- * @summary Staff-only identity import and rules-v1 backtest report
+ * @summary Staff-only identity import and rules-v1 versus rules-v2 backtest report
  */
 export const getNotionImportReportResponseSummaryTotalMultipleOf = 1;
 
@@ -68,6 +68,11 @@ export const GetNotionImportReportResponse = zod.object({
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.string().nullable(),
+  "tierFromNotion": zod.string().nullable(),
+  "tierConfirmation": zod.string().nullable(),
+  "proposalV1": zod.string().nullable(),
+  "rationaleV1": zod.string(),
+  "comparisonV1": zod.enum(['agree', 'different', 'no_proposal', 'no_accepted']),
   "notionPageId": zod.string(),
   "acceptedFromNotion": zod.string().nullable(),
   "currentAccepted": zod.string().nullable(),
@@ -127,6 +132,25 @@ export const RunSnowRulesV1Response = zod.object({
 
 
 /**
+ * @summary Staff explicitly applies rules-v2 proposals to imported items
+ */
+export const runSnowRulesV2ResponseEvaluatedMultipleOf = 1;
+
+export const runSnowRulesV2ResponseProposedMultipleOf = 1;
+
+export const runSnowRulesV2ResponseAbstainedMultipleOf = 1;
+
+
+
+export const RunSnowRulesV2Response = zod.object({
+  "evaluated": zod.number().multipleOf(runSnowRulesV2ResponseEvaluatedMultipleOf),
+  "proposed": zod.number().multipleOf(runSnowRulesV2ResponseProposedMultipleOf),
+  "abstained": zod.number().multipleOf(runSnowRulesV2ResponseAbstainedMultipleOf),
+  "version": zod.string()
+})
+
+
+/**
  * @summary Staff-only S.N.O.W. proposal, accepted tier and audit history
  */
 export const GetItemSnowParams = zod.object({
@@ -156,6 +180,13 @@ export const GetItemSnowResponse = zod.object({
   "source": zod.string().optional()
 }),zod.null()]),
   "awaitingReview": zod.boolean(),
+  "proposalHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "tier": zod.string(),
+  "source": zod.string(),
+  "proposedAt": zod.string(),
+  "rationale": zod.string().nullable()
+})).optional(),
   "history": zod.array(zod.object({
   "id": zod.string(),
   "version": zod.number().multipleOf(getItemSnowResponseHistoryItemVersionMultipleOf),
@@ -221,6 +252,13 @@ export const ReviewItemSnowResponse = zod.object({
   "source": zod.string().optional()
 }),zod.null()]),
   "awaitingReview": zod.boolean(),
+  "proposalHistory": zod.array(zod.object({
+  "id": zod.string(),
+  "tier": zod.string(),
+  "source": zod.string(),
+  "proposedAt": zod.string(),
+  "rationale": zod.string().nullable()
+})).optional(),
   "history": zod.array(zod.object({
   "id": zod.string(),
   "version": zod.number().multipleOf(reviewItemSnowResponseHistoryItemVersionMultipleOf),

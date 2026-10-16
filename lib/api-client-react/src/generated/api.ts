@@ -215,7 +215,7 @@ export const getGetNotionImportReportUrl = () => {
 }
 
 /**
- * @summary Staff-only identity import and rules-v1 backtest report
+ * @summary Staff-only identity import and rules-v1 versus rules-v2 backtest report
  */
 export const getNotionImportReport = async ( options?: Parameters<typeof customFetch>[1]): Promise<NotionImportReport> => {
 
@@ -262,7 +262,7 @@ export type GetNotionImportReportQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Staff-only identity import and rules-v1 backtest report
+ * @summary Staff-only identity import and rules-v1 versus rules-v2 backtest report
  */
 
 export function useGetNotionImportReport<TData = Awaited<ReturnType<typeof getNotionImportReport>>, TError = ErrorType<unknown>>(
@@ -423,6 +423,77 @@ export const useRunSnowRulesV1 = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getRunSnowRulesV1MutationOptions(options));
+    }
+
+export const getRunSnowRulesV2Url = () => {
+
+
+
+
+  return `/api/snow/rules-v2/run`
+}
+
+/**
+ * @summary Staff explicitly applies rules-v2 proposals to imported items
+ */
+export const runSnowRulesV2 = async ( options?: Parameters<typeof customFetch>[1]): Promise<SnowRulesResult> => {
+
+  return customFetch<SnowRulesResult>(getRunSnowRulesV2Url(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRunSnowRulesV2MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSnowRulesV2>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runSnowRulesV2>>, TError,void, TContext> => {
+
+const mutationKey = ['runSnowRulesV2'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runSnowRulesV2>>, void> = () => {
+
+
+          return  runSnowRulesV2(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunSnowRulesV2MutationResult = NonNullable<Awaited<ReturnType<typeof runSnowRulesV2>>>
+
+    export type RunSnowRulesV2MutationError = ErrorType<unknown>
+
+    /**
+ * @summary Staff explicitly applies rules-v2 proposals to imported items
+ */
+export const useRunSnowRulesV2 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSnowRulesV2>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runSnowRulesV2>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRunSnowRulesV2MutationOptions(options));
     }
 
 export const getGetItemSnowUrl = (id: string,) => {

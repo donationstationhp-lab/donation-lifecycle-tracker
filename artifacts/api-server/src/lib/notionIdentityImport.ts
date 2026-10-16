@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { eq, sql, asc } from "drizzle-orm";
 import { db, itemIdentitiesTable, itemExternalReferencesTable, itemIdentityAliasesTable, notionItemSnapshotsTable,
-  itemSnowTable, itemSnowHistoryTable } from "@workspace/db";
+  itemSnowTable, itemSnowHistoryTable, itemTierConfirmationsTable, itemSnowBacktestsTable } from "@workspace/db";
 import { propertyText, type NotionItemPage } from "./notionItemReader";
 import { attachNotionReference, backfillAppIdentities, idLineage } from "./itemIdentity";
 import { lockItemDsCounter, reconcileItemDsCounter } from "./itemIds";
 import { applySnowRules } from "./snowRuleProposer";
 import { foodFacts, proposeSnowRulesV1, SNOW_RULES_VERSION } from "./snowRulesV1";
+import { proposeSnowRulesV2, SNOW_RULES_V2_VERSION } from "./snowRulesV2";
 
 export function parseNotionItem(page: NotionItemPage) {
   const text = (key: string) => propertyText(page.properties[key]);
@@ -27,7 +28,9 @@ export function parseNotionItem(page: NotionItemPage) {
     sourceItemId, name: text("Name"), category: text("Category"),
     tier, condition: text("Condition") || null, stage: text("Stage") || null,
     receivedDate: text("Date Received") || null, expiryDate: text("Expiry Date") || null,
-    notes: text("Notes"), acceptedTierFromNotion: snow || null, flags,
+    notes: text("Notes"), source: text("Source") || text("Origin") || null,
+    donor: text("Donor") || text("Donated By") || null,
+    acceptedTierFromNotion: snow || null, flags,
   };
 }
 
@@ -96,6 +99,14 @@ export async function importNotionIdentities(pages: NotionItemPage[]) {
         }).where(eq(itemIdentitiesTable.id, identityId));
       }
       seenIds.add(identityId);
+      const [confirmation] = await tx.select().from(itemTierConfirmationsTable)
+        .where(eq(itemTierConfirmationsTable.itemId, identityId));
+      if (confirmation) {
+        const [identity] = await tx.select().from(itemIdentitiesTable).where(eq(itemIdentitiesTable.id, identityId));
+        const remaining = identity.reviewFlags.filter((flag) => flag !== "T.I.E.R. not recorded in Notion");
+        await tx.update(itemIdentitiesTable).set({ reviewFlags: remaining, needsReview: remaining.length > 0 })
+          .where(eq(itemIdentitiesTable.id, identityId));
+      }
       if (parsed.sourceItemId) await tx.insert(itemIdentityAliasesTable).values({
         id: randomUUID(), identityId, alias: parsed.sourceItemId,
       }).onConflictDoNothing();
@@ -130,34 +141,48 @@ export async function importNotionIdentities(pages: NotionItemPage[]) {
   });
 }
 
-export async function runImportedSnowRules() {
+export async function runImportedSnowRules(version: "rules-v1" | "rules-v2" = SNOW_RULES_VERSION) {
   return db.transaction(async (tx) => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('notion-item-identity-import'))`);
     const snapshots = await tx.select().from(notionItemSnapshotsTable).orderBy(asc(notionItemSnapshotsTable.identityId));
     let proposed = 0;
     for (const snapshot of snapshots) {
-      if (await applySnowRules(tx, snapshot.identityId, snapshot)) proposed++;
+      const proposal = await applySnowRules(tx, snapshot.identityId, snapshot, version);
+      if (proposal) proposed++;
+      await tx.insert(itemSnowBacktestsTable).values({
+        id: randomUUID(), itemId: snapshot.identityId, version, input: snapshot,
+        proposal: proposal?.tier ?? null,
+        rationale: proposal?.rationale ?? "No rule: non-food or insufficient explicit food information.",
+      });
     }
-    return { evaluated: snapshots.length, proposed, abstained: snapshots.length - proposed, version: SNOW_RULES_VERSION };
+    return { evaluated: snapshots.length, proposed, abstained: snapshots.length - proposed, version };
   });
 }
 
 export async function notionBacktestReport() {
   const rows = await db.select({
     snapshot: notionItemSnapshotsTable, identity: itemIdentitiesTable,
-    snow: itemSnowTable,
+    snow: itemSnowTable, confirmation: itemTierConfirmationsTable,
   }).from(notionItemSnapshotsTable)
     .innerJoin(itemIdentitiesTable, eq(itemIdentitiesTable.id, notionItemSnapshotsTable.identityId))
     .leftJoin(itemSnowTable, eq(itemSnowTable.itemId, itemIdentitiesTable.id))
+    .leftJoin(itemTierConfirmationsTable, eq(itemTierConfirmationsTable.itemId, itemIdentitiesTable.id))
     .orderBy(asc(notionItemSnapshotsTable.sourceItemId));
-  const items = rows.map(({ snapshot, identity, snow }) => {
+  const items = rows.map(({ snapshot, identity, snow, confirmation }) => {
     const facts = foodFacts(snapshot);
-    const proposal = proposeSnowRulesV1(facts);
+    const proposalV1 = proposeSnowRulesV1(facts);
+    const proposal = proposeSnowRulesV2(snapshot);
     const comparison = !proposal ? "no_proposal" : !snapshot.acceptedTierFromNotion ? "no_accepted"
       : snapshot.acceptedTierFromNotion === proposal.tier ? "agree" : "different";
     return {
       identityId: identity.id, id: snapshot.sourceItemId, displayId: identity.displayId,
-      name: snapshot.name, category: snapshot.category, tier: snapshot.tier,
+      name: snapshot.name, category: snapshot.category, tier: confirmation?.tier ?? snapshot.tier,
+      tierFromNotion: snapshot.tier,
+      tierConfirmation: confirmation ? `${confirmation.confirmedBy}, ${confirmation.confirmedOn}: ${confirmation.reason}` : null,
+      proposalV1: proposalV1?.tier ?? null,
+      rationaleV1: proposalV1?.rationale ?? "No rule: non-food or insufficient explicit food information.",
+      comparisonV1: !proposalV1 ? "no_proposal" : !snapshot.acceptedTierFromNotion ? "no_accepted"
+        : snapshot.acceptedTierFromNotion === proposalV1.tier ? "agree" : "different",
       notionPageId: snapshot.notionPageId, acceptedFromNotion: snapshot.acceptedTierFromNotion,
       currentAccepted: snow?.acceptedTier ?? null, proposal: proposal?.tier ?? null,
       rationale: proposal?.rationale ?? "No rule: non-food or insufficient explicit food information.",
@@ -166,7 +191,7 @@ export async function notionBacktestReport() {
     };
   });
   return {
-    version: SNOW_RULES_VERSION, generatedAt: new Date().toISOString(), items,
+    version: SNOW_RULES_V2_VERSION, generatedAt: new Date().toISOString(), items,
     summary: {
       total: items.length, agree: items.filter((i) => i.comparison === "agree").length,
       different: items.filter((i) => i.comparison === "different").length,

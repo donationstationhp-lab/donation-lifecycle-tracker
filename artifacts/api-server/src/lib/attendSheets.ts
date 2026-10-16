@@ -45,19 +45,38 @@ export function calculateAttendRetryDelayMs(
 }
 
 export class GoogleSheetsAttendAdapter implements AttendSheetsAdapter {
-  private readonly spreadsheetId = process.env.ATTEND_SHEETS_SPREADSHEET_ID;
-  private readonly range = process.env.ATTEND_SHEETS_RANGE ?? "'ATTEND Events'!A:G";
+  private readonly spreadsheetId: string | undefined;
+  private readonly range: string;
   private readonly connectors: ReplitConnectors;
-  constructor(connectors = new ReplitConnectors()) { this.connectors = connectors; }
+  constructor(connectors = new ReplitConnectors(), config: { spreadsheetId?: string; range?: string } = {}) {
+    this.connectors = connectors;
+    this.spreadsheetId = config.spreadsheetId ?? process.env.ATTEND_SHEETS_SPREADSHEET_ID;
+    this.range = config.range ?? process.env.ATTEND_SHEETS_RANGE ?? "'ATTEND Events'!A:G";
+  }
 
   async append(row: readonly string[]): Promise<void> {
     if (!this.spreadsheetId) throw new Error("ATTEND_SHEETS_SPREADSHEET_ID is not configured");
+    if (!row[4]) throw new Error("ATTEND delivery requires a dedupeKey");
     const range = encodeURIComponent(this.range);
+    const valuesPath = `/v4/spreadsheets/${encodeURIComponent(this.spreadsheetId)}/values/${range}`;
+    // Called under the shared database append lock by the delivery boundary.
+    // Read the full configured table, not its trailing row: historical duplicates
+    // and uncertain prior appends must count as already delivered.
+    let existing;
+    try {
+      existing = await this.connectors.proxy("google-sheet", valuesPath, { method: "GET" });
+    } catch {
+      throw new Error("Google Sheets dedupe lookup failed");
+    }
+    if (!existing.ok) throw new Error(`Google Sheets dedupe lookup failed (${existing.status})`);
+    const body = await existing.json() as { values?: unknown };
+    if (body.values !== undefined && !Array.isArray(body.values)) throw new Error("Invalid Google Sheets dedupe lookup");
+    if ((body.values as unknown[][] | undefined)?.some((saved) => Array.isArray(saved) && saved[4] === row[4])) return;
     let response;
     try {
       response = await this.connectors.proxy(
         "google-sheet",
-        `/v4/spreadsheets/${encodeURIComponent(this.spreadsheetId)}/values/${range}:append?valueInputOption=USER_ENTERED`,
+        `${valuesPath}:append?valueInputOption=USER_ENTERED`,
         { method: "POST", body: { values: [row] }, headers: { "content-type": "application/json" } },
       );
     } catch {

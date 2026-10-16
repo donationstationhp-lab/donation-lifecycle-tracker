@@ -160,6 +160,13 @@ export function SnowReview({ itemId }: { itemId: string }) {
               ))}
             </ol>
           )}
+            {!!data.proposalHistory?.length && <div className="mt-4 space-y-2">
+              <h4 className="text-sm font-medium">Proposal history — does not change acceptance</h4>
+              {data.proposalHistory.map(p => <div key={p.id} className="rounded border p-3 text-sm">
+                <p>{p.source}: {p.tier} · {fmt(p.proposedAt)}</p>
+                <p className="text-xs text-muted-foreground">{p.rationale}</p>
+              </div>)}
+            </div>}
         </div>
       </CardContent>
 

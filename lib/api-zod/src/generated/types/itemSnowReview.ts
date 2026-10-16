@@ -8,11 +8,13 @@
 import type { SnowAccepted } from './snowAccepted';
 import type { SnowHistory } from './snowHistory';
 import type { SnowProposal } from './snowProposal';
+import type { SnowProposalHistory } from './snowProposalHistory';
 
 export interface ItemSnowReview {
   version: number;
   proposal: SnowProposal | null;
   accepted: SnowAccepted | null;
   awaitingReview: boolean;
+  proposalHistory?: SnowProposalHistory[];
   history: SnowHistory[];
 }

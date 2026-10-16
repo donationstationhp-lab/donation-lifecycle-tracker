@@ -81,7 +81,7 @@ async function propose(tier: "URGENT" | "STABLE" | "SURPLUS" = "URGENT", source 
 }
 
 test("existing items have empty independent slots without creating proposals or acceptance", async () => {
-  assert.deepEqual(await state(), { version: 0, proposal: null, accepted: null, awaitingReview: false, history: [] });
+  assert.deepEqual(await state(), { version: 0, proposal: null, accepted: null, awaitingReview: false, history: [], proposalHistory: [] });
   assert.equal((await db.select().from(itemSnowTable)).length, 0);
 });
 

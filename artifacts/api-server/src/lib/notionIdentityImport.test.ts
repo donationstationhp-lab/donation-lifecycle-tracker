@@ -4,7 +4,8 @@ import test from "node:test";
 import express from "express";
 import { eq, sql } from "drizzle-orm";
 import { db, itemIdentitiesTable, notionItemSnapshotsTable, itemSnowTable,
-  itemSnowHistoryTable, trackingCountersTable } from "@workspace/db";
+  itemSnowHistoryTable, trackingCountersTable, itemTierConfirmationsTable,
+  itemSnowProposalHistoryTable, itemSnowBacktestsTable } from "@workspace/db";
 import { isolateTestDatabase } from "../test/databaseIsolation";
 import { createApiKeyAuth, requireStaff } from "../middlewares/apiKeyAuth";
 import { importNotionIdentities, runImportedSnowRules, notionBacktestReport } from "./notionIdentityImport";
@@ -37,7 +38,8 @@ test.before(async () => {
 });
 test.after(async () => { if (close) await close(); if (cleanup) await cleanup(); });
 test.beforeEach(async () => {
-  await db.execute(sql`TRUNCATE item_snow_history, item_snow, notion_item_snapshots,
+  await db.execute(sql`TRUNCATE item_snow_proposal_history, item_snow_backtests, item_tier_confirmations,
+    item_snow_history, item_snow, notion_item_snapshots,
     item_external_references, item_identity_aliases, item_identities, donation_items, tracking_counters`);
 });
 function page(id: string | null, extra: Record<string, string> = {}): NotionItemPage {
@@ -53,6 +55,54 @@ function page(id: string | null, extra: Record<string, string> = {}): NotionItem
   };
 }
 const staff = { "x-test-user": "synthetic-staff", "x-test-role": "staff", "Content-Type": "application/json" };
+
+test("v2 preserves v1 proposals, accepted history and local staff T.I.E.R. across reimport", async () => {
+  const brownies = page("DS-0004", {
+    Name: "Homemade brownies", "S.N.O.W. Category Tier": "URGENT", "T.I.E.R.": "",
+  });
+  const salad = page("DS-L-0004", { Name: "Heirloom Tomato Salad", Donor: "Boka Catering" });
+  await importNotionIdentities([brownies, salad]);
+  await runImportedSnowRules("rules-v1");
+  const [snapshot] = await db.select().from(notionItemSnapshotsTable).where(eq(notionItemSnapshotsTable.sourceItemId, "DS-0004"));
+  const [stateBefore] = await db.select().from(itemSnowTable).where(eq(itemSnowTable.itemId, snapshot.identityId));
+  const historyBefore = await db.select().from(itemSnowHistoryTable);
+  await db.insert(itemTierConfirmationsTable).values({
+    itemId: snapshot.identityId, tier: "R", confirmedBy: "DeWayne", confirmedOn: "2026-10-16", reason: "Staff confirmation",
+  });
+  const run = await runImportedSnowRules("rules-v2");
+  assert.equal(run.proposed, 2);
+  const [stateAfter] = await db.select().from(itemSnowTable).where(eq(itemSnowTable.itemId, snapshot.identityId));
+  assert.equal(stateAfter.proposalSource, "rules-v2");
+  assert.equal(stateAfter.acceptedTier, stateBefore.acceptedTier);
+  assert.equal(stateAfter.acceptedAt?.toISOString(), stateBefore.acceptedAt?.toISOString());
+  assert.deepEqual(await db.select().from(itemSnowHistoryTable), historyBefore);
+  const archived = await db.select().from(itemSnowProposalHistoryTable)
+    .where(eq(itemSnowProposalHistoryTable.itemId, snapshot.identityId));
+  assert.equal(archived.length, 2);
+  assert.ok(archived.some((p) => p.id === stateBefore.proposalId && p.source === "rules-v1"));
+  assert.ok(archived.some((p) => p.source === "rules-v2"));
+  const priorId = stateAfter.proposalId;
+  await runImportedSnowRules("rules-v2");
+  const [rerun] = await db.select().from(itemSnowTable).where(eq(itemSnowTable.itemId, snapshot.identityId));
+  assert.equal(rerun.proposalId, priorId);
+  const evaluations = await db.select().from(itemSnowBacktestsTable);
+  assert.ok(evaluations.some((e) => e.version === "rules-v1" && e.proposal === null));
+  await importNotionIdentities([brownies, salad]);
+  const report = await notionBacktestReport();
+  const confirmed = report.items.find((i) => i.id === "DS-0004")!;
+  assert.equal(confirmed.tier, "R");
+  assert.equal(confirmed.tierFromNotion, null);
+  assert.match(confirmed.tierConfirmation!, /DeWayne, 2026-10-16/);
+  assert.equal(confirmed.needsReview, false);
+  const catering = report.items.find((i) => i.id === "DS-L-0004")!;
+  assert.equal(catering.proposalV1, null);
+  assert.equal(catering.proposal, "URGENT");
+  assert.equal(catering.comparison, "no_accepted");
+  const apiKeyRun = await fetch(`${base}/snow/rules-v2/run`, {
+    method: "POST", headers: { "x-api-key": "test-only-key" },
+  });
+  assert.equal(apiKeyRun.status, 403);
+});
 
 test("rules distinguish unknown dates, actual undated food, sealed dates and non-food", () => {
   assert.equal(proposeSnowRulesV1(foodFacts({ name: "Unknown groceries", category: "food" })), null);

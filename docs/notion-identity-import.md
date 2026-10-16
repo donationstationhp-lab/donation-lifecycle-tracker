@@ -11,10 +11,24 @@ Open **S.N.O.W. Backtest** in the staff sidebar (`/snow-backtest`).
 - **Import from Notion** requires an explicitly signed-in supervisor. It reads
   every page of the configured Item Log before beginning a single local import
   transaction. Failed reads do not produce partial imports.
-- **Run rules-v1 proposals** is a separate staff action. It applies proposals to
+- **Run rules-v2 proposals** is a separate staff action. It applies proposals to
   imported identities only, not every warehouse item. It never changes accepted
   classifications, stage, expiry, inventory quantities, or Notion.
-- **Review** opens the existing staff S.N.O.W. review and accepted history.
+- **Review** opens staff S.N.O.W. review, accepted history, and retained proposal history.
+
+The report shows frozen rules-v1 logic alongside rules-v2, including abstentions,
+rationales and each version's comparison with the original Notion accepted tier.
+Filters and summary counts use rules-v2. Evaluation snapshots and superseded
+proposals are retained separately from accepted-change history.
+
+## Local staff T.I.E.R. confirmations
+
+Explicit staff confirmations live separately from source snapshots, with the
+confirmed T.I.E.R., staff name, confirmation date, recorded timestamp and reason.
+The report shows the confirmed value and provenance. A source refresh does not
+erase it; missing-source-T.I.E.R. review flags are resolved by the confirmation.
+The original Notion T.I.E.R. remains available as source provenance. This does
+not write any S.N.O.W. acceptance or modify Notion.
 
 ## Identity and provenance
 
@@ -60,8 +74,25 @@ local acceptance. “No proposal” is an abstention, not an agreement or disagr
 This historical comparison is not food-safety clearance.
 
 Identical rule reruns preserve proposal IDs/timestamps and accepted history.
-If evidence no longer supports a proposal, only a previous rules-v1 proposal is
+If evidence no longer supports a proposal, only a proposal owned by that version is
 cleared; proposals owned by another source and all accepted values are retained.
+
+Rules-v2 adds `food-fresh-prepared-catering-unlabeled-or-undated`: freshly
+prepared perishable meals, salads, trays or cooked dishes from a catering
+company, restaurant or kitchen without label/date evidence receive URGENT,
+**same-day distribution only**. Origin may come from imported donor, source or
+item-scoped notes. This narrow rule does not turn all missing expiry metadata
+into proof of undated food. Sealed and dated food remains STABLE. Neither rule
+version proposes SURPLUS, writes acceptance, changes expiry dates, or gives
+food-safety clearance to historical food.
+
+The original v1 endpoint remains available for explicit compatibility use;
+the staff button and maintenance import proposer use v2.
+
+The Development-only `src/scripts/snow-v2-development.ts --apply` operation
+verifies the historical catering origin read-only from Notion, captures the v1
+baseline, records only the six explicitly authorized T.I.E.R. confirmations,
+runs v2, and verifies accepted values and accepted history are unchanged.
 
 ## Development maintenance
 
