@@ -50,6 +50,12 @@ No Notion, Sheets, authentication, or other external API is called.
   A missing counter remains a failure, never an invitation to create one.
 - **Aliases:** detect lookup keys shared across different identities, including
   an alias colliding with another identity's canonical display ID.
+- **DS database protections:** require all four expected enabled BEFORE
+  INSERT/UPDATE row triggers, attached to their intended tables and the public
+  `protect_item_ds_number()` trigger function, plus a valid primary key on
+  `item_ds_reservations.ds_number`. Missing required columns are UNVERIFIED;
+  missing, disabled, wrongly attached or misconfigured safeguards are FAIL.
+  This does not compare the function body with source code or install anything.
 - **Location:** count nonempty item location text with no exact location-code
   match. Do not infer sites, bins, custody, or placements.
 - **Notion policy:** inspect the disabled-write policy, import gate, and local

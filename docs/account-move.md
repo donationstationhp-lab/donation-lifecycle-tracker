@@ -1,5 +1,13 @@
 # Move Donation Station by GitHub import
 
+> **SUPERSEDED GUIDE — DO NOT USE ITS RESTORE COMMANDS.**
+> Use [the current move checklist](move-to-dewaynelogan.md).
+> The corrected Development backup is now
+> `generated-artifacts/account-move-2026-10-17/`.
+> The October 16 directory and ZIP have been renamed with
+> `.SUPERSEDED-DO-NOT-RESTORE`. Their Production snapshot is historical only;
+> no new Production backup or verification was performed during this refresh.
+
 **Historical package:** The October 16 export files predate the later authorized
 Development DS correction. They still contain the old August DS labels, the
 6396 counter and the pre-bigint schema. Do not restore them as the new corrected

@@ -56,6 +56,28 @@ ORDER BY c.relname,a.attnum`;
 // Fixed SELECT statements only. Never select names, contact details, addresses,
 // notes, URLs, credentials or record-level identifiers into the report.
 export const QUERIES = {
+  dsProtections: `
+SELECT
+ (SELECT count(*) FROM (VALUES
+   ('donation_items','donation_item_ds_number'),
+   ('item_identities','identity_ds_number'),
+   ('item_identity_aliases','alias_ds_number'),
+   ('notion_item_snapshots','snapshot_ds_number')
+ ) expected(table_name,trigger_name)
+ JOIN pg_namespace n ON n.nspname='public'
+ JOIN pg_class c ON c.relnamespace=n.oid AND c.relname=expected.table_name
+ JOIN pg_trigger t ON t.tgrelid=c.oid AND t.tgname=expected.trigger_name
+ JOIN pg_proc p ON p.oid=t.tgfoid
+ WHERE NOT t.tgisinternal AND t.tgenabled IN ('O','A') AND t.tgtype=23
+   AND p.pronamespace=n.oid AND p.proname='protect_item_ds_number'
+   AND p.pronargs=0 AND p.prorettype='pg_catalog.trigger'::regtype) AS valid_triggers,
+ (SELECT count(*) FROM pg_constraint k
+ JOIN pg_class c ON c.oid=k.conrelid
+ JOIN pg_namespace n ON n.oid=c.relnamespace
+ JOIN pg_attribute a ON a.attrelid=c.oid AND a.attname='ds_number'
+ JOIN pg_index ix ON ix.indexrelid=k.conindid
+ WHERE n.nspname='public' AND c.relname='item_ds_reservations'
+   AND k.contype='p' AND k.conkey=ARRAY[a.attnum] AND ix.indisvalid) AS reservation_key`,
   linkage: `
 SELECT
  (SELECT count(*) FROM donation_items d LEFT JOIN item_identities i ON i.id=d.id
@@ -106,6 +128,9 @@ WHERE d.location IS NOT NULL AND btrim(d.location)<>''
 } as const;
 
 const required: Record<keyof typeof QUERIES, string[]> = {
+  dsProtections: ["donation_items.ds_number", "item_identities.ds_number",
+    "item_identity_aliases.alias", "notion_item_snapshots.source_item_id",
+    "item_ds_reservations.ds_number"],
   linkage: ["donation_items.id", "donation_items.item_id", "item_identities.id", "item_identities.display_id"],
   identifiers: [
     "item_identities.id", "item_identities.display_id", "item_identities.lineage",
@@ -132,6 +157,12 @@ function count(row: Record<string, unknown>, key: string): number {
 }
 
 function describe(key: keyof typeof QUERIES, row: Record<string, unknown>): Check {
+  if (key === "dsProtections") {
+    const triggers = count(row, "valid_triggers");
+    const keyCount = count(row, "reservation_key");
+    return { check: key, status: triggers === 4 && keyCount === 1 ? "PASS" : "FAIL",
+      detail: `Enabled BEFORE INSERT/UPDATE row triggers targeting the DS protection function: ${triggers}/4; valid numeric reservation primary key: ${keyCount}/1. Missing, disabled, wrongly attached or wrongly configured safeguards fail this check. Function implementation is not certified; no safeguards were installed or changed.` };
+  }
   if (key === "linkage") {
     const bad = count(row, "mismatches");
     return { check: key, status: bad ? "FAIL" : "PASS",

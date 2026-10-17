@@ -12,6 +12,7 @@ const catalog = expected.map((c) => ({
   table_name: c.table, column_name: c.name, sql_type: c.type, not_null: c.notNull,
 }));
 const aggregates = {
+  dsProtections: { valid_triggers: "4", reservation_key: "1" },
   linkage: { mismatches: "0", identity_only: "21" },
   identifiers: {
     lineage_mismatches: "0", unpreserved_source_ids: "0", missing_notion_links: "0",
@@ -149,7 +150,7 @@ test("Notion source policy reports import-only evidence and flags writers/uncert
 
 test("offline results and exit codes distinguish unknown, failure and warnings", () => {
   const unknown = unverifiedDatabase("No safe read-only connection.");
-  assert.equal(unknown.length, 6);
+  assert.equal(unknown.length, 7);
   assert.ok(unknown.every((c) => c.status === "UNVERIFIED"));
   assert.equal(exitCode(unknown), 2);
   assert.equal(exitCode([{ check: "x", status: "FAIL", detail: "fixed" }, ...unknown]), 1);
@@ -161,4 +162,24 @@ test("connection construction rejects non-PostgreSQL URLs and opens no socket", 
   // A fixture URL only; construction must not connect.
   const client = createInspectionClient("postgres://fixture:fixture@example.invalid/fixture?options=-c%20default_transaction_read_only%3Doff");
   assert.ok(client);
+});
+
+test("DS protection check fails for missing or invalid triggers and absent reservation key", async () => {
+  for (const dsProtections of [
+    { valid_triggers: "0", reservation_key: "1" },
+    { valid_triggers: "3", reservation_key: "1" },
+    { valid_triggers: "4", reservation_key: "0" },
+  ]) {
+    const { client } = fixture({ dsProtections });
+    assert.equal((await checkDatabase(client, expected)).find(c => c.check === "dsProtections")?.status, "FAIL");
+  }
+  assert.match(QUERIES.dsProtections, /t\.tgenabled IN \('O','A'\)/);
+  assert.match(QUERIES.dsProtections, /t\.tgtype=23/);
+  assert.match(QUERIES.dsProtections, /p\.pronamespace=n\.oid/);
+});
+
+test("DS protection check is unverified when required reservation schema is absent", async () => {
+  const { client, sql } = fixture({ catalog: catalog.filter(c => c.table_name !== "item_ds_reservations") });
+  assert.equal((await checkDatabase(client, expected)).find(c => c.check === "dsProtections")?.status, "UNVERIFIED");
+  assert.ok(!sql.includes(QUERIES.dsProtections));
 });
