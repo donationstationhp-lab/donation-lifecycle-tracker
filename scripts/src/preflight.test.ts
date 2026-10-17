@@ -42,7 +42,7 @@ function fixture(overrides: Record<string, unknown> = {}) {
 }
 
 test("schema expectations come from the real Drizzle exports, without app startup", () => {
-  assert.equal(new Set(expected.map((c) => c.table)).size, 35);
+  assert.equal(new Set(expected.map((c) => c.table)).size, 38);
   assert.ok(expected.some((c) => c.table === "tracking_counters" && c.name === "next_number"));
   const offerColumns = expected.filter((c) => c.table === "donation_submissions");
   for (const name of [
@@ -116,10 +116,10 @@ test("linkage, preservation, alias and location problems are reported only as co
   assert.doesNotMatch(formatReport(checks), /fixture-person|fixture-private/);
 });
 
-test("counter never resets: floor, stale counter, gaps, exhaustion, large legacy suffix", async () => {
+test("counter checks the canonical floor with bigint precision and no four-digit cap", async () => {
   for (const [next, highest, status] of [
-    [6, "5", "FAIL"], [6396, "6396", "FAIL"], [6500, "6395", "PASS"],
-    [10000, "9999", "WARN"], [10001, "9999", "FAIL"],
+    [6, "5", "PASS"], [6396, "6396", "FAIL"], [6500, "6395", "PASS"],
+    [10000, "9999", "PASS"], [10001, "9999", "PASS"],
     [6396, "99999999999999999999", "FAIL"],
   ] as const) {
     const { client } = fixture({ counter: { next_number: next, highest_reserved: highest } });

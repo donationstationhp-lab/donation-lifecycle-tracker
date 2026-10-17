@@ -6,7 +6,6 @@ import { requireStaff } from "../middlewares/apiKeyAuth";
 import {
   DonationOfferError, receiveDonationOffer, reviewDonationOffer, validOfferDate,
 } from "../lib/donationOffers";
-import { ItemIdCapacityError } from "../lib/itemIds";
 import { NetworkError } from "../lib/networkRules";
 
 const router: IRouter = Router();
@@ -53,9 +52,6 @@ router.post("/donation-offers/:id/receive", async (req, res): Promise<void> => {
   } catch (error) {
     if (error instanceof DonationOfferError || error instanceof NetworkError) {
       res.status(error.status).json({ error: error.message }); return;
-    }
-    if (error instanceof ItemIdCapacityError) {
-      res.status(503).json({ error: error.message }); return;
     }
     throw error;
   }

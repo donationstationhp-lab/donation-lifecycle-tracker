@@ -14,8 +14,14 @@ export interface DonationItem {
   /** @nullable */
   receivingAgentId?: string | null;
   id: string;
-  /** Human-readable ID in format DS-XXXX */
+  /** Preserved human-readable identifier; canonical DS numbers are padded to at least four digits. */
   itemId: string;
+  /**
+     * Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.
+     * @nullable
+     * @pattern ^[1-9][0-9]*$
+     */
+  readonly dsNumber?: string | null;
   name: string;
   category: string;
   /** T=Time, I=Intelligence, E=Energy, R=Resources */

@@ -35,7 +35,7 @@ import {
   stageHistoryTable,
 } from "@workspace/db";
 import { itemRepository } from "../lib/itemRepository";
-import { allocateItemDsId, ItemIdCapacityError } from "../lib/itemIds";
+import { allocateItemDsId } from "../lib/itemIds";
 
 const router: IRouter = Router();
 
@@ -717,10 +717,6 @@ router.post("/pickups/:id/complete", async (req, res): Promise<void> => {
     return { pickup: completed, item };
     });
   } catch (error) {
-    if (error instanceof ItemIdCapacityError) {
-      res.status(503).json({ error: error.message });
-      return;
-    }
     throw error;
   }
 

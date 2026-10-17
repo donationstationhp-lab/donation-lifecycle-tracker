@@ -42,11 +42,12 @@ No Notion, Sheets, authentication, or other external API is called.
   as canonical IDs or aliases, Notion references, and numeric DS collisions.
   Missing/non-DS IDs are counted, not invented or renumbered. These checks can
   verify current stored evidence, not deleted records or unseen external history.
-- **Counter:** `item_ds.next_number` must exceed all stored DS reservations and
-  must not be below the established 6396 audit floor. This is **not a seed or a
-  reset target**: higher counters and gaps are valid. DS-L does not advance DS.
-  Existing four-digit capacity and its exhaustion sentinel are reported, not
-  changed. A missing counter is a failure, never an invitation to create one.
+- **Counter:** `item_ds.next_number` must exceed the highest canonical DS number.
+  The explicitly authorized Development August-to-legacy correction supersedes
+  its old 6396 audit floor. Legacy aliases reserve numbers for skipping, not for
+  raising this floor. Bigint values are checked exactly; there is no four-digit
+  cap or exhaustion sentinel. Ordinary allocation never lowers the counter.
+  A missing counter remains a failure, never an invitation to create one.
 - **Aliases:** detect lookup keys shared across different identities, including
   an alias colliding with another identity's canonical display ID.
 - **Location:** count nonempty item location text with no exact location-code
@@ -67,7 +68,7 @@ do not connect to development or production databases.
 ## Unresolved design decisions
 
 This command does not decide provisional public-submission identifiers versus
-minting at acceptance, post-DS-9999 behavior, Party resolution, Site/bin
+minting at acceptance, Party resolution, Site/bin
 semantics, Placement/Movement design, weight units, or migration ordering.
 Existing DS/DS-L identities and the counter high-water mark remain unchanged.
 Credential revocation/rotation is a separate issuer-side security action; this

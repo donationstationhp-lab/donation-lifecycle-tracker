@@ -12,7 +12,6 @@ import { isolateTestDatabase } from "../test/databaseIsolation";
 import { createApiKeyAuth } from "../middlewares/apiKeyAuth";
 import { itemRepository } from "../lib/itemRepository";
 import { SubmitDonationOfferResponse, ReviewDonationOfferResponse, ReceiveDonationOfferResponse } from "@workspace/api-zod";
-import { MAX_ITEM_DS_NUMBER } from "../lib/itemIds";
 import publicRouter from "./publicRoutes";
 import offersRouter from "./donationOffers";
 
@@ -50,7 +49,7 @@ test.before(async () => {
   });
 });
 test.beforeEach(async () => {
-  await db.execute(sql`TRUNCATE donation_submissions, donation_items, item_identities,
+  await db.execute(sql`TRUNCATE item_ds_reservations, donation_submissions, donation_items, item_identities,
     stage_history, service_activities, tracking_counters, agents, agent_days`);
   await db.insert(agentsTable).values({
     id: "fixture-agent", number: 1, fullName: "Synthetic site", shortName: "Site",
@@ -143,19 +142,21 @@ test("public response is reference-only and originals ignore forged staff fields
   await assertNoPhysicalRecords();
 });
 
-test("submission and review work without creating a counter, even when numbering is exhausted", async () => {
+test("submission and review allocate nothing; physical receipt works above 9999", async () => {
   await db.delete(trackingCountersTable);
   const offer = await submit();
   assert.equal((await review(offer.id)).status, 200);
   assert.equal(await counter(), undefined);
-  await db.insert(trackingCountersTable).values({ name: "item_ds", nextNumber: MAX_ITEM_DS_NUMBER + 1 });
+  await db.insert(trackingCountersTable).values({ name: "item_ds", nextNumber: 10_000 });
   const another = await submit();
   assert.equal((await review(another.id, "declined")).status, 200);
   const response = await receive(offer.id);
-  assert.equal(response.status, 503);
-  assert.equal((await db.select().from(donationItemsTable)).length, 0);
-  assert.equal((await db.select().from(itemIdentitiesTable)).length, 0);
-  assert.equal(await counter(), MAX_ITEM_DS_NUMBER + 1);
+  assert.equal(response.status, 200);
+  const [item] = await db.select().from(donationItemsTable);
+  assert.equal(item.itemId, "DS-10000");
+  assert.equal(item.dsNumber, "10000");
+  assert.equal((await db.select().from(itemIdentitiesTable)).length, 1);
+  assert.equal(await counter(), 10_001);
 });
 
 test("approve and decline only submitted offers; repeated review preserves original actor/time", async () => {

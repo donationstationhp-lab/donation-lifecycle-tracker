@@ -1,5 +1,11 @@
 # Move Donation Station by GitHub import
 
+**Historical package:** The October 16 export files predate the later authorized
+Development DS correction. They still contain the old August DS labels, the
+6396 counter and the pre-bigint schema. Do not restore them as the new corrected
+Development baseline. This numbering change does not refresh exports or start
+the account migration. Production has not been corrected or migrated.
+
 This is a preparation guide, not authorization to publish, change DNS, replay
 notifications, or migrate live data. Code and public schema are the current
 Replit workspace baseline, not GitHub main. No application behavior was changed
@@ -44,12 +50,12 @@ cleared in the export, and delivery error text is redacted. Credential-like
 strings are screened without logging their contents. This is not a forensic
 guarantee about arbitrary historical free text.
 
-Development has 3 sites; Production has no agents/agent_days tables. Development
-has item_ds next_number 6396; Production has no item_ds counter row. Before any
-new intake in a Production-derived database, an authorized reconciliation must
-preserve a floor of at least 6396 and account for all committed identifiers.
-Never seed from 5, renumber, or reclaim an issued number. This preparation does
-not perform that reconciliation.
+At export time Development had 3 sites and item_ds next_number 6396; Production
+had no agents/agent_days tables or item_ds counter row. These are historical
+snapshot facts, not the post-correction Development baseline. Production still
+requires a separately authorized reconciliation of all committed identifiers;
+the Development-only correction does not authorize a Production counter reset.
+Do not reclaim labels: old DS aliases remain permanently reserved.
 
 Development outbox: 7 sent. Production outbox: 2 failed. Their statuses are
 preserved. Do not replay the two failed events during migration. Reconnect the

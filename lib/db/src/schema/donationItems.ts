@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { donorsTable } from "./donors";
 import { agentsTable } from "./agents";
+import { bigintString } from "./dsNumbers";
 
 export const donationItemsTable = pgTable(
   "donation_items",
@@ -10,6 +11,7 @@ export const donationItemsTable = pgTable(
     id: text("id").primaryKey(),
     receivingAgentId: text("receiving_agent_id").references(() => agentsTable.id),
     itemId: text("item_id").notNull().unique(),
+    dsNumber: bigintString("ds_number").unique(),
     name: text("name").notNull(),
     category: text("category").notNull(),
     tier: text("tier").notNull(), // T | I | E | R

@@ -1,4 +1,5 @@
 export * from "./agents";
+export * from "./dsNumbers";
 export * from "./donationSubmissions";
 export * from "./itemClassificationAudit";
 export * from "./itemIdentities";

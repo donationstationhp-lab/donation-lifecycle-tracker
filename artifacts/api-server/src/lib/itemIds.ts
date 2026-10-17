@@ -1,76 +1,68 @@
 import { eq, sql } from "drizzle-orm";
 import { db, trackingCountersTable } from "@workspace/db";
-import { ITEM_PAIRING_POLICY } from "./itemPairingPolicy";
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
 export const ITEM_DS_COUNTER_NAME = "item_ds";
-export const MAX_ITEM_DS_NUMBER = 9_999;
-const RESERVED_NUMBER = Math.max(
-  0,
-  ...ITEM_PAIRING_POLICY.notionFirstLiveItemIds.map((id) => Number(id.slice(3))),
-);
 
-export class ItemIdCapacityError extends Error {
-  constructor() {
-    super("DS item numbers are exhausted. Contact a supervisor before adding more items.");
-    this.name = "ItemIdCapacityError";
-  }
+export function formatItemDsId(number: bigint | string | number): string {
+  if (typeof number === "number" && !Number.isSafeInteger(number)) throw new Error("Unsafe DS number");
+  const n = BigInt(number);
+  if (n < 1n) throw new Error("DS numbers must be positive");
+  return `DS-${n.toString().padStart(4, "0")}`;
 }
 
-export function formatItemDsId(number: number): string {
-  if (!Number.isInteger(number) || number < 1 || number > MAX_ITEM_DS_NUMBER) {
-    throw new ItemIdCapacityError();
-  }
-  return `DS-${number.toString().padStart(4, "0")}`;
-}
-
-/**
- * Every item creator/importer must take this lock before writing identities.
- * The row lock is held until the caller's transaction commits or rolls back.
- */
-export async function lockItemDsCounter(tx: Transaction): Promise<number> {
+/** All creators/importers serialize on this row; bigint arithmetic stays exact. */
+export async function lockItemDsCounter(tx: Transaction): Promise<bigint> {
   await tx.insert(trackingCountersTable).values({
-    name: ITEM_DS_COUNTER_NAME,
-    nextNumber: RESERVED_NUMBER + 1,
+    name: ITEM_DS_COUNTER_NAME, nextNumber: "6",
   }).onConflictDoNothing();
   const [counter] = await tx.select().from(trackingCountersTable)
-    .where(eq(trackingCountersTable.name, ITEM_DS_COUNTER_NAME))
-    .for("update");
+    .where(eq(trackingCountersTable.name, ITEM_DS_COUNTER_NAME)).for("update");
   if (!counter) throw new Error("DS item counter is unavailable");
-  return counter.nextNumber;
+  return BigInt(counter.nextNumber);
 }
 
-export async function reconcileItemDsCounter(tx: Transaction): Promise<number> {
-  const previousNext = await lockItemDsCounter(tx);
-  // Read AFTER locking, so READ COMMITTED observes the previous creator's commit.
-  // Numeric casting also recognizes historical IDs with different zero padding.
+/** Aliases reserve numbers, but never raise the canonical pilot high-water mark. */
+export async function highestCanonicalDsNumber(tx: Transaction): Promise<bigint> {
   const result = await tx.execute<{ highest: string }>(sql`
-    SELECT COALESCE(MAX(substring(item_id FROM 4)::numeric), 0)::text AS highest
+    SELECT COALESCE(MAX(substring(label FROM 4)::bigint),0)::text AS highest
     FROM (
-      SELECT item_id FROM donation_items
-      UNION ALL SELECT display_id AS item_id FROM item_identities
-      UNION ALL SELECT source_item_id AS item_id FROM notion_item_snapshots
-      UNION ALL SELECT alias AS item_id FROM item_identity_aliases
-    ) AS reserved_ids
-    WHERE item_id ~ '^DS-[0-9]+$'
+      SELECT item_id AS label FROM donation_items
+      UNION ALL SELECT display_id FROM item_identities
+    ) canonical WHERE label ~ '^DS-[0-9]+$'
   `);
-  const highest = Number(result.rows[0]?.highest ?? 0);
-  // 10000 is an exhaustion sentinel, not a new five-digit display format.
-  const nextNumber = Math.max(
-    previousNext,
-    RESERVED_NUMBER + 1,
-    Math.min(highest + 1, MAX_ITEM_DS_NUMBER + 1),
-  );
-  await tx.update(trackingCountersTable).set({ nextNumber })
+  return BigInt(result.rows[0]?.highest ?? "0");
+}
+
+export async function nextUnreservedDsNumber(tx: Transaction, start: bigint): Promise<bigint> {
+  let next = start;
+  for (;;) {
+    const blocked = await tx.execute<{ present: boolean }>(sql`
+      SELECT EXISTS (
+        SELECT 1 FROM item_ds_reservations WHERE ds_number=${next.toString()}::bigint
+        UNION ALL SELECT 1 FROM item_identity_aliases
+          WHERE alias ~ '^DS-[0-9]+$' AND substring(alias FROM 4)::numeric=${next.toString()}::numeric
+        UNION ALL SELECT 1 FROM notion_item_snapshots
+          WHERE source_item_id ~ '^DS-[0-9]+$' AND substring(source_item_id FROM 4)::numeric=${next.toString()}::numeric
+      ) AS present
+    `);
+    if (!blocked.rows[0]?.present) return next;
+    next += 1n;
+  }
+}
+
+export async function reconcileItemDsCounter(tx: Transaction): Promise<bigint> {
+  const previous = await lockItemDsCounter(tx);
+  const floor = await highestCanonicalDsNumber(tx) + 1n;
+  const next = await nextUnreservedDsNumber(tx, previous > floor ? previous : floor);
+  await tx.update(trackingCountersTable).set({ nextNumber: next.toString() })
     .where(eq(trackingCountersTable.name, ITEM_DS_COUNTER_NAME));
-  return nextNumber;
+  return next;
 }
 
 export async function allocateItemDsId(tx: Transaction): Promise<string> {
-  const nextNumber = await reconcileItemDsCounter(tx);
-  const itemId = formatItemDsId(nextNumber);
-  await tx.update(trackingCountersTable).set({ nextNumber: nextNumber + 1 })
+  const next = await reconcileItemDsCounter(tx);
+  await tx.update(trackingCountersTable).set({ nextNumber: (next + 1n).toString() })
     .where(eq(trackingCountersTable.name, ITEM_DS_COUNTER_NAME));
-  return itemId;
+  return formatItemDsId(next);
 }

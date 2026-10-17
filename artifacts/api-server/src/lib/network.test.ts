@@ -15,7 +15,7 @@ import { chicagoDay } from "./networkRules";
 let cleanup: () => Promise<void>;
 test.before(async () => { cleanup = await isolateTestDatabase(); });
 test.beforeEach(async () => {
-  await db.execute(sql`TRUNCATE agents, agent_days, donation_items, service_activities,
+  await db.execute(sql`TRUNCATE item_ds_reservations, agents, agent_days, donation_items, service_activities,
     recipient_accounts, locations, tracking_counters`);
   await db.insert(agentsTable).values(["a", "b"].map((id, i) => ({
     id, number: i + 1, fullName: `Synthetic agent ${id}`, shortName: id,

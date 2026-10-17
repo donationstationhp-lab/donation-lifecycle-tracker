@@ -12,7 +12,6 @@ import pickupsRouter from "./pickups";
 import cliRouter from "./cliExtras";
 import {
   allocateItemDsId, formatItemDsId, ITEM_DS_COUNTER_NAME,
-  ItemIdCapacityError, MAX_ITEM_DS_NUMBER,
 } from "../lib/itemIds";
 import { ITEM_PAIRING_POLICY } from "../lib/itemPairingPolicy";
 import { isolateTestDatabase } from "../test/databaseIsolation";
@@ -40,7 +39,7 @@ test.before(async () => {
 
 test.beforeEach(async () => {
   await db.execute(sql`
-    TRUNCATE item_snow_history, item_snow, item_external_references,
+    TRUNCATE item_ds_reservations, item_snow_history, item_snow, item_external_references,
       item_identity_aliases, notion_item_snapshots, item_identities,
       tracking_counters, donation_items, stage_history, donors,
       pickup_requests, service_activities, donation_submissions, agents, agent_days
@@ -109,11 +108,13 @@ async function seedPickup() {
   return id;
 }
 
-test("item IDs retain the four-digit format and reject exhaustion", () => {
+test("item IDs have at least four digits and preserve bigint precision", () => {
   assert.equal(formatItemDsId(6), "DS-0006");
   assert.equal(formatItemDsId(9_999), "DS-9999");
-  for (const number of [0, -1, 1.5, 10_000, NaN]) {
-    assert.throws(() => formatItemDsId(number), ItemIdCapacityError);
+  assert.equal(formatItemDsId(10_000), "DS-10000");
+  assert.equal(formatItemDsId("9007199254740993"), "DS-9007199254740993");
+  for (const number of [0, -1, 1.5, NaN, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => formatItemDsId(number));
   }
 });
 
@@ -173,11 +174,12 @@ test("concurrent transactions issue unique consecutive IDs and preserve the clai
   assert.equal(claim.nextNumber, 123);
 });
 
-test("last four-digit ID is allocated once and exhaustion leaves the counter intact", async () => {
-  await setCounter(MAX_ITEM_DS_NUMBER);
+test("allocation continues through five digits without exhaustion", async () => {
+  await setCounter(9_999);
   assert.equal(await db.transaction(allocateItemDsId), "DS-9999");
-  await assert.rejects(db.transaction(allocateItemDsId), ItemIdCapacityError);
-  assert.equal(await nextCounter(), 10_000);
+  assert.equal(await db.transaction(allocateItemDsId), "DS-10000");
+  assert.equal(await db.transaction(allocateItemDsId), "DS-10001");
+  assert.equal(await nextCounter(), 10_002);
 });
 
 test("staff intake and pickup completion share the allocator; public offers allocate nothing", async () => {
@@ -239,22 +241,22 @@ test("CLI import keeps its identity and advances subsequent intake beyond it", a
   assert.equal(intakeBody.itemId, "DS-4001");
 });
 
-test("physical intake rejects capacity exhaustion; public offers remain available", async () => {
+test("physical intake and pickup work above 9999; public offers allocate nothing", async () => {
   await setCounter(10_000);
   const pickupId = await seedPickup();
   const responses = await Promise.all([
-    post("/items", { name: "Capacity check", category: "equipment", condition: "good", donor: "Synthetic donor", lotNumber: "LOT-TEST" }),
+    post("/items", { name: "Five-digit check", category: "equipment", condition: "good", donor: "Synthetic donor", lotNumber: "LOT-TEST", receivingAgentId: "fixture-agent" }),
     post(`/pickups/${pickupId}/complete`, { itemsReceived: "Capacity check" }),
   ]);
   const offer = await post("/public/donate", { name: "Capacity check" });
   assert.equal(offer.status, 201);
   for (const response of responses) {
-    assert.equal(response.status, 503);
-    assert.deepEqual(await response.json(), { error: new ItemIdCapacityError().message });
+    assert.ok(response.status === 200 || response.status === 201);
   }
-  assert.equal((await db.select().from(donationItemsTable)).length, 0);
-  assert.equal((await db.select().from(donorsTable)).length, 0);
-  assert.equal(await nextCounter(), 10_000);
+  const saved = await db.select().from(donationItemsTable);
+  assert.deepEqual(saved.map(i => i.itemId).sort(), ["DS-10000", "DS-10001"]);
+  assert.deepEqual(saved.map(i => i.dsNumber).sort(), ["10000", "10001"]);
+  assert.equal(await nextCounter(), 10_002);
   const [pickup] = await db.select().from(pickupRequestsTable).where(eq(pickupRequestsTable.id, pickupId));
-  assert.equal(pickup.status, "dispatched");
+  assert.equal(pickup.status, "completed");
 });

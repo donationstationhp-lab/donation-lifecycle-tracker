@@ -90,9 +90,7 @@ SELECT
  (SELECT COALESCE(MAX(substring(value FROM 4)::numeric),0)::text FROM (
     SELECT item_id AS value FROM donation_items
     UNION ALL SELECT display_id FROM item_identities
-    UNION ALL SELECT source_item_id FROM notion_item_snapshots
-    UNION ALL SELECT alias FROM item_identity_aliases
-  ) reserved WHERE value ~ '^DS-[0-9]+$') AS highest_reserved`,
+  ) canonical WHERE value ~ '^DS-[0-9]+$') AS highest_reserved`,
   aliases: `
 SELECT count(*) AS ambiguous FROM (
  SELECT key FROM (
@@ -151,13 +149,11 @@ function describe(key: keyof typeof QUERIES, row: Record<string, unknown>): Chec
     if (row.next_number === null || row.next_number === undefined) {
       return { check: key, status: "FAIL", detail: "Item counter row is missing. No counter was created." };
     }
-    const next = count(row, "next_number");
+    const next = BigInt(String(row.next_number));
     const highest = BigInt(String(row.highest_reserved));
-    // This is a read-only audit floor, NOT an allocator seed. A greater current
-    // counter is valid and must never be lowered to this historical baseline.
-    const safe = next >= 6396 && BigInt(next) > highest;
-    return { check: key, status: !safe || next > 10000 ? "FAIL" : next === 10000 ? "WARN" : "PASS",
-      detail: `Counter is ${safe ? "above stored DS reservations and at/above the 6396 audit floor" : "below the audit floor or not above stored DS reservations"}. ${next === 10000 ? "Existing four-digit namespace is exhausted." : next > 10000 ? "Counter exceeds the current allocator sentinel." : "Current four-digit allocation limit is unchanged."} DS-L values do not advance the DS counter. Gaps are valid; no number was allocated, reserved or reset. Deleted/external-only history cannot be certified.` };
+    const safe = next > highest && next > 0n;
+    return { check: key, status: safe ? "PASS" : "FAIL",
+      detail: `Counter is ${safe ? "above" : "not above"} the highest canonical DS number. Decimal bigint arithmetic; no four-digit cap. DS-L, EXT and old aliases do not raise the canonical floor; reserved aliases must be skipped by allocation. Gaps are valid; no number was allocated, reserved or reset. Deleted/external-only history cannot be certified.` };
   }
   if (key === "aliases") {
     const bad = count(row, "ambiguous");

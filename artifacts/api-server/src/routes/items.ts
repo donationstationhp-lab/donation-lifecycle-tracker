@@ -18,7 +18,7 @@ import { isUniqueViolation } from "../lib/dbErrors";
 import { recordAcknowledgment, recordServiceActivity } from "../lib/serviceActivities";
 import { validateItemStageTransition } from "../lib/itemLifecycle";
 import { itemRepository } from "../lib/itemRepository";
-import { allocateItemDsId, ItemIdCapacityError } from "../lib/itemIds";
+import { allocateItemDsId } from "../lib/itemIds";
 
 const router: IRouter = Router();
 
@@ -230,10 +230,6 @@ router.post("/items", async (req, res): Promise<void> => {
   } catch (error) {
     if (error instanceof NetworkError) {
       res.status(error.status).json({ error: error.message }); return;
-    }
-    if (error instanceof ItemIdCapacityError) {
-      res.status(503).json({ error: error.message });
-      return;
     }
     if (isUniqueViolation(error, "donation_items_item_id_unique")) {
       res.status(409).json({ error: "Item identifier already exists; please retry" });

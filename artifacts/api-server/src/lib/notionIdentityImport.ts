@@ -136,7 +136,7 @@ export async function importNotionIdentities(pages: NotionItemPage[]) {
         acceptedImported++;
       }
     }
-    const nextDsNumber = await reconcileItemDsCounter(tx);
+    const nextDsNumber = (await reconcileItemDsCounter(tx)).toString();
     return { read: pages.length, created, matched, acceptedImported, nextDsNumber, identities: [...seenIds] };
   });
 }

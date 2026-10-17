@@ -6,12 +6,23 @@ description: Why committed item numbers must not be reclaimed, including during 
 Treat committed DS item numbers as permanent, even after their local item records are removed. Never lower the shared allocation counter to reclaim gaps or clean up tests.
 
 The owner explicitly retired the old brief to seed the DS counter from 5.
-The established audit high-water baseline is 6396; never reset it to 5, 6,
-or any lower value. A later, higher counter must likewise remain preserved.
+The owner subsequently authorized a one-time Development-only exception:
+relabel the fourteen August random DS records into DS-L, preserve old DS labels
+as permanent aliases, and recompute the canonical pilot counter (expected 6).
+This supersedes Development's old 6396 audit floor, not Production policy.
+Ordinary allocation and reruns must never lower the counter.
 
 **Why:** The owner confirmed that historical numbering must survive future
 baseline reconciliation; the old five-pilot seed brief is obsolete, not a
 migration instruction.
+
+**Why:** The owner identified the August random-number records as pre-pilot
+legacy data, not thousands of sequential pilot donations. Their old DS labels
+must remain reserved even though they no longer raise the canonical pilot floor.
+
+**How to apply:** Use the canonical DS family for the floor and permanent
+numeric reservations for alias skipping. No automatic or Production reset is
+authorized. Treat pre-correction account-move backups as historical snapshots.
 
 **Why:** A number can still identify an item in Notion, a physical label, or another external record after the local record is deleted. Tests that commit high-number fixtures can consume the shared namespace permanently even when the fixture records are later removed.
 

@@ -1,11 +1,13 @@
 import { pgTable, text, timestamp, jsonb, uniqueIndex, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { bigintString } from "./dsNumbers";
 
 // Opaque identity is independent of whether a complete intake record exists.
 // Null display IDs are intentional: unidentified records never get minted IDs.
 export const itemIdentitiesTable = pgTable("item_identities", {
   id: text("id").primaryKey(),
   displayId: text("display_id").unique(),
+  dsNumber: bigintString("ds_number").unique(),
   lineage: text("lineage").notNull(),
   name: text("name").notNull(),
   needsReview: boolean("needs_review").notNull().default(false),

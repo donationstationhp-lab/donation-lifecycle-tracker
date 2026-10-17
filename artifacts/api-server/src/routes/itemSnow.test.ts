@@ -43,7 +43,7 @@ test.before(async () => {
   });
 });
 test.beforeEach(async () => {
-  await db.execute(sql`TRUNCATE item_snow_history, item_snow, donation_items, item_identities`);
+  await db.execute(sql`TRUNCATE item_ds_reservations, item_snow_history, item_snow, donation_items, item_identities`);
   itemId = randomUUID();
   await db.execute(sql`INSERT INTO item_identities (id, display_id, lineage, name) VALUES (${itemId}, 'DS-TEST-SNOW', 'unidentified', 'Synthetic S.N.O.W. test')`);
   await db.insert(donationItemsTable).values({

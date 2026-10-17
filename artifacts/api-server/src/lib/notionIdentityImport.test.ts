@@ -38,7 +38,7 @@ test.before(async () => {
 });
 test.after(async () => { if (close) await close(); if (cleanup) await cleanup(); });
 test.beforeEach(async () => {
-  await db.execute(sql`TRUNCATE item_snow_proposal_history, item_snow_backtests, item_tier_confirmations,
+  await db.execute(sql`TRUNCATE item_ds_reservations, item_snow_proposal_history, item_snow_backtests, item_tier_confirmations,
     item_snow_history, item_snow, notion_item_snapshots,
     item_external_references, item_identity_aliases, item_identities, donation_items, tracking_counters`);
 });
@@ -128,7 +128,7 @@ test("cross-item comparisons and policy examples cannot misclassify sealed food 
 test("both ID lineages and missing/non-DS IDs are preserved without invented IDs", async () => {
   const pages = [page("DS-0042"), page("DS-L-9999"), page("EXT-exact Case"), page(null)];
   const result = await importNotionIdentities(pages);
-  assert.equal(result.created, 4); assert.equal(result.nextDsNumber, 43);
+  assert.equal(result.created, 4); assert.equal(result.nextDsNumber, "43");
   const report = await notionBacktestReport();
   assert.equal(report.items.find((r) => r.id === "DS-L-9999")?.displayId, "DS-L-9999");
   assert.equal(report.items.find((r) => r.id === "EXT-exact Case")?.needsReview, true);

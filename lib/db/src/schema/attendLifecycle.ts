@@ -11,6 +11,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { sql } from "drizzle-orm";
 import { z } from "zod/v4";
 import { donationItemsTable } from "./donationItems";
+import { bigintCounter } from "./dsNumbers";
 
 /**
  * ATTEND allocation records intentionally have their own history tables.
@@ -69,7 +70,7 @@ export const claimsTable = pgTable(
 
 export const trackingCountersTable = pgTable("tracking_counters", {
   name: text("name").primaryKey(),
-  nextNumber: integer("next_number").notNull(),
+  nextNumber: bigintCounter("next_number").notNull(),
 });
 
 export const trackingOtpsTable = pgTable(

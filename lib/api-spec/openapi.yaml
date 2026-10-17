@@ -2274,7 +2274,12 @@ components:
           type: string
         itemId:
           type: string
-          description: Human-readable ID in format DS-XXXX
+          description: Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.
+        dsNumber:
+          type: ["string", "null"]
+          pattern: '^[1-9][0-9]*$'
+          readOnly: true
+          description: Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.
         name:
           type: string
         category:

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
-import { db, pool } from "@workspace/db";
+import { db, pool, installDsNumberConstraints } from "@workspace/db";
 
 /**
  * Test-worker-only schema: copy table definitions, never application records.
@@ -34,6 +34,7 @@ export async function isolateTestDatabase(): Promise<() => Promise<void>> {
     });
   };
   pool.on("acquire", selectSchema);
+  await installDsNumberConstraints(db);
   return async () => {
     pool.off("acquire", selectSchema);
     try {

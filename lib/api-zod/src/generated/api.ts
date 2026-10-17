@@ -571,10 +571,14 @@ export const ReceiveDonationOfferBody = zod.object({
 })
 })
 
+export const receiveDonationOfferResponseDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const ReceiveDonationOfferResponse = zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(receiveDonationOfferResponseDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -966,10 +970,14 @@ export const ListItemsQueryParams = zod.object({
   "search": zod.coerce.string().optional()
 })
 
+export const listItemsResponseDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const ListItemsResponseItem = zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(listItemsResponseDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1014,10 +1022,14 @@ export const CreateItemBody = zod.object({
   "powerConnectionReading": zod.string().optional()
 })
 
+export const createItemResponseDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const CreateItemResponse = zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(createItemResponseDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1045,10 +1057,14 @@ export const GetItemParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const getItemResponseOneDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const GetItemResponse = zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(getItemResponseOneDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1111,10 +1127,14 @@ export const UpdateItemBody = zod.object({
   "powerConnectionReading": zod.string().optional()
 })
 
+export const updateItemResponseDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const UpdateItemResponse = zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(updateItemResponseDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1162,10 +1182,14 @@ export const AdvanceItemStageBody = zod.object({
   "reason": zod.string().min(1).optional()
 })
 
+export const advanceItemStageResponseDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const AdvanceItemStageResponse = zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(advanceItemStageResponseDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1189,11 +1213,18 @@ export const AdvanceItemStageResponse = zod.object({
 /**
  * @summary List items with expiry urgency
  */
+export const listExpiringItemsResponseExpiredItemOneDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+export const listExpiringItemsResponseCriticalItemOneDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+export const listExpiringItemsResponseWarningItemOneDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+export const listExpiringItemsResponseWatchItemOneDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const ListExpiringItemsResponse = zod.object({
   "expired": zod.array(zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(listExpiringItemsResponseExpiredItemOneDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1218,7 +1249,8 @@ export const ListExpiringItemsResponse = zod.object({
   "critical": zod.array(zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(listExpiringItemsResponseCriticalItemOneDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1243,7 +1275,8 @@ export const ListExpiringItemsResponse = zod.object({
   "warning": zod.array(zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(listExpiringItemsResponseWarningItemOneDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1268,7 +1301,8 @@ export const ListExpiringItemsResponse = zod.object({
   "watch": zod.array(zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(listExpiringItemsResponseWatchItemOneDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1345,6 +1379,9 @@ export const GetDonorParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const getDonorResponseTwoItemsItemDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const GetDonorResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1359,7 +1396,8 @@ export const GetDonorResponse = zod.object({
   "items": zod.array(zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(getDonorResponseTwoItemsItemDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1384,6 +1422,9 @@ export const GetDonorResponse = zod.object({
 /**
  * @summary Dashboard summary data
  */
+export const getDashboardResponseRecentItemsItemDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const GetDashboardResponse = zod.object({
   "refreshedAt": zod.coerce.date(),
   "totalActiveItems": zod.number(),
@@ -1398,7 +1439,8 @@ export const GetDashboardResponse = zod.object({
   "recentItems": zod.array(zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(getDashboardResponseRecentItemsItemDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -1603,6 +1645,9 @@ export const GetRouteParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const getRouteResponseTwoStopsItemItemOneDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const GetRouteResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1620,7 +1665,8 @@ export const GetRouteResponse = zod.object({
   "item": zod.union([zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(getRouteResponseTwoStopsItemItemOneDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
@@ -2137,6 +2183,9 @@ export const CompletePickupBody = zod.object({
   "notes": zod.string().optional()
 })
 
+export const completePickupResponseItemDsNumberRegExp = new RegExp('^[1-9][0-9]*$');
+
+
 export const CompletePickupResponse = zod.object({
   "pickup": zod.object({
   "id": zod.string(),
@@ -2188,7 +2237,8 @@ export const CompletePickupResponse = zod.object({
   "item": zod.object({
   "receivingAgentId": zod.string().nullish(),
   "id": zod.string(),
-  "itemId": zod.string().describe('Human-readable ID in format DS-XXXX'),
+  "itemId": zod.string().describe('Preserved human-readable identifier; canonical DS numbers are padded to at least four digits.'),
+  "dsNumber": zod.string().regex(completePickupResponseItemDsNumberRegExp).nullish().describe('Canonical DS bigint as an exact decimal string; null for legacy or external identifiers.'),
   "name": zod.string(),
   "category": zod.string(),
   "tier": zod.enum(['T', 'I', 'E', 'R']).describe('T=Time, I=Intelligence, E=Energy, R=Resources'),
