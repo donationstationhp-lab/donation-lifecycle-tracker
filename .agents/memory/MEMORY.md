@@ -3,3 +3,4 @@
 - [Google Sheets append serialization](google-sheets-append-serialization.md) — use a database-backed single writer because concurrent table-boundary discovery can overwrite rows.
 - [Outbox retry lease fencing](outbox-retry-lease-fencing.md) — retry claims and external delivery must share a lock and use claim tokens to prevent stale workers from duplicating sends.
 - [PostgreSQL error unwrapping](postgres-error-unwrapping.md) — Drizzle query failures may wrap PostgreSQL codes; inspect nested causes before mapping expected conflicts.
+- ["ATTEND" naming is not a retired system](attend-naming.md) — "ATTEND" names this app's own Google Sheets notification outbox, not a legacy predecessor system with data to migrate.
