@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import test, { after } from "node:test";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { db, donationItemsTable, pool, trackingCountersTable } from "@workspace/db";
+import { db, donationItemsTable, pool, itemIdCountersTable } from "@workspace/db";
 import { allocateItemDsId, generateProvisionalItemId } from "./itemIdentity";
 
 const COUNTER_NAME = "item_ds";
 
 async function resetCounter(): Promise<void> {
-  await db.delete(trackingCountersTable).where(eq(trackingCountersTable.name, COUNTER_NAME));
+  await db.delete(itemIdCountersTable).where(eq(itemIdCountersTable.name, COUNTER_NAME));
 }
 
 test("allocateItemDsId hands out distinct, sequential ids under concurrency", async () => {
@@ -54,7 +54,7 @@ test("generateProvisionalItemId never touches the DS- counter", async () => {
   await resetCounter();
   const provisional = generateProvisionalItemId();
   assert.match(provisional, /^P-[0-9A-F]{8}$/);
-  const rows = await db.select().from(trackingCountersTable).where(eq(trackingCountersTable.name, COUNTER_NAME));
+  const rows = await db.select().from(itemIdCountersTable).where(eq(itemIdCountersTable.name, COUNTER_NAME));
   assert.equal(rows.length, 0, "a provisional id must never allocate from the DS- counter");
 });
 

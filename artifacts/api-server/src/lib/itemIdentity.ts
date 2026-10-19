@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
-import { db, donationItemsTable, trackingCountersTable } from "@workspace/db";
+import { db, donationItemsTable, itemIdCountersTable } from "@workspace/db";
 
 // Shared DS-#### item id allocator for every intake path (staff form,
 // pickup completion, approved public donations). Replaces the three
@@ -21,13 +21,13 @@ function formatDsId(num: number): string {
 
 async function incrementDsCounter(tx: Transaction): Promise<number> {
   const [row] = await tx
-    .insert(trackingCountersTable)
+    .insert(itemIdCountersTable)
     .values({ name: ITEM_DS_COUNTER, value: ITEM_DS_SEED + 1 })
     .onConflictDoUpdate({
-      target: trackingCountersTable.name,
-      set: { value: sql`${trackingCountersTable.value} + 1` },
+      target: itemIdCountersTable.name,
+      set: { value: sql`${itemIdCountersTable.value} + 1` },
     })
-    .returning({ value: trackingCountersTable.value });
+    .returning({ value: itemIdCountersTable.value });
   return row.value;
 }
 
