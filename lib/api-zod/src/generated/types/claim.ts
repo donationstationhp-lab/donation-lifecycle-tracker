@@ -9,6 +9,8 @@ import type { ClaimStatus } from './claimStatus';
 
 export interface Claim {
   id: string;
+  /** Public DSC-###### tracking code, assigned at creation. */
+  trackingCode: string;
   accountId: string;
   itemId: string;
   status: ClaimStatus;

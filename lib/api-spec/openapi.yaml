@@ -962,9 +962,10 @@ components:
         type: { type: string }
     Claim:
       type: object
-      required: [id, accountId, itemId, status, submittedBy, createdAt, updatedAt]
+      required: [id, trackingCode, accountId, itemId, status, submittedBy, createdAt, updatedAt]
       properties:
         id: { type: string }
+        trackingCode: { type: string, description: "Public DSC-###### tracking code, assigned at creation." }
         accountId: { type: string }
         itemId: { type: string }
         status: { type: string, enum: [submitted, verified, approved, fulfilled, rejected, cancelled] }

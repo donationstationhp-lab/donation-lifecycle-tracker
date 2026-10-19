@@ -39,6 +39,7 @@ import { and, eq, ilike, like } from "drizzle-orm";
 import {
   db,
   pool,
+  allocateClaimTrackingCode,
   claimsTable,
   claimEvidenceTable,
   claimHistoryTable,
@@ -244,8 +245,10 @@ async function migrateRecord(
     .join(" ");
 
   await db.transaction(async (tx) => {
+    const trackingCode = await allocateClaimTrackingCode(tx);
     await tx.insert(claimsTable).values({
       id: claimId,
+      trackingCode,
       accountId: account.id,
       itemId: item.id,
       status: resolution.target,

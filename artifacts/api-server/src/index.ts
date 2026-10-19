@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startAttendOutboxRetryWorker } from "./lib/attendSheets";
+import { initializeClaimTrackingCodes } from "@workspace/db";
 
 const rawPort = process.env["PORT"];
 
@@ -16,12 +17,24 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
+async function start(): Promise<void> {
+  const assigned = await initializeClaimTrackingCodes();
+  if (assigned.length > 0) {
+    logger.info({ assignedClaimTrackingCodes: assigned.length }, "Assigned missing claim tracking codes");
   }
 
-  logger.info({ port }, "Server listening");
-  startAttendOutboxRetryWorker();
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
+
+    logger.info({ port }, "Server listening");
+    startAttendOutboxRetryWorker();
+  });
+}
+
+start().catch((err) => {
+  logger.error({ err }, "API startup failed");
+  process.exit(1);
 });
