@@ -45,3 +45,16 @@ the viewer owns a claim, appointment, donation, or account.
 **How to apply:** Keep all operational dashboard routes behind the staff gate.
 Before exposing an individual's private history, establish verified identity,
 explicit record ownership, and server-side filtering for every returned record.
+
+Any first-supervisor bootstrap must be restricted to the published Production
+runtime, require a single-use high-entropy token, and use an advisory-locked
+transaction that refuses if a supervisor or prior bootstrap already exists.
+It may insert only the staff user, must audit success without logging identity
+or credentials, and must force a password change before allowing staff tools.
+
+**Why:** The owner requires Production staff provisioning to stay separate from
+Development accounts and sessions, with no password in command lines or chat.
+
+**How to apply:** Keep the Production email, initial password, and one-time token
+in environment secrets; never run this bootstrap from a workspace shell or
+copy Development users/sessions. Apply and review the schema before invoking it.

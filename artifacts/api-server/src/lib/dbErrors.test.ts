@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isUniqueViolation } from "./dbErrors";
+import { isMissingColumn, isUniqueViolation } from "./dbErrors";
 
 test("recognizes a direct PostgreSQL uniqueness error", () => {
   assert.equal(isUniqueViolation({ code: "23505" }), true);
@@ -54,4 +54,20 @@ test("stops at circular causes", () => {
   const error: { code?: string; cause?: unknown } = {};
   error.cause = error;
   assert.equal(isUniqueViolation(error), false);
+});
+
+test("recognizes missing PostgreSQL columns through wrapped database errors", () => {
+  const error = new Error("query failed", {
+    cause: { code: "42703", column: "must_change_password" },
+  });
+  assert.equal(isMissingColumn(error, "must_change_password"), true);
+  assert.equal(isMissingColumn(error, "bootstrap_token_used_at"), false);
+  assert.equal(isMissingColumn({ code: "23505", column: "must_change_password" }), false);
+  assert.equal(
+    isMissingColumn(
+      { code: "42703", message: 'column staff_users.must_change_password does not exist' },
+      "must_change_password",
+    ),
+    true,
+  );
 });
