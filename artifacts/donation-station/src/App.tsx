@@ -11,6 +11,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Shell } from "@/components/layout/Shell";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import Login from "@/pages/Login";
+import PasswordChange from "@/pages/PasswordChange";
 import Dashboard from "@/pages/Dashboard";
 import DashboardBridging from "@/pages/DashboardBridging";
 import DashboardGaining from "@/pages/DashboardGaining";
@@ -133,6 +134,7 @@ function StaffAuthGate({ children }: { children: ReactNode }) {
     );
   }
   if (!user) return null;
+  if (user.mustChangePassword) return <PasswordChange />;
   return <>{children}</>;
 }
 

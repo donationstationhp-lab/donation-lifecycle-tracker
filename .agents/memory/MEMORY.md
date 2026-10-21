@@ -1,5 +1,5 @@
 - [Pickup lifecycle safety](pickup-lifecycle-safety.md) — Server-side transitions keep verification, route stops, flags, and intake records consistent.
-- [Staff authorization roles](staff-authorization-roles.md) — Clerk accounts require an assigned staff role; supervisor actions stay server-enforced.
+- [Staff authorization roles](staff-authorization-roles.md) — staff roles stay server-enforced; first-supervisor bootstrap is one-time and Production-only.
 - [Workspace build defaults](workspace-build-defaults.md) — Vite configs need safe static-build defaults while still honoring workflow environment values.
 - [Google Sheets append serialization](google-sheets-append-serialization.md) — use a database-backed single writer because concurrent table-boundary discovery can overwrite rows.
 - [Outbox retry lease fencing](outbox-retry-lease-fencing.md) — retry claims and external delivery must share a lock and use claim tokens to prevent stale workers from duplicating sends.

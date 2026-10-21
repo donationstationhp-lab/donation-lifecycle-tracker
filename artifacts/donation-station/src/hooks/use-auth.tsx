@@ -5,6 +5,7 @@ interface StaffUser {
   email: string;
   name: string;
   role: 'staff' | 'supervisor';
+  mustChangePassword: boolean;
 }
 
 interface LoginResult {
@@ -16,6 +17,7 @@ interface AuthContextValue {
   user: StaffUser | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
 }
 
@@ -67,13 +69,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   }
 
+  async function changePassword(currentPassword: string, newPassword: string): Promise<LoginResult> {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      return { ok: false, error: data?.error ?? 'Unable to change your password.' };
+    }
+
+    const authenticated = await res.json();
+    setUser(authenticated);
+    return { ok: true };
+  }
+
   async function logout(): Promise<void> {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, changePassword, logout }}>
       {children}
     </AuthContext.Provider>
   );

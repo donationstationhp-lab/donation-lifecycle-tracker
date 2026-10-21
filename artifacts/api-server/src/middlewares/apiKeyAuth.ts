@@ -78,8 +78,15 @@ export function createApiKeyAuth({
     if (sessionToken) {
       try {
         const user = await getSessionUser(sessionToken);
-        if (user) {
-          const role = (user.role as StaffRole) ?? "staff";
+        if (user && (user.role === "staff" || user.role === "supervisor")) {
+          if (user.mustChangePassword) {
+            res.status(403).json({
+              error: "Change your password before accessing staff tools.",
+              code: "PASSWORD_CHANGE_REQUIRED",
+            });
+            return;
+          }
+          const role = user.role;
           res.locals.staffRole = role;
           res.locals.userRole = role;
           res.locals.authMethod = "session";
