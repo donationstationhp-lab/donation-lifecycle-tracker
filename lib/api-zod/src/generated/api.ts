@@ -1476,6 +1476,7 @@ export const ListClaimsQueryParams = zod.object({
 
 export const ListClaimsResponseItem = zod.object({
   "id": zod.string(),
+  "trackingCode": zod.string().describe('Public DSC-###### tracking code, assigned at creation.'),
   "accountId": zod.string(),
   "itemId": zod.string(),
   "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
@@ -1496,6 +1497,7 @@ export const CreateClaimBody = zod.object({
 
 export const CreateClaimResponse = zod.object({
   "id": zod.string(),
+  "trackingCode": zod.string().describe('Public DSC-###### tracking code, assigned at creation.'),
   "accountId": zod.string(),
   "itemId": zod.string(),
   "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
@@ -1538,6 +1540,7 @@ export const GetClaimParams = zod.object({
 
 export const GetClaimResponse = zod.object({
   "id": zod.string(),
+  "trackingCode": zod.string().describe('Public DSC-###### tracking code, assigned at creation.'),
   "accountId": zod.string(),
   "itemId": zod.string(),
   "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),
@@ -1590,6 +1593,7 @@ export const TransitionClaimBody = zod.object({
 
 export const TransitionClaimResponse = zod.object({
   "id": zod.string(),
+  "trackingCode": zod.string().describe('Public DSC-###### tracking code, assigned at creation.'),
   "accountId": zod.string(),
   "itemId": zod.string(),
   "status": zod.enum(['submitted', 'verified', 'approved', 'fulfilled', 'rejected', 'cancelled']),

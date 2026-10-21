@@ -83,6 +83,7 @@ async function createFixture(): Promise<Fixture> {
   });
   await db.insert(claimsTable).values({
     id: fixture.claimId,
+    trackingCode: `DS-CONCURRENCY-${suffix}`,
     accountId: fixture.accountId,
     itemId: fixture.itemId,
     status: "approved",

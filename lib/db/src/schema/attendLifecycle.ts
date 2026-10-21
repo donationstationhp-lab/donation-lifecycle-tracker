@@ -37,11 +37,10 @@ export const claimsTable = pgTable(
   "claims",
   {
     id: text("id").primaryKey(),
-    // Nullable: ported from the live Replit workspace schema, which backfills
-    // this for pre-existing rows via allocateClaimTrackingCode (trackingCodes.ts)
-    // rather than a NOT NULL default. New claims should get one assigned at
-    // creation once that allocator is wired up on this side.
-    trackingCode: text("tracking_code"),
+    // Assigned by allocateClaimTrackingCode (trackingCodes.ts) at creation;
+    // see initializeClaimTrackingCodes / ensureClaimTrackingCodes for
+    // backfilling pre-existing rows before this NOT NULL push is applied.
+    trackingCode: text("tracking_code").notNull(),
     accountId: text("account_id").notNull().references(() => recipientAccountsTable.id),
     itemId: text("item_id").notNull().references(() => donationItemsTable.id),
     status: text("status").notNull().default("submitted"),
