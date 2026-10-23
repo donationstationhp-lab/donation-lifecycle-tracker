@@ -1,7 +1,7 @@
 import { BarChart3, CheckCircle2, Clock3, Package, Truck } from "lucide-react";
 import {
+  getGetPublicImpactSummaryQueryKey,
   useGetPublicImpactSummary,
-  type PublicImpactSummary,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,8 +52,9 @@ function formatFulfillmentTime(hours: number | null): string {
 }
 
 export default function ImpactSummary() {
-  const { data, isLoading, isError } = useGetPublicImpactSummary<PublicImpactSummary>({
+  const { data, isLoading, isError } = useGetPublicImpactSummary({
     query: {
+      queryKey: getGetPublicImpactSummaryQueryKey(),
       staleTime: 60_000,
     },
   });
