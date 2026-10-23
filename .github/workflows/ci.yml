@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  typecheck:
+  typecheck-and-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,8 +24,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm run typecheck
+      - name: Typecheck and build
+        run: pnpm run build
 
       # The test suite needs a provisioned Postgres database
       # (DATABASE_URL) that this workflow doesn't set up yet, so unit
