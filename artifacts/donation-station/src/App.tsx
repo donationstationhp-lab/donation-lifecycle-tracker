@@ -41,6 +41,7 @@ import PublicResources from "@/pages/PublicResources";
 import PublicTrack from "@/pages/PublicTrack";
 import PublicPrivacy from "@/pages/PublicPrivacy";
 import PublicTerms from "@/pages/PublicTerms";
+import ImpactSummary from "@/pages/ImpactSummary";
 import Schedule from "@/pages/Schedule";
 import CommunityHistory from "@/pages/CommunityHistory";
 import CommunityOwnershipPage from "@/pages/CommunityOwnership";
@@ -242,6 +243,9 @@ function Router() {
       </Route>
       <Route path="/volunteer">
         <PublicPage><Schedule mode="volunteer" /></PublicPage>
+      </Route>
+      <Route path="/impact">
+        <PublicPage><ImpactSummary /></PublicPage>
       </Route>
       <Route path="/privacy">
         <PublicPage><PublicPrivacy /></PublicPage>

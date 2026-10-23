@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Package, Heart, CalendarDays, Users, HelpCircle, Menu, X, Globe } from "lucide-react";
+import { Package, Heart, CalendarDays, Users, HelpCircle, BarChart3, Menu, X, Globe } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/donate", label: "Donate", icon: Heart },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/volunteer", label: "Volunteer", icon: Users },
+  { href: "/impact", label: "Impact", icon: BarChart3 },
   { href: "/faq", label: "FAQ", icon: HelpCircle },
 ];
 
