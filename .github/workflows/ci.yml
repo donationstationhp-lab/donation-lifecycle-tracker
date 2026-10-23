@@ -3,21 +3,22 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  typecheck-and-build:
+  typecheck-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.33.0
+          version: 9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           cache: pnpm
 
       - name: Install dependencies
@@ -26,11 +27,5 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Build
-        run: pnpm run build
-        env:
-          # Required by the Vite configs in artifacts/donation-station and
-          # artifacts/mockup-sandbox; not meaningful at build time beyond
-          # satisfying their startup checks.
-          PORT: "3000"
-          BASE_PATH: "/"
+      - name: Test
+        run: pnpm -r --if-present run test
