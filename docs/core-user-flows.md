@@ -69,11 +69,13 @@ The 7 lifecycle stages:
   claim lookup using a `DSC-` claim tracking code plus a one-time code
   texted to the phone (held in an inactive state pending Twilio SMS
   approval).
-- **Staff Dashboard (7-Stage Kanban & Pipeline Table)** — operational
-  command center tracking items across all 7 stages (Received, Quality
-  Check, Ready for Matching, Matched, Distribution Scheduled,
-  Distributed, Completed). Includes staff-only allocation controls to
-  match inventory with recipients.
+- **Staff Dashboard (7-Stage Pipeline Table)** — operational command
+  center tracking items across all 7 stages (Received, Quality Check,
+  Ready for Matching, Matched, Distribution Scheduled, Distributed,
+  Completed). Includes staff-only allocation controls to match inventory
+  with recipients. Today this is a set of metrics/summary views, not a
+  drag-and-drop Kanban board. **(New Feature: Kanban-style drag-and-drop
+  staging.)**
 - **Field Driver App / Route Manifest** — driver view featuring strict
   pre-dispatch verification checks, address validation, contact attempt
   logs, single weight entry, and item intake.
