@@ -12,6 +12,7 @@ import locationsRouter from "./locations";
 import cliExtrasRouter from "./cliExtras";
 import pickupsRouter from "./pickups";
 import attendRouter from "./attend";
+import stripeWebhookRouter from "./stripeWebhook";
 
 const router: IRouter = Router();
 
@@ -21,6 +22,7 @@ router.use(healthRouter);   // /healthz  /health
 router.use(publicRoutes);   // /public/donate
 router.use(authRouter);     // /auth/login  /auth/logout  /auth/me (self-checking)
 router.use(notionHealthRouter); // /notion/health
+router.use(stripeWebhookRouter); // /webhooks/stripe (Stripe-signature auth)
 
 // ── Auth gate ────────────────────────────────────────────────────────────────
 // Accepts either a valid X-API-Key (CLI/automation) or a signed-in staff session.

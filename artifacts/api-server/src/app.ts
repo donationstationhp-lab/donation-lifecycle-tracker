@@ -28,6 +28,8 @@ app.use(
 );
 app.use(cors());
 app.use(cookieParser());
+// Stripe signs the raw body, so the webhook must see it before JSON parsing.
+app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
